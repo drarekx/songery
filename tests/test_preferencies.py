@@ -39,3 +39,10 @@ def test_api_i_editor(client):
     id_canconer = basedades.crea_canconer("Prova")
     html = client.get(f"/canconer/{id_canconer}").get_data(as_text=True)
     assert "--ample-propietats: 500px" in html and 'id="preferencies"' in html
+
+
+def test_zoom_pestanya_i_columna_esquerra():
+    r = preferencies.desa({"editor.zoom": 1.375, "editor.pestanya": "capes", "editor.ampleLlista": 300})
+    assert (r["editor.zoom"], r["editor.pestanya"], r["editor.ampleLlista"]) == (1.375, "capes", 300)
+    r = preferencies.desa({"editor.zoom": True, "editor.pestanya": "res", "editor.ampleLlista": 900})
+    assert (r["editor.zoom"], r["editor.pestanya"], r["editor.ampleLlista"]) == (1.375, "capes", 300)

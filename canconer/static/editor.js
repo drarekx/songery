@@ -7,7 +7,7 @@ import {
   reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore,
+  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore, usePreferencies,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
@@ -27,7 +27,7 @@ let pagines = []; // pàgines que s'editen (models)
 let canco = null; // esborrany de la cançó oberta {id, titol, autor, contingut}
 let editable = true;
 let seleccio = null; // {p: índex de pàgina, id: element principal, ids: tots els seleccionats}
-let zoom = 1; // 1 = ajustat a la finestra
+let zoom = 1; // 1 = ajustat a la finestra (el valor recordat es posa en muntar l'editor)
 let escala = 1; // escala real aplicada a les pàgines
 let edicio = null; // edició de text en curs: {tipus: "lletra"|"text", p, id, node, editor}
 let TIPOGRAFIES = dades.fonts; // [{clau, nom, categoria, css}]
@@ -350,10 +350,17 @@ muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
 muntaPanellCapes("#panell-capes");
 muntaPanellPropietats("#panell-propietats");
-// La columna de la dreta es pot fer més ampla o més estreta; l'amplada es recorda (preferències).
+// Les columnes de la dreta i de l'esquerra es poden fer més amples o més estretes; l'amplada, el
+// zoom i la pestanya oberta es recorden (preferències de l'usuari).
+const preferencies = usePreferencies(pinia);
+zoom = preferencies.llegeix("editor.zoom", 1);
 muntaRedimensionaPanell("#redimensiona-props", {
   objectiu: "#editor", variable: "--ample-propietats", clau: "editor.amplePropietats",
   minim: 260, maxim: 720, perDefecte: 320, alAcabar: () => pintaLlenc(),
+});
+muntaRedimensionaPanell("#redimensiona-llista", {
+  objectiu: "#editor", variable: "--ample-llista", clau: "editor.ampleLlista", columna: "esquerra",
+  minim: 200, maxim: 480, perDefecte: 256, alAcabar: () => pintaLlenc(),
 });
 
 // Diagrames d'acords (SVG) per als elements «diagrama» i «tots els acords»: els genera el servidor,
@@ -939,7 +946,7 @@ function posaZoom(z, focus = null, { anima = false } = {}) {
   const contingut = llenc.firstElementChild;
   if (!contingut || obert?.tipus === "llibre") {
     clearTimeout(posaZoom.t);
-    posaZoom.t = setTimeout(pintaLlenc, 60);
+    posaZoom.t = setTimeout(() => { preferencies.posa("editor.zoom", Math.round(zoom * 1000) / 1000); pintaLlenc(); }, 60);
     return;
   }
   if (!posaZoom.gest) {
@@ -974,7 +981,8 @@ function posaZoom(z, focus = null, { anima = false } = {}) {
     }
     posaZoom.pintant = true;
     try {
-      await pintaLlenc(); // el contingut nou ja no porta la transformació
+      preferencies.posa("editor.zoom", Math.round(zoom * 1000) / 1000);
+    await pintaLlenc(); // el contingut nou ja no porta la transformació
       // Desplaça perquè la primera fila quedi just on la deixava la vista prèvia.
       const fila = llenc.firstElementChild?.firstElementChild?.getBoundingClientRect();
       if (fila) {
@@ -2081,7 +2089,10 @@ function desaSeleccioABiblioteca(quin) {
 }
 
 // Pestanyes del panell dret
-$$("[data-pestanya]").forEach((b) => b.addEventListener("click", () => mostraPestanya(b.dataset.pestanya)));
+$$("[data-pestanya]").forEach((b) => b.addEventListener("click", () => {
+  mostraPestanya(b.dataset.pestanya);
+  preferencies.posa("editor.pestanya", b.dataset.pestanya);
+}));
 function mostraPestanya(nom) {
   $$("[data-pestanya]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.pestanya === nom)));
   $$("[data-panell-pestanya]").forEach((s) => {
@@ -2816,3 +2827,5 @@ if (dades.especial && K.especials[dades.especial]) await obre({ tipus: "especial
 else if (K.cancons.some((c) => c.id === dades.actual)) await obre({ tipus: "canco", id: dades.actual });
 else if (K.cancons.length) await obre({ tipus: "canco", id: K.cancons[0].id });
 else await obre({ tipus: "especial", id: "portada" });
+// La pestanya de la dreta que hi havia oberta l'última vegada.
+if (preferencies.llegeix("editor.pestanya", "propietats") !== "propietats") mostraPestanya(preferencies.llegeix("editor.pestanya"));

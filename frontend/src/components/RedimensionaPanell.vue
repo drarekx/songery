@@ -15,6 +15,9 @@ const props = defineProps({
   maxim: { type: Number, default: 720 },
   perDefecte: { type: Number, default: 320 },
   alAcabar: { type: Function, default: null }, // en deixar d'arrossegar (p. ex. redibuixar)
+  /** On és la columna respecte de la nansa: "dreta" (la nansa és a la seva vora esquerra) o
+   *  "esquerra" (a la seva vora dreta: arrossegant cap a la dreta, es fa més ampla). */
+  columna: { type: String, default: "dreta" },
 });
 
 const preferencies = usePreferencies();
@@ -46,7 +49,8 @@ function baixa(ev) {
 
 function mou(ev) {
   if (!inici) return;
-  aplica(inici.ample + (inici.x - ev.clientX)); // la columna és a la dreta: cap a l'esquerra, més ampla
+  const dx = ev.clientX - inici.x;
+  aplica(inici.ample + (props.columna === "dreta" ? -dx : dx)); // cap a fora de la columna, més ampla
 }
 
 function deixa() {
@@ -58,7 +62,7 @@ function deixa() {
 }
 
 function teclat(ev) {
-  const pas = ev.shiftKey ? 64 : 16;
+  const pas = (ev.shiftKey ? 64 : 16) * (props.columna === "dreta" ? 1 : -1);
   if (ev.key === "ArrowLeft") aplica(ample.value + pas);
   else if (ev.key === "ArrowRight") aplica(ample.value - pas);
   else if (ev.key === "Home") aplica(props.maxim);

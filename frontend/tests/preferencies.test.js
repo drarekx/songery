@@ -64,4 +64,16 @@ describe("RedimensionaPanell", () => {
     expect(usePreferencies().valors["editor.amplePropietats"]).toBeNull();
     w.unmount();
   });
+
+  it("per a una columna de l'esquerra, arrossegant cap a la dreta la fa més ampla", async () => {
+    const w = munta({ clau: "editor.ampleLlista", minim: 200, maxim: 480, perDefecte: 256, columna: "esquerra" });
+    const nansa = w.find(".nansa-columna");
+    await nansa.trigger("pointerdown", { button: 0, clientX: 300 });
+    await nansa.trigger("pointermove", { clientX: 350 });
+    await nansa.trigger("pointerup", { clientX: 350 });
+    expect(ample()).toBe("306px");
+    await nansa.trigger("keydown", { key: "ArrowRight" });
+    expect(ample()).toBe("322px");
+    w.unmount();
+  });
 });

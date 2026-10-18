@@ -2,8 +2,8 @@
 {% block titol %}{{ c.titol }} · Editor{% endblock %}
 {% block classe_body %}flex h-dvh flex-col overflow-hidden{% endblock %}
 {% block classe_capcalera %}{% endblock %}
-{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_var(--ample-propietats)] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
-{% block atributs_main %}id="editor" style="--ample-propietats: {{ (preferencies | default({}, true)).get('editor.amplePropietats', 320) }}px"{% endblock %}
+{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[var(--ample-llista)_minmax(0,1fr)_var(--ample-propietats)] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
+{% block atributs_main %}id="editor" style="--ample-propietats: {{ (preferencies | default({}, true)).get('editor.amplePropietats', 320) }}px; --ample-llista: {{ (preferencies | default({}, true)).get('editor.ampleLlista', 256) }}px"{% endblock %}
 
 {% block accions %}
 <span id="estat" role="status" data-tipus="ok"
@@ -21,6 +21,7 @@
 {# ================================================================ Llenç #}
 <section id="panell-llenc" data-panell data-visible="true"
          class="relative flex min-h-0 w-full min-w-0 flex-col bg-taula max-lg:hidden max-lg:data-[visible=true]:flex">
+  <div id="redimensiona-llista"></div>
   {# Barra d'eines general #}
   <div id="barra-llenc"></div>
 

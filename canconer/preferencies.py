@@ -20,6 +20,12 @@ FITXER = "preferencies.json"
 PREFERENCIES = {
     # Amplada (px) de la columna de la dreta de l'editor (propietats, capes, cançó...).
     "editor.amplePropietats": (320, lambda v: isinstance(v, int) and 260 <= v <= 720),
+    # Amplada (px) de la columna de l'esquerra de l'editor (llibret, cançons, mestres).
+    "editor.ampleLlista": (256, lambda v: isinstance(v, int) and 200 <= v <= 480),
+    # Zoom del llenç (1 = la doble pàgina ajustada a la finestra).
+    "editor.zoom": (1, lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and 0.3 <= v <= 4),
+    # Pestanya oberta de la columna de la dreta.
+    "editor.pestanya": ("propietats", lambda v: v in ("propietats", "capes", "canco", "estils", "biblioteca")),
 }
 
 _bloqueig = threading.Lock()
