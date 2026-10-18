@@ -4,7 +4,7 @@ Esquema:
   doc       → bloc*
   bloc      → linia | seccio | nota | imatge
   linia     → (text | acord)*           una línia de lletra; una línia buida separa estrofes
-  seccio    → text*                     etiqueta de secció: Intro, Chorus, Verse 1...
+  seccio    → text*                     etiqueta de secció: Intro, Tornada, Estrofa 1...
   nota      → text*                     indicació en petit: «x2», «només veus»...
   imatge    → (atom) attrs: src (id), posicio (esquerra|dreta|centre), amplada (% de l'amplada útil)
   acord     → (atom en línia) attrs: nom. S'ancora al caràcter que el segueix.
@@ -23,6 +23,26 @@ from . import parser
 
 TIPUS_BLOCS = {"linia", "seccio", "nota", "imatge"}
 MARQUES = {"tonica", "bold", "italic", "cor"}
+
+
+# Etiquetes de secció habituals a les webs d'acords (en anglès o castellà) → en català.
+SECCIONS_CATALA = {
+    "verse": "Estrofa", "verso": "Estrofa", "estrofa": "Estrofa",
+    "chorus": "Tornada", "coro": "Tornada", "estribillo": "Tornada", "refrain": "Tornada", "hook": "Tornada",
+    "pre-chorus": "Pre-tornada", "prechorus": "Pre-tornada", "pre chorus": "Pre-tornada", "pre-coro": "Pre-tornada",
+    "post-chorus": "Post-tornada", "bridge": "Pont", "puente": "Pont",
+    "intro": "Intro", "outro": "Final", "final": "Final", "ending": "Final", "coda": "Coda",
+    "interlude": "Interludi", "interludio": "Interludi", "instrumental": "Instrumental", "solo": "Solo",
+}
+
+
+def etiqueta_catalana(etiqueta: str) -> str:
+    """«Verse 1» → «Estrofa 1», «Chorus» → «Tornada»... Les que no es coneixen queden igual."""
+    m = re.match(r"^\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ -]*?)\s*(\d+|[IVX]+)?\s*:?\s*$", etiqueta)
+    if not m:
+        return etiqueta
+    nom = SECCIONS_CATALA.get(m.group(1).lower())
+    return f"{nom} {m.group(2)}" if nom and m.group(2) else nom or etiqueta
 
 
 def buit() -> dict:
@@ -87,7 +107,7 @@ def de_text(text: str) -> dict:
             if blocs and blocs[-1] != {"type": "linia"}:
                 blocs.append({"type": "linia"})
         elif l.tipus == "seccio":
-            etiqueta = l.etiqueta.strip("[]").strip()
+            etiqueta = etiqueta_catalana(l.etiqueta.strip("[]").strip())
             blocs.append({"type": "seccio", "content": [_text(etiqueta)]} if etiqueta else {"type": "seccio"})
             if l.resta_acords:
                 blocs.append(linia_nomes_acords(l.resta))

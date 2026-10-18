@@ -1454,8 +1454,8 @@ function afegeix(element) {
 const NOUS = {
   "nou-lletra": () => ({ tipus: "lletra", x: MARGE, y: 40, w: AMPLE - 2 * MARGE, h: 120, estil: "lletra", ajusta: true, columnes: 1, separacio: 6, doc: { type: "doc", content: [{ type: "linia" }] } }),
   "nou-text": () => ({ tipus: "text", x: 24, y: 24, w: 100, h: 14, text: "Text", estil: "text", alineacio: "left" }),
-  "nou-forma": () => ({ tipus: "forma", forma: "rectangle", x: 34, y: 80, w: 80, h: 50, fons: "#c4321f", radi: 0, vora: "", gruix: 0 }),
-  "nou-elipse": () => ({ tipus: "forma", forma: "elipse", x: 44, y: 75, w: 60, h: 60, fons: "#c4321f", radi: 0, vora: "", gruix: 0 }),
+  "nou-forma": () => ({ tipus: "forma", forma: "rectangle", x: 34, y: 80, w: 80, h: 50, fons: "cmyk(0,0,0,30)", radi: 0, vora: "", gruix: 0 }),
+  "nou-elipse": () => ({ tipus: "forma", forma: "elipse", x: 44, y: 75, w: 60, h: 60, fons: "cmyk(0,0,0,30)", radi: 0, vora: "", gruix: 0 }),
   "nou-numero": () => ({ tipus: "numero", x: 59, y: 197, w: 30, h: 6, estil: "numero", alineacio: "center" }),
   "nou-qr": () => ({ tipus: "qr", x: 105, y: 160, w: 28, h: 33, video: videosCanco()[0]?.id || "", peu: true, color: "cmyk(0,0,0,100)" }),
 };

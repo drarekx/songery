@@ -265,7 +265,25 @@ const Cor = Mark.create({
 
 // ---------------------------------------------------------------- Regles d'entrada i decoracions
 
-/** [G] crea un acord; [Chorus] sol en una línia la converteix en secció. */
+// Etiquetes de secció habituals (en anglès o castellà) → en català (la mateixa taula que document.py).
+const SECCIONS_CATALA = {
+  verse: "Estrofa", verso: "Estrofa", estrofa: "Estrofa",
+  chorus: "Tornada", coro: "Tornada", estribillo: "Tornada", refrain: "Tornada", hook: "Tornada",
+  "pre-chorus": "Pre-tornada", prechorus: "Pre-tornada", "pre chorus": "Pre-tornada", "pre-coro": "Pre-tornada",
+  "post-chorus": "Post-tornada", bridge: "Pont", puente: "Pont",
+  intro: "Intro", outro: "Final", final: "Final", ending: "Final", coda: "Coda",
+  interlude: "Interludi", interludio: "Interludi", instrumental: "Instrumental", solo: "Solo",
+};
+
+/** «Verse 1» → «Estrofa 1», «Chorus» → «Tornada»... Les que no es coneixen queden igual. */
+export function etiquetaCatalana(etiqueta) {
+  const m = /^\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ -]*?)\s*(\d+|[IVX]+)?\s*:?\s*$/.exec(etiqueta);
+  const nom = m && SECCIONS_CATALA[m[1].toLowerCase()];
+  if (!nom) return etiqueta;
+  return m[2] ? `${nom} ${m[2]}` : nom;
+}
+
+/** [G] crea un acord; [Tornada] (o [Chorus]) sol en una línia la converteix en secció. */
 const ReglesMusicals = Extension.create({
   name: "reglesMusicals",
   addInputRules() {
@@ -285,7 +303,7 @@ const ReglesMusicals = Extension.create({
           const despres = state.doc.textBetween(range.to, $from.end());
           if (range.from === inici && !despres.trim()) {
             state.tr.replaceWith(inici - 1, $from.end() + 1,
-              state.schema.nodes.seccio.create(null, state.schema.text(text)));
+              state.schema.nodes.seccio.create(null, state.schema.text(etiquetaCatalana(text))));
             return;
           }
           return null;
@@ -373,9 +391,9 @@ export function creaEditorCanco(element, opcions) {
       UndoRedo, Dropcursor.configure({ color: "#141414", width: 2 }), Gapcursor,
       Placeholder.configure({
         placeholder: ({ node, pos }) => {
-          if (node.type.name === "seccio") return "Nom de la secció (Chorus, Verse 1…)";
+          if (node.type.name === "seccio") return "Nom de la secció (Tornada, Estrofa 1…)";
           if (node.type.name === "nota") return "Nota (x2, només veus…)";
-          return pos === 0 ? "Escriu o enganxa la lletra. Escriu [G] per posar un acord, o [Chorus] per una secció." : "";
+          return pos === 0 ? "Escriu o enganxa la lletra. Escriu [G] per posar un acord, o [Tornada] per una secció." : "";
         },
         showOnlyCurrent: false,
       }),

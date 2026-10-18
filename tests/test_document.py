@@ -38,3 +38,14 @@ def test_acords_i_transport_del_document():
 def test_detecta_text_amb_acords_en_enganxar():
     assert document.sembla_text_amb_acords("G   D\nhola que tal")
     assert not document.sembla_text_amb_acords("A la vora del mar\nhi ha una casa")
+
+
+def test_etiquetes_de_seccio_en_catala():
+    assert document.etiqueta_catalana("Verse 1") == "Estrofa 1"
+    assert document.etiqueta_catalana("CHORUS") == "Tornada"
+    assert document.etiqueta_catalana("Pre-Chorus") == "Pre-tornada"
+    assert document.etiqueta_catalana("Bridge:") == "Pont"
+    assert document.etiqueta_catalana("Estribillo") == "Tornada"
+    assert document.etiqueta_catalana("Final x2") == "Final x2"  # desconeguda: igual
+    doc = document.de_text("[Verse 2]\nG\nla la\n\n[Chorus]\nC\nla")
+    assert [b["content"][0]["text"] for b in doc["content"] if b["type"] == "seccio"] == ["Estrofa 2", "Tornada"]

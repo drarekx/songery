@@ -6,7 +6,7 @@ from . import basedades, document
 
 _ESTROFA = """\
 G           D/F#        Em
-Camino pel sender de la muntanya,
+Pujo pel sender de la muntanya,
 C               G          D
 l'aire fresc del matí em fa companyia,
 G            D/F#         Em
@@ -15,7 +15,7 @@ C           D            G
 i el dia nou comença d'alegria."""
 
 _TORNADA = """\
-[Chorus]
+[Tornada]
 C         D        G      Em
 Canta, canta, que la nit és llarga,
 C         D           G
@@ -23,16 +23,16 @@ canta fins que surti el sol,
 C          D         Em    C
 una cançó que ens abraça i ens empara,
 Am        D          G
-cantem plegats el nostre gol."""
+cantem plegats amb tot el cor."""
 
 
 def cos_llarg(estrofes: int = 4, intro: str = "G  D  Em  C") -> str:
     """Genera un cos de cançó (format de text amb acords a sobre) amb les estrofes que es vulgui."""
     parts = [f"[Intro]\n{intro}"]
     for i in range(estrofes):
-        parts.append(f"[Verse {i + 1}]\n{_ESTROFA}")
+        parts.append(f"[Estrofa {i + 1}]\n{_ESTROFA}")
         parts.append(_TORNADA)
-    parts.append("[Outro]\nC  D  G\nN.C.")
+    parts.append("[Final]\nC  D  G\nN.C.")
     return "\n\n".join(parts)
 
 
