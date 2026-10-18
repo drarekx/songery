@@ -23,6 +23,7 @@ const GRUPS = [
   ],
   [
     { nom: "talla", titol: "Talla aquí: passa la lletra que hi ha després del cursor a la pàgina següent", icona: '<circle cx="5" cy="6" r="2.2"/><circle cx="5" cy="14" r="2.2"/><path d="m7 7 10 7M7 13l10-7"/>' },
+    { nom: "reparteix", titol: "Reparteix: passa a la pàgina següent la lletra que no hi cap, tallant per una estrofa", icona: '<rect x="2.5" y="3" width="6.5" height="14" rx="1"/><rect x="11" y="3" width="6.5" height="14" rx="1"/><path d="M4.5 7h2.5M4.5 10h2.5M13 7h2.5M13 10h1.5"/><path d="M7.5 14h5m-1.5-1.5 1.5 1.5-1.5 1.5" stroke-width="1.4"/>' },
   ],
 ];
 
@@ -45,7 +46,7 @@ const format = (nom) => store.crida("format", nom);
       </button>
     </template>
     <span class="separador" aria-hidden="true"></span>
-    <div class="flex items-center gap-1.5" title="Mida de la lletra de tot el marc">
+    <div class="flex items-center gap-1.5" title="Mida de la lletra de tota la cançó (a totes les pàgines)">
       <span class="text-[12px] font-medium text-vermello-700">Mida</span>
       <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
         <button type="button" class="w-7 rounded-l-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més petita"

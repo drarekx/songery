@@ -298,6 +298,17 @@
   .movent-ma, .movent-ma .capa-elements > .el, .movent-ma .pagina-editor { cursor: grabbing !important; user-select: none; }
   .mode-editor .capa-elements > .el:hover { outline: 1px solid rgb(56 189 248 / 0.9); }
   .mode-editor .marc-lletra.desborda { outline: 2px dashed #c4321f; outline-offset: -1px; }
+  /* Mentre s'edita, es veu també la lletra que no hi cap (per sota del marc), amb una línia on s'acaba */
+  .mode-editor .marc-lletra.editant { overflow: visible; z-index: 5; }
+  .mode-editor .marc-lletra.editant.desborda::after {
+    content: "Fins aquí hi cap · el que hi ha a sota passarà a la pàgina següent amb «Reparteix» o «Talla aquí»";
+    @apply pointer-events-none absolute -left-px -right-px top-full border-t-2 border-dashed border-vermello-500 bg-vermello-50/90 px-1 font-sans text-[8px] font-semibold leading-relaxed text-vermello-700;
+  }
+  /* Fora de l'edició, un avís discret a la cantonada dels marcs que no hi caben */
+  .mode-editor .marc-lletra.desborda:not(.editant)::after {
+    content: "No hi cap · botó dret ▸ Reparteix";
+    @apply pointer-events-none absolute bottom-0 right-0 rounded-tl bg-vermello-500 px-1 font-sans text-[8px] font-semibold leading-relaxed text-white;
+  }
   .mode-editor .qr-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }
   .mode-editor .el-qr[data-petit] { outline: 2px dashed #d97706; outline-offset: 1px; }
   .mode-editor .diagrama-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }

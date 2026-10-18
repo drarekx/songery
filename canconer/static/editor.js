@@ -1072,6 +1072,7 @@ const FORMATS = {
   imatge: () => { $("#fitxer-imatge").dataset.desti = "lletra"; $("#fitxer-imatge").click(); },
   enganxa: () => $("#dialeg-text").showModal(),
   talla: () => tallaAqui(),
+  reparteix: () => edicio && reparteix(edicio.p, edicio.id),
   surt: () => sortEdicio(),
 };
 
@@ -1139,16 +1140,27 @@ function pintaMidaMarc() {
   });
 }
 
+/**
+ * Mida de la lletra (i si s'ajusta perquè hi càpiga) del marc que s'edita. En una cançó, de tots els
+ * seus marcs de lletra: la lletra ha de tenir la mateixa mida a totes les pàgines, i fer-ne gran
+ * només un no serviria de res (l'ajust la igualaria a la dels altres).
+ */
 function canviaMidaMarc(mida, ajusta) {
   if (edicio?.tipus !== "lletra") return;
   const e = elementDe(edicio.p, edicio.id);
+  const marcs = obert?.tipus === "canco"
+    ? pagines.flatMap((pagina, p) => pagina.elements.filter((x) => x.tipus === "lletra").map((x) => [p, x]))
+    : [[edicio.p, e]];
   foto();
-  if (mida !== undefined && Number.isFinite(mida)) {
-    mida = Math.max(5, Math.min(40, Math.round(mida * 2) / 2));
-    e.format = { ...(e.format || {}), mida };
-    edicio.node.style.fontSize = `calc(${mida}pt * var(--escala, 1))`;
+  if (mida !== undefined && Number.isFinite(mida)) mida = Math.max(5, Math.min(40, Math.round(mida * 2) / 2));
+  for (const [p, marc] of marcs) {
+    if (mida !== undefined && Number.isFinite(mida)) {
+      marc.format = { ...(marc.format || {}), mida };
+      const node = nodeElement(p, marc.id);
+      if (node) node.style.fontSize = `calc(${mida}pt * var(--escala, 1))`;
+    }
+    if (ajusta !== undefined) marc.ajusta = ajusta;
   }
-  if (ajusta !== undefined) e.ajusta = ajusta;
   reajusta();
   pintaMidaMarc();
   canviat();
@@ -1165,6 +1177,14 @@ function tallaAqui() {
   const e = elementDe(p, id);
   foto(true);
   e.doc = primera;
+  passaLletraASeguent(p, e, resta.content || []);
+  sortEdicio();
+  canviat({ refesLlenc: true });
+}
+
+/** Posa uns blocs de lletra al principi del primer marc de lletra de la pàgina següent (si no n'hi ha,
+ *  de pàgina o de marc, se'n crea). Torna el marc de destí. */
+function passaLletraASeguent(p, e, blocs) {
   let seguent = pagines[p + 1];
   if (!seguent) {
     seguent = paginaNova(e);
@@ -1175,10 +1195,66 @@ function tallaAqui() {
     desti = { ...copia(e), id: nouId(), doc: { type: "doc", content: [] } };
     seguent.elements.push(desti);
   }
-  desti.doc = { type: "doc", content: [...(resta.content || []), ...(desti.doc.content || [])] };
+  desti.doc = { type: "doc", content: [...blocs, ...(desti.doc.content || []).filter((b, i, tots) => tots.length > 1 || b.content?.length)] };
   if (!desti.doc.content.length) desti.doc.content = [{ type: "linia" }];
-  sortEdicio();
-  canviat({ refesLlenc: true });
+  return desti;
+}
+
+/**
+ * On s'ha de tallar un marc de lletra perquè hi càpiga a la mida triada (sense l'ajust automàtic):
+ * {sobra: primer bloc que no hi cap (-1 si hi cap tot), tall: on tallar}. Es talla a la separació
+ * d'estrofes més propera (una línia buida o una secció), si n'hi ha una a menys de 8 línies enrere.
+ */
+function puntDeTall(node) {
+  const blocs = [...(node?._editor?.view.dom.children || [])];
+  if (!blocs.length) return { sobra: -1, tall: -1 };
+  const escala = node.style.getPropertyValue("--escala");
+  node.style.setProperty("--escala", "1");
+  const marc = node.getBoundingClientRect();
+  const sobra = blocs.findIndex((b) => {
+    const r = b.getBoundingClientRect();
+    return r.height > 0 && (r.bottom > marc.bottom + 1 || r.right > marc.right + 1);
+  });
+  let tall = sobra;
+  for (let k = sobra; k > Math.max(0, sobra - 8); k--) {
+    const anterior = blocs[k - 1];
+    if (blocs[k].matches("h4.seccio") || (anterior.matches("p.linia") && !anterior.textContent.trim())) {
+      tall = k;
+      break;
+    }
+  }
+  node.style.setProperty("--escala", escala);
+  return { sobra, tall };
+}
+
+/** Si la lletra d'un marc no hi cap a la mida triada. */
+const noHiCap = (p, id) => puntDeTall(nodeElement(p, id)).sobra >= 0;
+
+/**
+ * Reparteix la lletra entre pàgines: el que no hi cap passa a la pàgina següent (tallant per una
+ * estrofa), i així successivament mentre no hi càpiga. Si no hi ha pàgina següent, se'n crea.
+ */
+async function reparteix(p, id) {
+  if (obert?.tipus !== "canco" || !editable) return;
+  if (edicio) sortEdicio();
+  foto(true);
+  let passades = 0;
+  for (let marc = elementDe(p, id), q = p; marc && passades < 20; passades++) {
+    const { sobra, tall } = puntDeTall(nodeElement(q, marc.id));
+    if (sobra < 0) break;
+    if (tall <= 0) {
+      avisa("Hi ha un tros de lletra que no hi cap ni sol en una pàgina: fes el marc més gran o la lletra més petita.");
+      break;
+    }
+    const blocs = marc.doc.content || [];
+    marc.doc = { type: "doc", content: blocs.slice(0, tall) };
+    marc = passaLletraASeguent(q, marc, blocs.slice(tall));
+    q += 1;
+    canviat();
+    await pintaLlenc(); // per poder mesurar la pàgina següent
+  }
+  if (!passades) return avisa("Aquesta lletra ja hi cap sencera a la mida triada.");
+  mostraEstat(passades > 1 ? `Lletra repartida en ${passades + 1} pàgines` : "Lletra repartida");
 }
 
 // ------------------------------------------------------------ Popover d'acords
@@ -1451,7 +1527,12 @@ function menuSeleccio() {
   const e = els.length === 1 ? els[0] : null;
   const grup = els.length > 1 && !!els[0].grup && els.every((x) => x.grup === els[0].grup);
   const propies = [];
-  if (e?.tipus === "lletra") propies.push({ text: "Edita la lletra", drecera: "doble clic", fes: () => editaLletra(seleccio.p, e.id) });
+  if (e?.tipus === "lletra") {
+    propies.push({ text: "Edita la lletra", drecera: "doble clic", fes: () => editaLletra(seleccio.p, e.id) });
+    if (obert?.tipus === "canco") {
+      propies.push({ text: "Reparteix la lletra que no hi cap", desactivat: !editable || !noHiCap(seleccio.p, e.id), fes: () => reparteix(seleccio.p, e.id) });
+    }
+  }
   if (e?.tipus === "text") propies.push({ text: "Edita el text", drecera: "doble clic", fes: () => editaText(seleccio.p, e.id, nodeElement(seleccio.p, e.id)) });
   if (e?.tipus === "imatge") propies.push({ text: "Canvia la imatge…", fes: () => { $("#fitxer-imatge").dataset.desti = "substitueix"; $("#fitxer-imatge").click(); } });
   if (e?.grup) propies.push({ text: "Selecciona tot el grup", fes: () => selecciona(seleccio.p, e.id) });
@@ -1751,7 +1832,7 @@ function infoMarc(e) {
   const factor = Number(node?.dataset.escala || 1);
   const mida = (Number(e.format?.mida || K.estils[e.estil || "lletra"]?.mida) || 11) * factor;
   if (node?.classList.contains("desborda")) {
-    return { alerta: true, text: "La lletra no hi cap. Fes el marc més gran, activa l'ajust, afegeix columnes o fes servir «Talla aquí» per passar-ne una part a la pàgina següent." };
+    return { alerta: true, text: "La lletra no hi cap. Fes servir «Reparteix» (botó dret o barra de la lletra) per passar el que sobra a la pàgina següent, o fes el marc més gran, activa l'ajust o afegeix columnes." };
   }
   return { alerta: false, text: factor < 1 ? `Lletra ajustada a ${mida.toFixed(1)} pt perquè hi càpiga.` : `Lletra a ${mida.toFixed(1)} pt.` };
 }

@@ -342,9 +342,11 @@ function desborda(marc) {
  */
 export function ajustaMarcs(arrel, elements) {
   const desbordats = [];
+  const base = new Map(); // mida de la lletra de cada marc sense reduir (px)
   for (const marc of arrel.querySelectorAll(".marc-lletra")) {
     const e = elements?.(marc.dataset.id);
     marc.style.setProperty("--escala", "1");
+    base.set(marc, parseFloat(getComputedStyle(marc).fontSize) || 1);
     if (e?.ajusta !== false && desborda(marc)) {
       // Cerca binària de l'escala més gran que hi cap.
       let baix = ESCALA_MINIMA;
@@ -358,17 +360,20 @@ export function ajustaMarcs(arrel, elements) {
       marc.style.setProperty("--escala", String(Math.floor(baix * 1000) / 1000));
     }
   }
-  // Els marcs d'una mateixa cançó fan servir tots la mateixa mida (la més petita),
-  // perquè la lletra no canviï de mida d'una pàgina a l'altra.
+  // Els marcs d'una mateixa cançó acaben tots amb la mateixa mida de lletra (la més petita de les
+  // que hi caben), perquè no canviï d'una pàgina a l'altra. Es compara la mida final, no el factor:
+  // si un marc té la lletra més gran, el factor d'aquell no ha de fer més petits els altres.
   const grups = new Map();
   for (const marc of arrel.querySelectorAll(".marc-lletra[data-grup]")) {
     if (elements?.(marc.dataset.id)?.ajusta === false) continue;
-    const escala = Number(marc.style.getPropertyValue("--escala")) || 1;
-    grups.set(marc.dataset.grup, Math.min(grups.get(marc.dataset.grup) ?? 1, escala));
+    const final = base.get(marc) * (Number(marc.style.getPropertyValue("--escala")) || 1);
+    grups.set(marc.dataset.grup, Math.min(grups.get(marc.dataset.grup) ?? Infinity, final));
   }
   for (const marc of arrel.querySelectorAll(".marc-lletra")) {
     if (marc.dataset.grup && grups.has(marc.dataset.grup) && elements?.(marc.dataset.id)?.ajusta !== false) {
-      marc.style.setProperty("--escala", String(grups.get(marc.dataset.grup)));
+      // Mai més gran del que és (un marc amb la lletra més petita es queda com està).
+      const escala = Math.min(1, grups.get(marc.dataset.grup) / base.get(marc));
+      marc.style.setProperty("--escala", String(Math.floor(escala * 1000) / 1000));
     }
     const fora = desborda(marc);
     marc.classList.toggle("desborda", fora);
