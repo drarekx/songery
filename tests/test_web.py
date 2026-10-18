@@ -92,16 +92,37 @@ def test_sense_gotenberg_dona_un_error_clar(client, canconer, monkeypatch):
     assert r.status_code == 503 and "docker compose up" in r.get_data(as_text=True)
 
 
+def test_sense_navegador_dona_un_error_clar(client, canconer, monkeypatch):
+    from canconer import motor_pdf
+    monkeypatch.setattr(pdf, "GOTENBERG", "")
+    monkeypatch.setattr(motor_pdf, "troba_navegador", lambda: None)
+
+    def sense_xarxa():
+        raise motor_pdf.MotorNoDisponible("No hi ha cap navegador Chrome o Edge.")
+    monkeypatch.setattr(motor_pdf, "descarrega_motor", sense_xarxa)
+    r = client.get(f"/canconer/{canconer}/pdf/a5")
+    assert r.status_code == 503 and "Chrome" in r.get_data(as_text=True)
+
+
 def _gotenberg_actiu() -> bool:
     try:
-        return requests.get(f"{pdf.GOTENBERG}/health", timeout=2).ok
+        return requests.get("http://127.0.0.1:3000/health", timeout=2).ok
     except requests.RequestException:
         return False
 
 
-@pytest.mark.skipif(not _gotenberg_actiu(), reason="Gotenberg no està en marxa (docker compose up -d)")
-def test_acceptacio_pdf_amb_gotenberg():
+def _navegador_local() -> bool:
+    from canconer import motor_pdf
+    return bool(motor_pdf.troba_navegador())
+
+
+@pytest.mark.parametrize("motor", [
+    pytest.param("local", marks=pytest.mark.skipif(not _navegador_local(), reason="No hi ha cap Chrome/Edge instal·lat")),
+    pytest.param("gotenberg", marks=pytest.mark.skipif(not _gotenberg_actiu(), reason="Gotenberg no està en marxa")),
+])
+def test_acceptacio_pdf(motor, monkeypatch):
     """4 cançons de 2 pàgines → PDF A5 de 12 pàgines i A4 de 6 cares en l'ordre de cavallet."""
+    monkeypatch.setattr(pdf, "GOTENBERG", "http://127.0.0.1:3000" if motor == "gotenberg" else "")
     app = crea_app()
     servidor = make_server("0.0.0.0", 0, app, threaded=True)
     fil = threading.Thread(target=servidor.serve_forever, daemon=True)

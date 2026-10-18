@@ -70,8 +70,18 @@ def crea_app() -> Flask:
         return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts())}
 
     def url_interna(ruta: str) -> str:
-        """URL amb què Gotenberg (dins de Docker) arriba a aquesta aplicació."""
-        base = pdf.URL_INTERNA or f"http://host.docker.internal:{request.host.rsplit(':', 1)[-1]}"
+        """URL amb què el motor de PDF arriba a aquesta aplicació.
+
+        Amb el Chromium local és la mateixa adreça local; amb Gotenberg (dins de Docker), a través
+        de host.docker.internal.
+        """
+        port = request.host.rsplit(":", 1)[-1] if ":" in request.host else "80"
+        if pdf.URL_INTERNA:
+            base = pdf.URL_INTERNA
+        elif pdf.usa_gotenberg():
+            base = f"http://host.docker.internal:{port}"
+        else:
+            base = f"http://127.0.0.1:{port}"
         return base.rstrip("/") + ruta
 
     # ------------------------------------------------------------ Pàgines

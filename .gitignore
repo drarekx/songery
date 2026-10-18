@@ -6,3 +6,6 @@ eines/tailwindcss
 frontend/node_modules/
 .DS_Store
 *.tmp
+.venv-app/
+build/
+dist/

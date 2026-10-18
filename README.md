@@ -4,18 +4,86 @@ Aplicació web per dissenyar cançoners en format llibret A5 (lletra i acords) i
 punt per imprimir en A4 horitzontal a doble cara, plegar i cosir pel plec (enquadernació a cavallet).
 
 L'editor mostra cada pàgina **exactament com sortirà al PDF**: el mateix codi dibuixa les pàgines a
-l'editor i a la pàgina d'impressió, i el PDF el genera Chromium (Gotenberg), el mateix motor que el
-navegador.
+l'editor i a la pàgina d'impressió, i el PDF el genera Chromium, el mateix motor que el navegador.
 
-## Instal·lació
+## Instal·lació (Mac)
 
-Cal **Python 3.11 o superior** i **Docker** (per a Gotenberg).
+Obre el Terminal i enganxa:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/drarekx/songery/main/install.sh | bash
+```
+
+Instal·la l'última versió a Aplicacions i l'obre. Per actualitzar-la, torna a executar la mateixa ordre o
+fes servir «Actualitza a l'última versió» a la icona de la barra de menú. Les dades no es toquen.
+Cal un Mac amb Apple Silicon (M1 o posterior) i macOS 12 o posterior.
+
+## App per a Mac
+
+`Cançoners.app` porta tot el que cal a dins (no cal Python ni Docker). En obrir-la, arrenca el servidor,
+obre el navegador (Chrome si hi és) i deixa una icona a la barra de menú amb «Obre Cançoners», «Obre la
+carpeta de dades», «Actualitza a l'última versió» i «Surt». Les dades es desen a
+`~/Library/Application Support/Cançoners`, fora de l'app: actualitzar-la no les toca.
+
+Per generar el PDF fa servir el Chrome, Edge o Brave del Mac en mode invisible. Si no n'hi ha cap, la
+primera vegada baixa el «Chrome headless shell» oficial de Google (uns 90 MB).
+
+## Publicar una versió nova
+
+Cada versió és una *release* de GitHub amb l'app comprimida (`Canconers.zip`, la que baixa
+`install.sh`) i un `.dmg`. Cal un Mac amb Apple Silicon, Python 3.12 (`brew install python@3.12`) i
+[`gh`](https://cli.github.com) amb la sessió iniciada (`gh auth login`).
+
+1. **Canvia el número de versió** a `eines/app/VERSIO` (per exemple, `1.0.0` → `1.1.0`).
+2. **Puja els canvis** a la branca `main`:
+   ```bash
+   git add -A && git commit -m "Versió 1.1.0" && git push
+   ```
+3. **Publica-la**:
+   ```bash
+   ./eines/app/publica.sh
+   ```
+   El script construeix l'app amb PyInstaller, la signa, la comprimeix i crea la release `v1.1.0`.
+   Tarda un parell de minuts.
+
+A partir d'aquí, qui tingui l'app la pot actualitzar amb «Actualitza a l'última versió» de la barra de
+menú, o tornant a executar l'ordre d'instal·lació.
+
+Altres opcions:
+
+```bash
+./eines/app/construeix.sh                     # només construeix (dist/Cançoners.app i .dmg), sense publicar
+./eines/app/publica.sh --ja-construida        # publica l'app que ja hi ha a dist/
+CANCONER_NOTARITZA=1 ./eines/app/publica.sh   # a més, la notaritza amb Apple (vegeu més avall)
+```
+
+### Signatura i notarització
+
+L'app s'instal·la per terminal amb `curl`, i macOS no marca com a «descarregat d'internet» el que baixa
+`curl`: per això **no cal notaritzar-la**. Només cal si es vol repartir el `.dmg` directament (per
+correu, des del navegador…), perquè s'obri sense avisos de seguretat.
+
+`construeix.sh` signa l'app amb el primer certificat **Developer ID Application** que troba al clauer
+(o el de `CANCONER_SIGNATURA`). Per poder notaritzar, una sola vegada:
+
+1. Crea el certificat: Xcode → Settings → Accounts → l'equip → Manage Certificates → **+** →
+   *Developer ID Application*.
+2. Crea una contrasenya específica d'app a appleid.apple.com i desa les credencials al clauer:
+   ```bash
+   xcrun notarytool store-credentials canconers --apple-id EL_TEU_APPLE_ID --team-id EQUIP
+   ```
+
+Per seguir una notarització: `xcrun notarytool history --keychain-profile canconers` (i
+`xcrun notarytool log ID --keychain-profile canconers` si Apple la rebutja).
+
+## Instal·lació per desenvolupar
+
+Cal **Python 3.11 o superior** i Chrome, Edge o Brave (o Docker amb Gotenberg).
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-docker compose up -d               # engega Gotenberg a http://127.0.0.1:3000
 ```
 
 ## Execució
@@ -26,10 +94,11 @@ python app.py --host 0.0.0.0       # per obrir-lo des del mòbil a la mateixa xa
 python app.py --port 8080 --debug
 ```
 
-Gotenberg obre la pàgina d'impressió de l'aplicació des de Docker a través de
-`host.docker.internal`. A Linux, arrenca l'aplicació amb `--host 0.0.0.0` o defineix
-`CANCONER_URL_INTERNA` amb l'adreça amb què el contenidor arriba a l'aplicació. Altres variables:
-`GOTENBERG_URL` (per defecte `http://127.0.0.1:3000`) i `CANCONER_DADES` (directori de dades).
+Motor de PDF: per defecte, el Chrome/Edge/Brave local (`CANCONER_NAVEGADOR` permet triar-ne un altre
+executable). Per fer servir Gotenberg (Docker) en lloc seu: `docker compose up -d` i
+`GOTENBERG_URL=http://127.0.0.1:3000 python app.py`. Gotenberg obre l'aplicació a través de
+`host.docker.internal`; a Linux, arrenca-la amb `--host 0.0.0.0` o defineix `CANCONER_URL_INTERNA`.
+`CANCONER_DADES` canvia el directori de dades.
 
 > El navegador recomanat per editar és Chrome o Edge, el mateix motor que genera el PDF. Amb
 > Safari o Firefox el resultat és pràcticament igual, però hi pot haver diferències mínimes de
@@ -99,7 +168,9 @@ cd frontend && npm install && npm run build   # editor i motor de pàgines (Tipt
 Els fitxers compilats (`canconer/static/app.css` i `canconer/static/dist/canconer.js`) ja vénen fets.
 
 ```
-app.py                     punt d'entrada
+app.py                     punt d'entrada (desenvolupament)
+escriptori.py              llançador de l'app de Mac (servidor + navegador + barra de menú)
+eines/app/                 construcció de Cançoners.app: PyInstaller, icones, signatura i notarització
 docker-compose.yml         Gotenberg
 canconer/
   web.py                   rutes Flask i API JSON
@@ -111,7 +182,9 @@ canconer/
   parser.py                detecció d'acords i transport
   diagrames.py             diagrames de guitarra i ukulele en SVG
   imposicio.py             ordre de cavallet i muntatge A4 amb pypdf
-  pdf.py                   Gotenberg i memòria cau
+  pdf.py                   tria del motor de PDF i memòria cau
+  motor_pdf.py             PDF amb el Chromium local (DevTools), sense Docker
+  tipografies.py           catàleg de tipografies i tipografies importades
   templates/               pàgines web, pàgina d'impressió (imprimible.html) i instruccions
   static/
     pagines.css            estils de les pàgines (compartits per l'editor i la impressió)

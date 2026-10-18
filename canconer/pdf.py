@@ -1,8 +1,9 @@
-"""Generació dels PDF amb Gotenberg (Chromium) i memòria cau.
+"""Generació dels PDF amb Chromium i memòria cau.
 
-Gotenberg obre la pàgina d'impressió de l'aplicació (la mateixa que dibuixa l'editor) i la
-desa en PDF. Així el que es veu a l'editor és exactament el que s'imprimeix.
-Cal tenir Gotenberg en marxa:  docker compose up -d   (vegeu docker-compose.yml)
+Un Chromium obre la pàgina d'impressió de l'aplicació (la mateixa que dibuixa l'editor) i la
+desa en PDF. Així el que es veu a l'editor és exactament el que s'imprimeix. Hi ha dos motors:
+  - local (per defecte): el Chrome/Edge/Brave del Mac en mode invisible (vegeu motor_pdf.py).
+  - Gotenberg (Docker): si es defineix la variable GOTENBERG_URL.
 """
 
 from __future__ import annotations
@@ -17,9 +18,9 @@ from pathlib import Path
 import requests
 from pypdf import PdfReader
 
-from . import basedades, imposicio
+from . import basedades, imposicio, motor_pdf
 
-GOTENBERG = os.environ.get("GOTENBERG_URL", "http://127.0.0.1:3000").rstrip("/")
+GOTENBERG = os.environ.get("GOTENBERG_URL", "").rstrip("/")
 # Adreça amb què Gotenberg (dins de Docker) arriba a aquesta aplicació.
 URL_INTERNA = os.environ.get("CANCONER_URL_INTERNA", "")
 
@@ -31,7 +32,11 @@ A4_POLZADES = (210 / 25.4, 297 / 25.4)
 
 
 class GotenbergNoDisponible(RuntimeError):
-    pass
+    """El motor de PDF (Gotenberg o el Chromium local) no està disponible."""
+
+
+def usa_gotenberg() -> bool:
+    return bool(GOTENBERG)
 
 
 def empremta(canconer: dict) -> str:
@@ -56,6 +61,18 @@ def _escriu(cami: Path, dades: bytes) -> None:
 
 
 def converteix_url(url: str, mida: tuple[float, float], esperar: bool = True) -> bytes:
+    """Converteix una URL en PDF amb el motor configurat."""
+    if not usa_gotenberg():
+        try:
+            return motor_pdf.converteix_url(url, mida, esperar)
+        except motor_pdf.MotorNoDisponible as e:
+            raise GotenbergNoDisponible(str(e)) from e
+        except OSError as e:
+            raise GotenbergNoDisponible(f"No s'ha pogut generar el PDF: {e}") from e
+    return _converteix_gotenberg(url, mida, esperar)
+
+
+def _converteix_gotenberg(url: str, mida: tuple[float, float], esperar: bool = True) -> bytes:
     """Demana a Gotenberg que converteixi una URL en PDF."""
     camps = {
         "url": url,
