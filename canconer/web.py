@@ -9,7 +9,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import disseny, document, exemple, maquetacio, pdf, plantilles, tipografies
+from . import disseny, document, exemple, intercanvi, maquetacio, pdf, plantilles, tipografies
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -39,7 +39,8 @@ def _enter(valor, defecte: int = 0) -> int:
 
 def crea_app() -> Flask:
     app = Flask(__name__)
-    app.config["MAX_CONTENT_LENGTH"] = MIDA_MAXIMA_IMATGE + 4 * 1024 * 1024
+    # Prou gran per importar cançoners exportats (amb imatges i tipografies); cada ruta limita el seu.
+    app.config["MAX_CONTENT_LENGTH"] = intercanvi.MIDA_MAXIMA + 1024 * 1024
     # Les plantilles es rellegeixen si canvien (útil mentre es retoca el disseny).
     app.config["TEMPLATES_AUTO_RELOAD"] = True
 
@@ -98,7 +99,31 @@ def crea_app() -> Flask:
 
     @app.get("/")
     def inici():
-        return render_template("inici.html", canconers=bd.llista_canconers())
+        return render_template("inici.html", canconers=bd.llista_canconers(), error=request.args.get("error"))
+
+    @app.post("/canconer/<id_canconer>/duplica")
+    def canconer_duplica(id_canconer):
+        meta_o_404(id_canconer)
+        nou = intercanvi.duplica(id_canconer, duplicar_cancons=bool(request.form.get("duplicar_cancons")))
+        return redirect(url_for("canconer", id_canconer=nou))
+
+    @app.get("/canconer/<id_canconer>/exporta")
+    def canconer_exporta(id_canconer):
+        c = meta_o_404(id_canconer)
+        nom = f"{_nom_fitxer(c['titol'])}.canconer"
+        return Response(intercanvi.exporta(id_canconer), mimetype="application/zip",
+                        headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+    @app.post("/canconer/importa")
+    def canconer_importa():
+        fitxer = request.files.get("fitxer")
+        if not fitxer:
+            return redirect(url_for("inici", error="Tria un fitxer .canconer per importar."))
+        try:
+            nou = intercanvi.importa(fitxer.read(intercanvi.MIDA_MAXIMA + 1))
+        except ValueError as e:  # ImportacioInvalida o dades que no passen la validació
+            return redirect(url_for("inici", error=str(e) or "No s'ha pogut importar el fitxer."))
+        return redirect(url_for("canconer", id_canconer=nou))
 
     @app.post("/canconer/nou")
     def canconer_nou():

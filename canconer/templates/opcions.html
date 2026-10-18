@@ -99,6 +99,16 @@
         <a href="{{ url_for('canconer', id_canconer=c.id, especial='portada') }}" class="btn">Dissenya la portada a l'editor →</a>
       </div>
 
+      <section class="flex flex-col gap-3 rounded-lg border border-paper-300 bg-paper-50 p-4">
+        <h2 class="text-[14px] font-semibold">Còpies i fitxers</h2>
+        <a href="{{ url_for('canconer_exporta', id_canconer=c.id) }}" class="btn btn-petit justify-start">Exporta a un fitxer .canconer</a>
+        <form method="post" action="{{ url_for('canconer_duplica', id_canconer=c.id) }}" class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="duplicar_cancons" class="h-4 w-4 accent-vermello-500"> Duplica també les cançons</label>
+          <button class="btn btn-petit justify-start">Duplica el cançoner</button>
+        </form>
+        <p class="text-[12px] leading-snug text-ink-500">L'exportació inclou les cançons amb el seu historial, les imatges i les tipografies importades. S'importa des de la pàgina d'inici.</p>
+      </section>
+
       <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
             data-confirma="Segur que vols esborrar tot el cançoner «{{ c.titol }}»? No es pot desfer."
             class="rounded-lg border border-vermello-200 bg-vermello-50/50 p-4">

@@ -6,6 +6,8 @@
     <p class="max-w-2xl text-ink-500">Escriu les cançons amb els acords a sobre de la lletra. L'aplicació les maqueta en un llibret A5 i prepara el PDF per imprimir en A4, plegar i cosir.</p>
   </div>
 
+  {% if error %}<p class="avis"><span aria-hidden="true">⚠</span><span>{{ error }}</span></p>{% endif %}
+
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {# Crear: sempre el primer, perquè és l'acció principal. #}
     <section class="targeta flex flex-col gap-4 border-dashed bg-transparent p-5 shadow-none">
@@ -18,21 +20,35 @@
       <form method="post" action="{{ url_for('canconer_exemple') }}" class="-mt-1">
         <button class="text-[13px] text-ink-500 underline decoration-paper-300 underline-offset-4 transition hover:text-ink-900 hover:decoration-ink-400">o prova'n un d'exemple amb 4 cançons</button>
       </form>
+      <form method="post" action="{{ url_for('canconer_importa') }}" enctype="multipart/form-data" class="mt-auto border-t border-dashed border-paper-300 pt-4">
+        <label class="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink-700 hover:text-ink-900">
+          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 10V2m0 0L5 5m3-3 3 3M3 10v3.5h10V10"/></svg>
+          Importa un cançoner (.canconer)
+          <input type="file" name="fitxer" accept=".canconer,application/zip" class="sr-only" onchange="this.form.submit()">
+        </label>
+      </form>
     </section>
 
     {% for c in canconers %}
-    <a href="{{ url_for('canconer', id_canconer=c.id) }}"
-       class="targeta group relative flex min-h-[11rem] flex-col overflow-hidden p-5 transition hover:-translate-y-0.5 hover:border-ink-300 hover:shadow-full">
+    <article class="targeta group relative flex min-h-[11rem] flex-col overflow-hidden p-5 transition hover:-translate-y-0.5 hover:border-ink-300 hover:shadow-full">
       {# Llom del llibret: detall decoratiu a l'esquerra. #}
       <span class="absolute inset-y-0 left-0 w-1 bg-vermello-500/80 transition group-hover:w-1.5" aria-hidden="true"></span>
       <span class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">{{ c.any or "Sense any" }}</span>
-      <h2 class="mt-2 font-display text-2xl font-medium leading-tight tracking-tight">{{ c.titol }}</h2>
+      <h2 class="mt-2 font-display text-2xl font-medium leading-tight tracking-tight">
+        {# L'enllaç cobreix tota la targeta (excepte els botons d'acció). #}
+        <a href="{{ url_for('canconer', id_canconer=c.id) }}" class="after:absolute after:inset-0">{{ c.titol }}</a>
+      </h2>
       {% if c.subtitol %}<p class="mt-1 text-ink-500">{{ c.subtitol }}</p>{% endif %}
       <div class="mt-auto flex items-center justify-between gap-3 pt-5 text-[13px] text-ink-500">
         <span>{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }}</span>
-        <span class="font-medium text-vermello-600 opacity-0 transition group-hover:opacity-100">Obre →</span>
+        <span class="relative z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+          <form method="post" action="{{ url_for('canconer_duplica', id_canconer=c.id) }}">
+            <button class="btn btn-fantasma btn-petit" title="Fa una còpia del cançoner (les cançons són les mateixes de la biblioteca)">Duplica</button>
+          </form>
+          <a class="btn btn-fantasma btn-petit" href="{{ url_for('canconer_exporta', id_canconer=c.id) }}" title="Descarrega'l en un fitxer .canconer (còpia de seguretat o per portar-lo a un altre Mac)">Exporta</a>
+        </span>
       </div>
-    </a>
+    </article>
     {% endfor %}
   </div>
 
