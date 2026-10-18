@@ -1,8 +1,10 @@
 // Editor de pàgines del cançoner. Les pàgines es dibuixen amb el mateix motor que la pàgina
 // d'impressió que Gotenberg converteix en PDF: el que es veu aquí és exactament el que s'imprimeix.
 import {
-  ALT, AMPLE, FONTS, QR_MINIM, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
-  colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
+  ALT, AMPLE, FONTS, MARGE, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, arrodoneix, canviaMida,
+  colorCss, dibuixaElement, dibuixaPagina, dinsRectangle, enganxa, esAcord, esperaFonts, gira as calculaGir,
+  guies as guiesDe, midaEscalada, mou as calculaMoviment, novaSeleccio, posaAcord, posaMida, registraFonts,
+  reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
   TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
@@ -13,8 +15,6 @@ const urls = dades.urls;
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const PX_MM = 96 / 25.4; // píxels CSS per mil·límetre a escala 1
-const MARGE = 13;
-const TOLERANCIA = 1.6;
 const ACORDS_COMUNS = ["C", "D", "E", "F", "G", "A", "B", "Am", "Bm", "Dm", "Em", "F#m", "C7", "D7", "E7", "G7", "A7", "B7", "Cmaj7", "Fmaj7", "Dsus4", "Asus4"];
 
 // ------------------------------------------------------------ Estat
@@ -40,7 +40,6 @@ const idsSel = () => (seleccio ? (seleccio.ids ?? (seleccio.id ? [seleccio.id] :
 const elementsSel = () => idsSel().map((id) => elementDe(seleccio.p, id)).filter(Boolean);
 const elementSel = () => (idsSel().length === 1 ? elementDe(seleccio.p, idsSel()[0]) : null);
 const nouId = () => Math.random().toString(36).slice(2, 10);
-const arrodoneix = (v) => Math.round(v * 10) / 10;
 const copia = (v) => structuredClone(v);
 
 function el(etiqueta, { text = "", classe = "", atributs = {} } = {}) {
@@ -541,27 +540,7 @@ function reajusta() {
 // La selecció pot tenir diversos elements (seleccio.ids). Els elements amb el mateix camp «grup»
 // es seleccionen junts; amb doble clic s'entra dins del grup per tocar-ne un de sol.
 
-/** Requadre que envolta uns elements, tenint en compte la rotació de cadascun. */
-function cantonades(e) {
-  const cx = e.x + e.w / 2;
-  const cy = e.y + e.h / 2;
-  const a = ((e.rotacio || 0) * Math.PI) / 180;
-  const [c, s] = [Math.cos(a), Math.sin(a)];
-  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([dx, dy]) => {
-    const x = (dx * e.w) / 2;
-    const y = (dy * e.h) / 2;
-    return [cx + x * c - y * s, cy + x * s + y * c];
-  });
-}
 
-function requadre(elements) {
-  const punts = elements.flatMap(cantonades);
-  const xs = punts.map((q) => q[0]);
-  const ys = punts.map((q) => q[1]);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-}
 
 function idsGrup(p, id) {
   const e = elementDe(p, id);
@@ -617,11 +596,7 @@ function selecciona(p, id, { afegeix = false, sol = false } = {}) {
   else {
     const nous = sol ? [id] : idsGrup(p, id);
     const actuals = seleccio?.p === p ? idsSel() : [];
-    if (afegeix && actuals.length) {
-      const ja = nous.every((x) => actuals.includes(x));
-      const ids = ja ? actuals.filter((x) => !nous.includes(x)) : [...new Set([...actuals, ...nous])];
-      seleccio = { p, id: ids.includes(id) ? id : (ids[0] ?? null), ids };
-    } else seleccio = { p, id, ids: nous };
+    seleccio = { p, ...novaSeleccio(actuals, nous, id, afegeix) };
   }
   pintaSeleccio();
   pintaPropietats();
@@ -645,25 +620,9 @@ function puntMm(ev, caixa) {
   return { x: (ev.clientX - r.left) / k, y: (ev.clientY - r.top) / k };
 }
 
-function guies(p, exclou) {
-  const xs = [0, MARGE, AMPLE / 2, AMPLE - MARGE, AMPLE];
-  const ys = [0, MARGE, ALT / 2, ALT - MARGE, ALT];
-  for (const e of pagines[p].elements) {
-    if (exclou.includes(e.id)) continue;
-    xs.push(e.x, e.x + e.w / 2, e.x + e.w);
-    ys.push(e.y, e.y + e.h / 2, e.y + e.h);
-  }
-  return { xs, ys };
-}
+/** Guies d'una pàgina (vores, marges, centre i els altres elements). */
+const guies = (p, exclou) => guiesDe(pagines[p].elements, exclou);
 
-function enganxa(valors, candidates) {
-  let millor = null;
-  for (const v of valors) for (const c of candidates) {
-    const d = c - v;
-    if (Math.abs(d) <= TOLERANCIA && (!millor || Math.abs(d) < Math.abs(millor.d))) millor = { d, linia: c };
-  }
-  return millor;
-}
 
 function pintaGuies(p, lx, ly) {
   const capa = llenc.querySelector(`.pagina-editor[data-pagina="${p}"] .capa-seleccio`);
@@ -690,7 +649,7 @@ function midaDe(e) {
 /** En escalar un grup, els textos també es fan més grans o més petits. */
 function escalaLletra(e, original, factor) {
   if (!["text", "lletra", "numero", "index"].includes(e.tipus)) return;
-  const mida = Math.max(3, Math.round(midaDe(original) * factor * 10) / 10);
+  const mida = midaEscalada(midaDe(original), factor);
   e.format = { ...(original.format || {}), mida };
   const node = nodeElement(gest.p, e.id);
   if (node) node.style.fontSize = `calc(${mida}pt * var(--escala, 1))`;
@@ -771,80 +730,28 @@ llenc.addEventListener("pointermove", (ev) => {
   let lx = [];
   let ly = [];
 
+  // Els càlculs són a geometria.js (amb tests); aquí s'apliquen als elements.
+  const guiesGest = ambGuies ? { xs, ys } : null;
   if (gest.tipus === "rota") {
-    // Angle entre el centre (de l'element o del grup) i el punter; la nansa és a dalt (0°).
-    const cx = b.x + b.w / 2;
-    const cy = b.y + b.h / 2;
-    const angle = (p) => (Math.atan2(p.y - cy, p.x - cx) * 180) / Math.PI;
-    let delta = elements.length === 1 ? angle(pt) + 90 - (gest.originals[0].rotacio || 0) : angle(pt) - angle(gest.inici);
-    const final = (o) => ((Math.round((o.rotacio || 0) + delta) % 360) + 540) % 360 - 180;
-    if (ev.shiftKey) delta = Math.round(delta / 15) * 15;
-    else if (elements.length === 1) {
-      const g = final(gest.originals[0]);
-      if (Math.abs(g - Math.round(g / 90) * 90) <= 3) delta += Math.round(g / 90) * 90 - g; // s'enganxa a 0/90/180
-    }
-    const rad = (delta * Math.PI) / 180;
-    gest.originals.forEach((o, i) => {
-      const e = elements[i];
-      const ox = o.x + o.w / 2 - cx;
-      const oy = o.y + o.h / 2 - cy;
-      e.x = arrodoneix(cx + ox * Math.cos(rad) - oy * Math.sin(rad) - o.w / 2);
-      e.y = arrodoneix(cy + ox * Math.sin(rad) + oy * Math.cos(rad) - o.h / 2);
-      e.rotacio = final(o);
-    });
+    calculaGir({ originals: gest.originals, requadre: b, inici: gest.inici, punt: pt, majuscules: ev.shiftKey })
+      .forEach((r, i) => Object.assign(elements[i], r));
   } else if (gest.tipus === "mou") {
     // Si el punter és sobre una altra pàgina, els elements s'hi mouran en deixar-los anar (#6).
     const desti = paginaSota(ev);
     if (desti !== null && desti !== gest.p) return arrossegaAPagina(ev, desti);
     treuFantasma(gest);
-    let mx = dx;
-    let my = dy;
-    if (ambGuies) {
-      const gx = enganxa([b.x + dx, b.x + dx + b.w / 2, b.x + dx + b.w], xs);
-      const gy = enganxa([b.y + dy, b.y + dy + b.h / 2, b.y + dy + b.h], ys);
-      if (gx) { mx += gx.d; lx = [gx.linia]; }
-      if (gy) { my += gy.d; ly = [gy.linia]; }
-    }
-    gest.originals.forEach((o, i) => {
-      elements[i].x = arrodoneix(o.x + mx);
-      elements[i].y = arrodoneix(o.y + my);
-    });
+    const r = calculaMoviment({ originals: gest.originals, requadre: b, dx, dy, guies: guiesGest });
+    r.posicions.forEach((pos, i) => Object.assign(elements[i], pos));
+    [lx, ly] = [r.lx, r.ly];
   } else {
     // Canvi de mida sobre el requadre (d'un element o del grup sencer).
-    const n = gest.nansa;
-    const sol = elements.length === 1;
-    const o0 = sol ? gest.originals[0] : b;
-    let { x, y, w, h } = o0;
-    if (n.includes("e")) w = o0.w + dx;
-    if (n.includes("s")) h = o0.h + dy;
-    if (n.includes("w")) { w = o0.w - dx; x = o0.x + dx; }
-    if (n.includes("n")) { h = o0.h - dy; y = o0.y + dy; }
-    const cantonada = n.length === 2;
-    const proporcio = cantonada && (ev.shiftKey || !sol || elements[0].tipus === "imatge");
-    if (proporcio) {
-      h = w * (o0.h / o0.w);
-      if (n.includes("n")) y = o0.y + o0.h - h;
-    } else if (ambGuies) {
-      if (n.includes("e")) { const g = enganxa([x + w], xs); if (g) { w += g.d; lx = [g.linia]; } }
-      if (n.includes("w")) { const g = enganxa([x], xs); if (g) { x += g.d; w -= g.d; lx = [g.linia]; } }
-      if (n.includes("s")) { const g = enganxa([y + h], ys); if (g) { h += g.d; ly = [g.linia]; } }
-      if (n.includes("n")) { const g = enganxa([y], ys); if (g) { y += g.d; h -= g.d; ly = [g.linia]; } }
-    }
-    w = Math.max(2, w);
-    h = Math.max(2, h);
-    if (sol) Object.assign(elements[0], { x: arrodoneix(x), y: arrodoneix(y), w: arrodoneix(w), h: arrodoneix(h) });
-    else {
-      const sx = w / b.w;
-      const sy = h / b.h;
-      gest.originals.forEach((o, i) => {
-        const e = elements[i];
-        Object.assign(e, {
-          x: arrodoneix(x + (o.x - b.x) * sx), y: arrodoneix(y + (o.y - b.y) * sy),
-          w: arrodoneix(Math.max(1, o.w * sx)), h: arrodoneix(Math.max(1, o.h * sy)),
-        });
-        if (proporcio) escalaLletra(e, o, sx);
-      });
-    }
+    const r = canviaMida({
+      originals: gest.originals, requadre: b, nansa: gest.nansa, dx, dy, guies: guiesGest,
+      majuscules: ev.shiftKey, esImatge: elements.length === 1 && elements[0].tipus === "imatge",
+    });
+    r.posicions.forEach((pos, i) => Object.assign(elements[i], pos));
+    if (elements.length > 1 && r.proporcio) gest.originals.forEach((o, i) => escalaLletra(elements[i], o, r.factor));
+    [lx, ly] = [r.lx, r.ly];
   }
   for (const e of elements) {
     const node = nodeElement(gest.p, e.id);
@@ -955,12 +862,7 @@ function acabaGest() {
     llenc.querySelector(".rectangle-seleccio")?.remove();
     if (!g.mogut || !g.rect) return;
     // Elements que toquen el rectangle (els bloquejats no).
-    const r = g.rect;
-    const dins = pagines[g.p].elements.filter((e) => {
-      if (e.bloquejat) return false;
-      const q = requadre([e]);
-      return q.x < r.x + r.w && q.x + q.w > r.x && q.y < r.y + r.h && q.y + q.h > r.y;
-    });
+    const dins = dinsRectangle(pagines[g.p].elements, g.rect);
     seleccionaMolts(g.p, dins.map((e) => e.id), g.afegeix);
     return;
   }
