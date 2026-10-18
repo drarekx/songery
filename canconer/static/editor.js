@@ -195,9 +195,11 @@ function numerosPagina() {
   return pagines.map((_, i) => propies[i] ?? inici + i);
 }
 
-function mestraDe(idMestra, numero) {
+/** Costat de la mestra: el forçat a la pàgina ("esquerra"/"dreta") o, si no, el de la paritat. */
+function mestraDe(idMestra, numero, costat) {
   const m = K.mestres.find((x) => x.id === idMestra);
-  return m ? m[numero % 2 === 0 ? "parell" : "senar"] : null;
+  const esquerra = costat === "esquerra" || costat === "dreta" ? costat === "esquerra" : numero % 2 === 0;
+  return m ? m[esquerra ? "parell" : "senar"] : null;
 }
 
 function contextDe(numero) {
@@ -217,7 +219,7 @@ function dadesPagina(i, numero) {
   return {
     fons: model.fons,
     elements: visibles.elements,
-    mestra: obert.tipus === "mestra" ? null : mestraDe(model.mestra, numero),
+    mestra: obert.tipus === "mestra" ? null : mestraDe(model.mestra, numero, model.costat),
     context: contextDe(numero),
     index: deLlibre?.index,
     diagrames: deLlibre?.diagrames,
@@ -1139,7 +1141,9 @@ function paginaNova(referencia = null) {
   const lletra = referencia
     ? { ...copia(referencia), id: nouId(), doc: { type: "doc", content: [{ type: "linia" }] }, y: 13, h: 179 }
     : { id: nouId(), tipus: "lletra", x: MARGE, y: 13, w: AMPLE - 2 * MARGE, h: 179, rotacio: 0, opacitat: 1, estil: "lletra", ajusta: true, columnes: 1, doc: { type: "doc", content: [{ type: "linia" }] } };
-  return { id: nouId(), mestra: "estandard", fons: "#ffffff", elements: obert.tipus === "canco" ? [lletra] : [] };
+  // La pàgina nova fa servir la mateixa mestra que la de la cançó (sense forçar-ne el costat).
+  const mestra = obert.tipus === "canco" && pagines.length ? (pagines[paginaActual()] ?? pagines[0]).mestra ?? null : "estandard";
+  return { id: nouId(), mestra, fons: "#ffffff", elements: obert.tipus === "canco" ? [lletra] : [] };
 }
 
 function paginaActual() {
@@ -1548,6 +1552,7 @@ function pintaPropietatsPagina() {
   $("#titol-props-pagina").textContent = llibre ? "Tot el llibret" : mestra ? "Pàgina mestra" : "Pàgina";
   const model = pagines[paginaActual()];
   $("#camp-mestra").classList.toggle("hidden", mestra || llibre);
+  $("#camp-costat").classList.toggle("hidden", mestra || llibre || !model?.mestra);
   $("#ajuda-mestra").classList.toggle("hidden", !mestra);
   $("#fons-pagina").closest("label").classList.toggle("hidden", llibre || mestra);
   $("#desa-pagina-biblioteca").classList.toggle("hidden", llibre);
@@ -1557,6 +1562,8 @@ function pintaPropietatsPagina() {
     ...K.mestres.map((m) => el("option", { text: m.nom, atributs: { value: m.id } })));
   select.value = model.mestra || "";
   select.disabled = !editable;
+  $("#costat-pagina").value = model.costat || "";
+  $("#costat-pagina").disabled = !editable;
   $("#fons-pagina").value = model.fons || "#ffffff";
   $("#fons-pagina").disabled = !editable;
   if (mestra) {
@@ -1626,6 +1633,16 @@ $("#mestra-pagina").addEventListener("change", (ev) => {
   const model = pagines[paginaActual()];
   foto(true);
   model.mestra = ev.target.value || null;
+  if (!model.mestra) delete model.costat;
+  canviat();
+  repintaPagina(paginaActual());
+  pintaPropietatsPagina();
+});
+$("#costat-pagina").addEventListener("change", (ev) => {
+  const model = pagines[paginaActual()];
+  foto(true);
+  if (ev.target.value) model.costat = ev.target.value;
+  else delete model.costat;
   canviat();
   repintaPagina(paginaActual());
 });
@@ -1756,7 +1773,7 @@ function pintaCapes() {
       fila.append(icona, nom, candau, amunt, avall);
       grup.append(fila);
     });
-    const mestra = obert.tipus !== "mestra" && mestraDe(pagina.mestra, numeros[p]);
+    const mestra = obert.tipus !== "mestra" && mestraDe(pagina.mestra, numeros[p], pagina.costat);
     if (mestra?.elements?.length) {
       grup.append(el("p", { text: `+ ${mestra.elements.length} de la pàgina mestra (s'editen a Pàgines mestres)`, classe: "px-2 pt-1 text-[11.5px] text-ink-400" }));
     }
@@ -2165,16 +2182,50 @@ $("#treu-canco").addEventListener("click", async () => {
 });
 
 // Noves cançons, pàgines lliures i importació
-async function creaEntrada(tipus) {
+async function creaEntrada(tipus, mestra) {
+  if (mestra === undefined && K.mestres.length > 1) return triaPlantilla(tipus);
   await desa();
   const despres = obert?.tipus === "canco" ? obert.id : undefined;
-  const r = await api(urls.nova, "POST", { tipus, despres_de: despres });
+  const r = await api(urls.nova, "POST", { tipus, despres_de: despres, mestra: mestra || undefined });
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
   await obre({ tipus: "canco", id: r.id });
   mostraPestanya("canco");
   $("#titol-ev").select();
 }
 $("#nova-canco").addEventListener("click", () => creaEntrada("canco"));
+
+/** Miniatura d'una pàgina mestra (un costat), per triar-la d'un cop d'ull. */
+function miniaturaMestra(costat, numero, mida = 0.22) {
+  const caixa = el("div", { classe: "miniatura-mestra" });
+  caixa.style.width = `${AMPLE * PX_MM * mida}px`;
+  caixa.style.height = `${ALT * PX_MM * mida}px`;
+  const pagina = dibuixaPagina({ fons: "#ffffff", elements: [], mestra: costat,
+    context: { ...contextDe(numero), titol: "Títol de la cançó", autor: "Autor", acords: "C · G · Am · F", pagina: numero } },
+  { urlImatge: (id) => urls.imatge + id, grup: "miniatura" });
+  pagina.style.transform = `scale(${mida})`;
+  pagina.style.transformOrigin = "0 0";
+  caixa.append(pagina);
+  return caixa;
+}
+
+const dialegPlantilla = $("#dialeg-plantilla");
+function triaPlantilla(tipus) {
+  $("#titol-plantilla").textContent = tipus === "pagina" ? "Plantilla de la pàgina nova" : "Plantilla de la cançó nova";
+  // Per defecte, la mestra de la pàgina oberta (si en té).
+  const actual = obert?.tipus === "canco" ? pagines[paginaActual()]?.mestra : null;
+  const opcions = [...K.mestres.map((m) => ({ id: m.id, nom: m.nom, m })), { id: "", nom: "Cap (pàgina neta)", m: null }];
+  $("#llista-plantilles").replaceChildren(...opcions.map(({ id, nom, m }) => {
+    const b = el("button", { classe: "targeta-plantilla", atributs: { type: "button", "aria-current": String(id === (actual ?? "estandard")) } });
+    const parella = el("span", { classe: "flex justify-center gap-px" });
+    parella.append(miniaturaMestra(m?.parell, 2), miniaturaMestra(m?.senar, 3));
+    b.append(parella, el("span", { text: nom, classe: "truncate text-[14px] font-medium" }));
+    b.addEventListener("click", () => { dialegPlantilla.close(); creaEntrada(tipus, id || null); });
+    const li = el("li");
+    li.append(b);
+    return li;
+  }));
+  dialegPlantilla.showModal();
+}
 $("#nova-pagina").addEventListener("click", () => creaEntrada("pagina"));
 
 const dialegImporta = $("#dialeg-importa");
@@ -2262,6 +2313,58 @@ $("#nom-mestra").addEventListener("input", (ev) => {
   canviat();
   pintaLlista();
 });
+$("#duplica-mestra").addEventListener("click", async () => {
+  const m = K.mestres.find((x) => x.id === obert?.id);
+  if (!m) return;
+  if (K.mestres.length >= 20) return alert("Com a màxim hi pot haver 20 pàgines mestres.");
+  await desa();
+  const id = nouId();
+  K.mestres.push({ ...copia(m), id, nom: `${m.nom} (còpia)` });
+  await api(urls.disseny, "PUT", { mestres: K.mestres });
+  await obre({ tipus: "mestra", id });
+});
+
+const dialegCopia = $("#dialeg-copia-mestres");
+let altresCanconers = [];
+function pintaMestresOrigen() {
+  const origen = altresCanconers.find((k) => k.id === $("#origen-mestres").value);
+  const ul = $("#mestres-origen");
+  $("#confirma-copia-mestres").disabled = true;
+  if (!origen) return ul.replaceChildren();
+  ul.replaceChildren(...origen.mestres.map((m) => {
+    const li = el("li");
+    const etiqueta = el("label", { classe: "flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-paper-100" });
+    const casella = el("input", { classe: "h-4 w-4 accent-vermello-500", atributs: { type: "checkbox", value: m.id } });
+    casella.addEventListener("change", () => { $("#confirma-copia-mestres").disabled = !ul.querySelector("input:checked"); });
+    const parella = el("span", { classe: "flex gap-px" });
+    // Les miniatures es dibuixen amb els estils d'aquest cançoner: és com quedaran un cop copiades.
+    parella.append(miniaturaMestra(m.parell, 2, 0.16), miniaturaMestra(m.senar, 3, 0.16));
+    etiqueta.append(casella, parella, el("span", { text: m.nom, classe: "flex-1 truncate text-[14px]" }));
+    li.append(etiqueta);
+    return li;
+  }));
+}
+$("#copia-mestres").addEventListener("click", async () => {
+  ({ canconers: altresCanconers } = await api(urls.mestresAltres));
+  const select = $("#origen-mestres");
+  select.replaceChildren(...(altresCanconers.length
+    ? altresCanconers.map((k) => el("option", { text: `${k.titol} (${k.mestres.length})`, atributs: { value: k.id } }))
+    : [el("option", { text: "No hi ha cap altre cançoner", atributs: { value: "" } })]));
+  pintaMestresOrigen();
+  dialegCopia.showModal();
+});
+$("#origen-mestres").addEventListener("change", pintaMestresOrigen);
+$("#confirma-copia-mestres").addEventListener("click", async () => {
+  const ids = [...$("#mestres-origen").querySelectorAll("input:checked")].map((c) => c.value);
+  await desa();
+  const r = await api(urls.mestresCopia, "POST", { de: $("#origen-mestres").value, mestres: ids });
+  dialegCopia.close();
+  [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
+  aplicaEstils(K.estils);
+  if (r.noves.length) await obre({ tipus: "mestra", id: r.noves[0] });
+  else pintaLlista();
+});
+
 $("#esborra-mestra").addEventListener("click", async () => {
   if (obert?.tipus !== "mestra" || obert.id === "estandard") return;
   if (!confirm("Vols esborrar aquesta pàgina mestra? Les pàgines que la fan servir es quedaran sense mestra.")) return;
@@ -2446,7 +2549,7 @@ async function mostraVersio(v, li) {
     const marc = el("div", { classe: "relative shrink-0 overflow-hidden bg-white shadow-full" });
     marc.style.width = `${AMPLE * PX_MM * k}px`;
     marc.style.height = `${ALT * PX_MM * k}px`;
-    const pagina = dibuixaPagina({ ...p, mestra: mestraDe(p.mestra, 2), context: { ...contextDe(2), titol: detall.titol, autor: detall.autor } }, { ...opcionsDibuix(), grup: "versio" });
+    const pagina = dibuixaPagina({ ...p, mestra: mestraDe(p.mestra, 2, p.costat), context: { ...contextDe(2), titol: detall.titol, autor: detall.autor } }, { ...opcionsDibuix(), grup: "versio" });
     pagina.style.transform = `scale(${k})`;
     pagina.style.transformOrigin = "0 0";
     marc.append(pagina);

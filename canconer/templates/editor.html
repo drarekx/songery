@@ -54,7 +54,10 @@
 
   <div class="flex items-center justify-between px-4 pt-4">
     <h2 class="titol-seccio-llista p-0">Pàgines mestres</h2>
-    <button type="button" id="nova-mestra" class="btn btn-fantasma btn-icona h-6 min-h-0 w-6" title="Nova pàgina mestra" aria-label="Nova pàgina mestra">+</button>
+    <div class="flex gap-0.5">
+      <button type="button" id="copia-mestres" class="btn btn-fantasma btn-icona h-6 min-h-0 w-6" title="Copia mestres d'un altre cançoner" aria-label="Copia mestres d'un altre cançoner"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5"/></svg></button>
+      <button type="button" id="nova-mestra" class="btn btn-fantasma btn-icona h-6 min-h-0 w-6" title="Nova pàgina mestra" aria-label="Nova pàgina mestra">+</button>
+    </div>
   </div>
   <ul id="llista-mestres" class="flex flex-col gap-0.5 px-2 pb-4 pt-1"></ul>
 </aside>
@@ -171,12 +174,21 @@
       <div id="props-pagina" class="flex flex-col gap-4 p-4">
         <h3 class="font-display text-lg font-medium" id="titol-props-pagina">Pàgina</h3>
         <label id="camp-mestra"><span class="etiqueta">Pàgina mestra</span><select id="mestra-pagina" class="camp py-1.5 text-[14px]"></select></label>
+        <label id="camp-costat"><span class="etiqueta">Costat de la mestra</span>
+          <select id="costat-pagina" class="camp py-1.5 text-[14px]">
+            <option value="">Segons on caigui la pàgina</option>
+            <option value="esquerra">Sempre el de l'esquerra</option>
+            <option value="dreta">Sempre el de la dreta</option>
+          </select></label>
         <label class="flex items-center justify-between gap-3 text-[14px]">Color de fons <input type="color" id="fons-pagina" class="h-8 w-12 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
         <button type="button" id="desa-pagina-biblioteca" class="btn btn-petit">Desa els elements de la pàgina a la biblioteca</button>
         <div id="ajuda-mestra" class="hidden rounded-md bg-paper-200/60 p-3 text-[13px] leading-snug text-ink-700">
           <label class="mb-2 block"><span class="etiqueta">Nom de la mestra</span><input id="nom-mestra" class="camp py-1.5 text-[14px]"></label>
           El que posis aquí surt a totes les pàgines que fan servir aquesta mestra: a l'esquerra, les parells; a la dreta, les senars.
-          <button type="button" id="esborra-mestra" class="btn btn-perill btn-petit -ml-2 mt-2">Esborra aquesta mestra</button>
+          <div class="-ml-2 mt-2 flex flex-wrap gap-1">
+            <button type="button" id="duplica-mestra" class="btn btn-fantasma btn-petit">Duplica</button>
+            <button type="button" id="esborra-mestra" class="btn btn-perill btn-petit">Esborra aquesta mestra</button>
+          </div>
         </div>
         <p class="text-[13px] leading-snug text-ink-500">Doble clic en un marc de lletra o en un text per escriure-hi. Als textos pots fer servir
           <code class="font-mono text-ink-900">{titol}</code> <code class="font-mono text-ink-900">{autor}</code> <code class="font-mono text-ink-900">{acords}</code>
@@ -433,6 +445,33 @@
   <button type="button" id="elimina-acord" class="btn btn-perill btn-petit -mb-1 -ml-2 mt-2 hidden">Elimina l'acord</button>
 </div>
 
+<dialog id="dialeg-plantilla" class="w-[min(52rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
+  <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
+    <div>
+      <h2 class="font-display text-xl font-medium" id="titol-plantilla">Tria la plantilla</h2>
+      <p class="text-[13px] text-ink-500">S'aplica a totes les pàgines. Després pots canviar-la pàgina a pàgina.</p>
+    </div>
+    <button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
+  </div>
+  <ul id="llista-plantilles" class="grid max-h-[70vh] grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))] gap-3 overflow-y-auto p-5"></ul>
+</dialog>
+
+<dialog id="dialeg-copia-mestres" class="w-[min(40rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
+  <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
+    <h2 class="font-display text-xl font-medium">Copia mestres d'un altre cançoner</h2>
+    <button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
+  </div>
+  <div class="flex flex-col gap-3 p-5">
+    <label><span class="etiqueta">Cançoner</span><select id="origen-mestres" class="camp py-1.5 text-[14px]"></select></label>
+    <ul id="mestres-origen" class="flex max-h-[50vh] flex-col gap-1 overflow-y-auto"></ul>
+    <p class="text-[12px] text-ink-500">Es copien també els estils de text que facin servir i que aquest cançoner no tingui.</p>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-paper-300 px-5 py-3">
+    <button type="button" class="btn btn-fantasma" data-tanca-dialeg>Cancel·la</button>
+    <button type="button" id="confirma-copia-mestres" class="btn btn-primari" disabled>Copia</button>
+  </div>
+</dialog>
+
 <dialog id="dialeg-importa" class="w-[min(44rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
   <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
     <h2 class="font-display text-xl font-medium">Importa una cançó</h2>
@@ -512,6 +551,8 @@
     "ordre": url_for('canconer_ordre', id_canconer=c.id),
     "nova": url_for('api_canco_nova', id_canconer=c.id),
     "importa": url_for('api_importa', id_canconer=c.id),
+    "mestresAltres": url_for('api_mestres_altres', id_canconer=c.id),
+    "mestresCopia": url_for('api_mestres_copia', id_canconer=c.id),
     "entrada": "/api/canconer/" ~ c.id ~ "/entrada/",
     "canco": "/api/canco/",
     "versio": "/api/versio/",

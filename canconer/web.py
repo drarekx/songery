@@ -261,14 +261,37 @@ def crea_app() -> Flask:
         meta = bd.desa_meta(id_canconer, canvis)
         return jsonify({k: meta[k] for k in ("estils", "mestres", "especials")})
 
+    @app.get("/api/canconer/<id_canconer>/mestres/altres")
+    def api_mestres_altres(id_canconer):
+        """Pàgines mestres dels altres cançoners, per copiar-les."""
+        meta_o_404(id_canconer)
+        return jsonify({"canconers": [
+            {"id": k["id"], "titol": k["titol"], "mestres": k["mestres"], "estils": k["estils"]}
+            for k in bd.llista_canconers() if k["id"] != id_canconer]})
+
+    @app.post("/api/canconer/<id_canconer>/mestres/copia")
+    def api_mestres_copia(id_canconer):
+        meta_o_404(id_canconer)
+        d = request.get_json(silent=True) or {}
+        meta_o_404(str(d.get("de", "")))
+        noves = bd.copia_mestres(id_canconer, d["de"], [str(i) for i in d.get("mestres", [])][:20])
+        meta = bd.meta_canconer(id_canconer)
+        return jsonify({"noves": [m["id"] for m in noves], "mestres": meta["mestres"], "estils": meta["estils"]})
+
     @app.post("/api/canconer/<id_canconer>/canco")
     def api_canco_nova(id_canconer):
         """Crea una cançó nova (o una pàgina lliure) i l'afegeix al cançoner, seguint l'esborrany."""
-        meta_o_404(id_canconer)
+        meta = meta_o_404(id_canconer)
         d = request.get_json(silent=True) or {}
         tipus = "pagina" if d.get("tipus") == "pagina" else "canco"
         # Si porta text (copiat de webs de tabs), la cançó es crea amb la lletra i els acords ja posats.
         contingut = plantilles.de_document(document.de_text(str(d["text"]))) if d.get("text") and tipus == "canco" else None
+        # Plantilla (pàgina mestra) triada: s'aplica a totes les pàgines de la cançó nova.
+        if d.get("mestra") and any(m["id"] == d["mestra"] for m in meta["mestres"]):
+            if contingut is None:
+                contingut = plantilles.canco_nova() if tipus == "canco" else {"format": 2, "pagines": [plantilles.pagina([])]}
+            for p in contingut["pagines"]:
+                p["mestra"] = d["mestra"]
         id_canco = bd.crea_canco(str(d.get("titol") or "").strip() or ("Pàgina lliure" if tipus == "pagina" else "Nova cançó"),
                                  str(d.get("autor") or "").strip(), contingut, tipus=tipus)
         bd.afegeix_entrada(id_canconer, id_canco, despres_de=d.get("despres_de"))

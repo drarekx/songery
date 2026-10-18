@@ -113,16 +113,23 @@ def elements(llista) -> list[dict]:
     return [n for n in (element(e) for e in (llista or [])[:200]) if n]
 
 
+COSTATS = ("esquerra", "dreta")
+
+
 def pagina(p: dict | None) -> dict:
     if not isinstance(p, dict):
         return plantilles.pagina([])
     mestra = p.get("mestra")
-    return {
+    net = {
         "id": str(p.get("id") or _id())[:16],
         "mestra": mestra if isinstance(mestra, str) and _CLAU.match(mestra) else None,
         "fons": _color(p.get("fons"), "#ffffff"),
         "elements": elements(p.get("elements")),
     }
+    # Costat de la mestra forçat ("esquerra" o "dreta"); si no hi és, segueix la paritat de la pàgina.
+    if p.get("costat") in COSTATS:
+        net["costat"] = p["costat"]
+    return net
 
 
 def contingut(c: dict) -> dict:

@@ -51,12 +51,14 @@ def pagines_entrada(entrada: dict) -> list[dict]:
     return _transporta_pagines(contingut["pagines"], int(entrada.get("transport") or 0))
 
 
-def _mestra(canconer: dict, id_mestra: str | None, numero: int) -> dict | None:
+def _mestra(canconer: dict, id_mestra: str | None, numero: int, costat: str | None = None) -> dict | None:
+    """Costat de la mestra: el forçat a la pàgina ("esquerra"/"dreta") o, si no n'hi ha, el de la paritat."""
     if not id_mestra:
         return None
+    esquerra = costat == "esquerra" if costat in ("esquerra", "dreta") else numero % 2 == 0
     for m in canconer.get("mestres", []):
         if m["id"] == id_mestra:
-            return m["parell" if numero % 2 == 0 else "senar"]
+            return m["parell" if esquerra else "senar"]
     return None
 
 
@@ -72,6 +74,7 @@ def pla(canconer: dict) -> dict:
 
     def afegeix(tipus: str, model: dict, context: dict | None = None, **extra) -> dict:
         p = {"tipus": tipus, "fons": model.get("fons", "#ffffff"), "id_mestra": model.get("mestra"),
+             "costat_mestra": model.get("costat"),
              "elements": copy.deepcopy(model.get("elements", [])), "id_pagina": model.get("id"),
              "context": {**context_llibre, **(context or {})}, **extra}
         seq.append(p)
@@ -132,7 +135,7 @@ def pla(canconer: dict) -> dict:
         p["numero"] = numero
         p["costat"] = "parell" if numero % 2 == 0 else "senar"
         p["context"]["pagina"] = numero
-        p["mestra"] = _mestra(canconer, p.pop("id_mestra"), numero)
+        p["mestra"] = _mestra(canconer, p.pop("id_mestra"), numero, p.pop("costat_mestra"))
         if "tros_index" in p:
             t = p.pop("tros_index")
             p["index"] = index[t * plantilles.ENTRADES_PER_PAGINA_INDEX:(t + 1) * plantilles.ENTRADES_PER_PAGINA_INDEX]

@@ -182,6 +182,33 @@ def meta_canconer(id_canconer: str) -> dict:
     return {**_meta(fila["dades"]), "id": id_canconer}
 
 
+def copia_mestres(id_desti: str, id_origen: str, ids_mestres: list[str]) -> list[dict]:
+    """Copia pàgines mestres d'un altre cançoner (amb els estils de text que facin servir i que no hi siguin).
+
+    Retorna les mestres noves. Si un id ja existeix al destí, la còpia en rep un de nou.
+    """
+    origen, desti = meta_canconer(id_origen), meta_canconer(id_desti)
+    mestres, estils = list(desti["mestres"]), dict(desti["estils"])
+    ocupats = {m["id"] for m in mestres}
+    noves = []
+    for m in origen["mestres"]:
+        if m["id"] not in ids_mestres or len(mestres) >= 20:
+            continue
+        copia = json.loads(json.dumps(m))
+        if copia["id"] in ocupats:
+            copia["id"] = nou_id()
+        ocupats.add(copia["id"])
+        for costat in ("parell", "senar"):
+            for e in copia[costat]["elements"]:
+                if e.get("estil") in origen["estils"] and e["estil"] not in estils:
+                    estils[e["estil"]] = origen["estils"][e["estil"]]
+        mestres.append(copia)
+        noves.append(copia)
+    if noves:
+        desa_meta(id_desti, {"mestres": mestres, "estils": estils})
+    return noves
+
+
 def desa_meta(id_canconer: str, canvis: dict) -> dict:
     """Actualitza les dades del cançoner (només les claus que es passen)."""
     meta = meta_canconer(id_canconer)
