@@ -141,6 +141,14 @@
   .dialeg-app-botons { @apply col-span-2 flex justify-end gap-2; }
   .btn-perill-ple { @apply border-perill-600 bg-perill-600 text-white hover:border-perill-700 hover:bg-perill-700; }
 
+  /* Nansa per canviar l'amplada d'una columna */
+  .nansa-columna {
+    @apply absolute inset-y-0 -left-1 z-20 w-2 cursor-col-resize outline-none;
+  }
+  .nansa-columna::after { content: ""; @apply absolute inset-y-0 left-[3px] w-0.5 bg-transparent transition-colors; }
+  .nansa-columna:hover::after, .nansa-columna:focus-visible::after, .nansa-columna.actiu::after { @apply bg-ink-400; }
+  .redimensionant, .redimensionant * { cursor: col-resize !important; user-select: none !important; }
+
   /* Menú del botó dret */
   .menu-context {
     @apply fixed z-[70] flex min-w-[14rem] max-w-[20rem] flex-col rounded-xl border border-paper-300 bg-paper-50/95 p-1 shadow-full outline-none backdrop-blur;

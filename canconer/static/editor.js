@@ -7,7 +7,7 @@ import {
   reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
+  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, pinia, useEditorStore,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
@@ -350,6 +350,11 @@ muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
 muntaPanellCapes("#panell-capes");
 muntaPanellPropietats("#panell-propietats");
+// La columna de la dreta es pot fer més ampla o més estreta; l'amplada es recorda (preferències).
+muntaRedimensionaPanell("#redimensiona-props", {
+  objectiu: "#editor", variable: "--ample-propietats", clau: "editor.amplePropietats",
+  minim: 260, maxim: 720, perDefecte: 320, alAcabar: () => pintaLlenc(),
+});
 
 // Diagrames d'acords (SVG) per als elements «diagrama» i «tots els acords»: els genera el servidor,
 // es guarden aquí i, quan n'arriben de nous, es torna a dibuixar.
@@ -1033,7 +1038,8 @@ llenc.addEventListener("pointerup", deixaMa, true);
 llenc.addEventListener("pointercancel", deixaMa, true);
 llenc.addEventListener("auxclick", (ev) => { if (ev.button === 1) ev.preventDefault(); }); // el clic del mig no obre res
 // (durant un zoom no: la vista prèvia escalada fa aparèixer barres de desplaçament)
-new ResizeObserver(() => { if (!gest && !edicio && !posaZoom.gest && !posaZoom.pintant) pintaLlenc(); }).observe(llenc);
+// (ni mentre s'arrossega la vora d'una columna: es redibuixa en acabar)
+new ResizeObserver(() => { if (!gest && !edicio && !posaZoom.gest && !posaZoom.pintant && !document.body.classList.contains("redimensionant")) pintaLlenc(); }).observe(llenc);
 
 // ------------------------------------------------------------ Edició de text i lletra
 

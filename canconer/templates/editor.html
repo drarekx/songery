@@ -2,7 +2,8 @@
 {% block titol %}{{ c.titol }} · Editor{% endblock %}
 {% block classe_body %}flex h-dvh flex-col overflow-hidden{% endblock %}
 {% block classe_capcalera %}{% endblock %}
-{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
+{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_var(--ample-propietats)] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
+{% block atributs_main %}id="editor" style="--ample-propietats: {{ preferencies['editor.amplePropietats'] }}px"{% endblock %}
 
 {% block accions %}
 <span id="estat" role="status" data-tipus="ok"
@@ -63,7 +64,8 @@
 
 {# ================================================================ Propietats #}
 <aside id="panell-props" data-panell
-       class="flex min-h-0 w-full flex-col border-l border-paper-300 bg-paper-50 max-lg:hidden max-lg:data-[visible=true]:flex">
+       class="relative flex min-h-0 w-full flex-col border-l border-paper-300 bg-paper-50 max-lg:hidden max-lg:data-[visible=true]:flex">
+  <div id="redimensiona-props"></div>
   <nav class="flex border-b border-paper-300" role="tablist">
     {% for clau, text in [("propietats", "Disseny"), ("capes", "Capes"), ("canco", "Cançó"), ("estils", "Estils"), ("biblioteca", "Elements")] %}
     <button type="button" role="tab" data-pestanya="{{ clau }}" aria-selected="{{ 'true' if loop.first else 'false' }}"

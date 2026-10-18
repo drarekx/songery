@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, cmyk, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, recursos, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -134,7 +134,8 @@ def crea_app() -> Flask:
     def fonts_per_a_les_plantilles():
         """Llista de tipografies per al motor de dibuix (editor i pàgina d'impressió)."""
         return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts()),
-                "versio_app": actualitzacions.versio_actual()}
+                "versio_app": actualitzacions.versio_actual(),
+                "preferencies": preferencies.carrega()}
 
     def canconer_impressio(id_canconer: str) -> dict:
         """Cançoner per imprimir. L'instrument dels diagrames es pot triar a l'hora d'imprimir
@@ -603,6 +604,18 @@ def crea_app() -> Flask:
     @app.get("/api/canco/<id_canco>")
     def api_canco(id_canco):
         return jsonify(o_404(bd.carrega_canco, id_canco))
+
+    @app.get("/api/preferencies")
+    def api_preferencies():
+        return jsonify(preferencies.carrega())
+
+    @app.patch("/api/preferencies")
+    def api_preferencies_desa():
+        """Desa les preferències de la interfície ({clau: valor}); les desconegudes s'ignoren."""
+        canvis = request.get_json(silent=True)
+        if not isinstance(canvis, dict):
+            return jsonify({"error": "Cal un objecte JSON."}), 400
+        return jsonify(preferencies.desa(canvis))
 
     @app.get("/api/canco/<id_canco>/previa")
     def api_canco_previa(id_canco):
