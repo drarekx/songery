@@ -232,3 +232,20 @@ def test_els_errors_es_desen_i_s_expliquen(client, monkeypatch, dades_temporals)
     r = client.get("/")
     assert r.status_code == 500 and "base de dades trencada" in r.get_data(as_text=True)
     assert "RuntimeError: base de dades trencada" in (dades_temporals / "errors.log").read_text()
+
+
+def test_pagina_lliure_abans_d_una_entrada_omple_la_pagina_en_blanc():
+    """La pàgina 3 (en blanc, perquè la primera cançó comenci a l'esquerra) es pot omplir amb una
+    pàgina lliure posada davant de la primera cançó."""
+    from canconer import basedades as bd, exemple, maquetacio
+    from canconer.web import crea_app
+
+    k = exemple.crea_exemple()
+    tipus = [p["tipus"] for p in maquetacio.pla(bd.carrega_canconer(k))["pagines"]]
+    assert tipus[:4] == ["portada", "index", "blanc", "canco"]
+    primera = bd.carrega_canconer(k)["cancons"][0]["id"]
+    client = crea_app().test_client()
+    r = client.post(f"/api/canconer/{k}/canco", json={"tipus": "pagina", "abans_de": primera})
+    pla = maquetacio.pla(bd.carrega_canconer(k))["pagines"]
+    assert [p["tipus"] for p in pla[:4]] == ["portada", "index", "lliure", "canco"]
+    assert pla[2]["entrada"] == r.get_json()["id"] and pla[3]["numero"] == 4

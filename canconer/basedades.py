@@ -385,13 +385,17 @@ def _reordena(con, id_canconer: str, ids: list[str]) -> None:
 
 
 def afegeix_entrada(id_canconer: str, id_canco: str, versio_id: str | None = None,
-                    despres_de: str | None = None) -> None:
+                    despres_de: str | None = None, abans_de: str | None = None) -> None:
+    """Afegeix la cançó al cançoner: just després (o abans) d'una altra entrada, o al final."""
     meta_canconer(id_canconer)
     with connexio() as con:
         ids = _ids_entrades(con, id_canconer)
         if id_canco in ids:
             return
-        posicio = ids.index(despres_de) + 1 if despres_de in ids else len(ids)
+        if abans_de in ids:
+            posicio = ids.index(abans_de)
+        else:
+            posicio = ids.index(despres_de) + 1 if despres_de in ids else len(ids)
         ids.insert(posicio, id_canco)
         con.execute("INSERT INTO entrada (canconer_id, canco_id, posicio, versio_id) VALUES (?, ?, ?, ?)",
                     (id_canconer, id_canco, posicio, versio_id))

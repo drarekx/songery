@@ -558,7 +558,7 @@ def crea_app() -> Flask:
                 p["mestra"] = d["mestra"]
         id_canco = bd.crea_canco(str(d.get("titol") or "").strip() or ("Pàgina lliure" if tipus == "pagina" else "Nova cançó"),
                                  str(d.get("autor") or "").strip(), contingut, tipus=tipus)
-        bd.afegeix_entrada(id_canconer, id_canco, despres_de=d.get("despres_de"))
+        bd.afegeix_entrada(id_canconer, id_canco, despres_de=d.get("despres_de"), abans_de=d.get("abans_de"))
         if tipus == "pagina":
             bd.actualitza_entrada(id_canconer, id_canco, inici="qualsevol")
         return jsonify({"id": id_canco})

@@ -344,6 +344,9 @@
   .mode-editor .marc-lletra.editant .acord-nom { @apply cursor-pointer rounded-sm hover:bg-accent-100; }
   .mode-editor .marc-lletra.editant .acord.seleccionat .acord-nom { @apply bg-accent-500 text-white; }
   .mode-editor .marc-lletra.editant p.is-empty:first-child::before { content: attr(data-placeholder); @apply pointer-events-none float-left h-0 font-sans text-[12px] italic text-ink-300; }
+  .vista-llibre .pagina-editor.pagina-blanca { @apply flex items-center justify-center; }
+  .avis-pagina-blanca { @apply relative z-10 rounded-full border border-dashed border-ink-300 bg-white/90 px-2.5 py-1 text-center text-[11px] font-medium text-ink-500 opacity-0 transition; }
+  .vista-llibre .pagina-blanca:hover .avis-pagina-blanca, .vista-llibre .pagina-blanca:focus-visible .avis-pagina-blanca { @apply opacity-100; }
   .vista-llibre .pagina-editor.clicable { @apply cursor-pointer transition hover:ring-2 hover:ring-accent-500/60; }
   .contingut-llenc.vista-llibre { @apply flex-row flex-wrap items-start justify-center gap-x-8 gap-y-6; min-width: 0; }
   .vista-llibre .doble-editor { @apply gap-0; }

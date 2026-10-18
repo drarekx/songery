@@ -149,3 +149,16 @@ def test_marges_del_canconer_com_a_guies_que_enganxen(pagina, servidor):
       return Number(etiqueta.querySelector('input').value);
     })()""")
     assert valor_x == 9
+
+
+def test_omplir_la_pagina_3_en_blanc_des_de_tot_el_llibret(pagina, servidor):
+    obre_editor(pagina, servidor)
+    pagina.avalua("[...document.querySelectorAll('#panell-llista button')].find((b) => b.textContent.includes('Tot el llibret')).click()")
+    pagina.espera("document.querySelector('.vista-llibre .pagina-blanca')")
+    assert pagina.avalua("document.querySelector('.vista-llibre .pagina-blanca').title").startswith("Pàgina 3")
+    pagina.avalua("document.querySelector('.vista-llibre .pagina-blanca').click()")
+    # S'obre la pàgina lliure nova, a la pàgina 3, i la primera cançó continua a la 4.
+    pagina.espera("document.querySelector('.peu-pagina-editor')?.textContent === 'Pàgina 3'", 15)
+    llista = pagina.avalua("[...document.querySelectorAll('#panell-llista li[data-id]')].slice(0, 2).map((li) => li.textContent.replace(/\\s+/g, ' ').trim())")
+    assert "Pàgina lliure" in llista[0] and "pàg. 3" in llista[0]
+    assert "pàg. 4" in llista[1]

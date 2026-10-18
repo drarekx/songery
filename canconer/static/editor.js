@@ -521,9 +521,16 @@ async function pintaLlibre() {
         pagina.style.transformOrigin = "0 0";
         caixa.append(pagina);
         caixa.title = `Pàgina ${p.numero}`;
+        if (p.tipus === "blanc" && editable) {
+          // Pàgina en blanc automàtica: es pot omplir amb una pàgina lliure en aquest mateix lloc.
+          caixa.classList.add("pagina-blanca");
+          caixa.title = `Pàgina ${p.numero}, en blanc: clica per fer-hi una pàgina lliure (dedicatòria, il·lustració…)`;
+          caixa.append(el("span", { classe: "avis-pagina-blanca", text: "+ Omple aquesta pàgina" }));
+        }
         caixa.addEventListener("click", () => {
           if (p.entrada) obre({ tipus: "canco", id: p.entrada });
           else if (["portada", "index", "acords", "index_qr", "contraportada"].includes(p.tipus)) obre({ tipus: "especial", id: p.tipus });
+          else if (p.tipus === "blanc" && editable) omplePaginaBlanca(p.numero);
         });
       }
       const columna = el("div", { classe: "flex flex-col items-center gap-1" });
@@ -2492,6 +2499,18 @@ async function treuCanco() {
 }
 
 // Noves cançons, pàgines lliures i importació
+/** Converteix una pàgina en blanc automàtica en una pàgina lliure, al mateix lloc del llibret: es posa
+ *  davant de l'entrada que hi ha després (o al final, si no n'hi ha cap). */
+async function omplePaginaBlanca(numero) {
+  await desa();
+  const seguent = PLA.pagines.find((x) => x.numero > numero && x.entrada);
+  const r = await api(urls.nova, "POST", { tipus: "pagina", abans_de: seguent?.entrada });
+  [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
+  pintaLlista();
+  await obre({ tipus: "canco", id: r.id });
+  mostraPestanya("canco");
+}
+
 async function creaEntrada(tipus, mestra) {
   if (mestra === undefined && K.mestres.length > 1) return triaPlantilla(tipus);
   await desa();
