@@ -8,7 +8,7 @@
 @font-face { font-family: "Hanken Grotesk"; font-weight: 100 900; src: url("{{ url_for("static", filename="fonts") }}/hanken-grotesk-latin-wght-normal.woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 100 800; src: url("{{ url_for("static", filename="fonts") }}/jetbrains-mono-latin-wght-normal.woff2"); }
 @page { size: A4; margin: 16mm 18mm; }
-html { font: 10.5pt/1.45 "Hanken Grotesk", sans-serif; color: #1b1a17; }
+html { font: 10.5pt/1.45 "Hanken Grotesk", sans-serif; color: #141414; }
 h1 { font-family: "Newsreader", serif; font-weight: 600; font-size: 24pt; margin: 0; }
 .sub { color: #6b665c; margin: 1mm 0 6mm; }
 .resum { display: flex; gap: 0; border: 0.3mm solid #dfd9cc; border-radius: 2mm; margin-bottom: 7mm; }
@@ -17,8 +17,8 @@ h1 { font-family: "Newsreader", serif; font-weight: 600; font-size: 24pt; margin
 .resum b { display: block; font-family: "Newsreader", serif; font-size: 18pt; font-weight: 500; }
 .resum span { font-size: 9pt; color: #6b665c; }
 ol.passos { list-style: none; padding: 0; margin: 0; }
-.pas { display: flex; gap: 5mm; align-items: flex-start; padding: 3.2mm 0; border-top: 0.3mm solid #ede9e0; break-inside: avoid; }
-.num { flex: none; width: 7mm; height: 7mm; border-radius: 50%; background: #1b1a17; color: #fff; font: 600 10pt "JetBrains Mono", monospace;
+.pas { display: flex; gap: 5mm; align-items: flex-start; padding: 3.2mm 0; border-top: 0.3mm solid #e9e9e9; break-inside: avoid; }
+.num { flex: none; width: 7mm; height: 7mm; border-radius: 50%; background: #141414; color: #fff; font: 600 10pt "JetBrains Mono", monospace;
        text-align: center; line-height: 7mm; }
 .text { flex: 1; }
 .text b { display: block; font-size: 11pt; margin-bottom: 0.5mm; }
@@ -26,7 +26,7 @@ ol.passos { list-style: none; padding: 0; margin: 0; }
 .dibuix svg { width: 42mm; height: auto; }
 .casella { flex: none; width: 5mm; height: 5mm; border: 0.4mm solid #8a8478; border-radius: 1mm; margin-top: 1mm; }
 table { width: 100%; border-collapse: collapse; margin-top: 6mm; font-size: 9.5pt; }
-th, td { text-align: left; padding: 1.6mm 2mm; border-bottom: 0.3mm solid #ede9e0; }
+th, td { text-align: left; padding: 1.6mm 2mm; border-bottom: 0.3mm solid #e9e9e9; }
 th { font-weight: 600; color: #6b665c; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.06em; }
 td.p { font-family: "JetBrains Mono", monospace; }
 .peu { margin-top: 5mm; font-size: 8.5pt; color: #8a8478; }
@@ -47,37 +47,37 @@ td.p { font-family: "JetBrains Mono", monospace; }
   <li class="pas">
     <span class="num">1</span>
     <div class="text"><b>Fes una prova amb un full</b>Dibuixa una fletxa cap amunt a la part de dalt d'un full en blanc, posa'l a la safata amb la fletxa a la cara de dalt i imprimeix-hi només la primera pàgina del PDF de cares davanteres. Així sabràs per quina cara i per quina vora agafa el paper la impressora.</div>
-    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="8" width="100" height="56" rx="2" fill="#fff" stroke="#1b1a17"/><path d="M60 50V20m-7 7 7-7 7 7" stroke="#c4321f" stroke-width="3" fill="none"/></svg></div>
+    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="8" width="100" height="56" rx="2" fill="#fff" stroke="#141414"/><path d="M60 50V20m-7 7 7-7 7 7" stroke="#c4321f" stroke-width="3" fill="none"/></svg></div>
     <span class="casella"></span>
   </li>
   <li class="pas">
     <span class="num">2</span>
     <div class="text"><b>Imprimeix les cares davanteres</b>PDF «cares davanteres»: {{ pla.fulls }} {{ "full" if pla.fulls == 1 else "fulls" }}. Desactiva «ajusta a la pàgina».</div>
-    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="12" width="100" height="50" rx="2" fill="#fff" stroke="#1b1a17"/><rect x="16" y="18" width="40" height="38" fill="#ede9e0"/><rect x="64" y="18" width="40" height="38" fill="#ede9e0"/><text x="36" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">{{ pla.total }}</text><text x="84" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">1</text></svg></div>
+    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="12" width="100" height="50" rx="2" fill="#fff" stroke="#141414"/><rect x="16" y="18" width="40" height="38" fill="#e9e9e9"/><rect x="64" y="18" width="40" height="38" fill="#e9e9e9"/><text x="36" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">{{ pla.total }}</text><text x="84" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">1</text></svg></div>
     <span class="casella"></span>
   </li>
   <li class="pas">
     <span class="num">3</span>
     <div class="text"><b>Gira la pila com la pàgina d'un llibre</b>Agafa tots els fulls sense barrejar-los i gira'ls per la vora curta (d'esquerra a dreta), de manera que la part de dalt del text continuï a dalt i quedi a la vista la cara en blanc.</div>
-    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="12" width="46" height="50" rx="2" fill="#ede9e0" stroke="#1b1a17"/><rect x="64" y="12" width="46" height="50" rx="2" fill="#fff" stroke="#1b1a17"/><path d="M33 8C45-2 75-2 87 8" stroke="#c4321f" stroke-width="2.5" fill="none"/><g transform="translate(84 4) rotate(25)">{{ fletxa | safe }}</g></svg></div>
+    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="12" width="46" height="50" rx="2" fill="#e9e9e9" stroke="#141414"/><rect x="64" y="12" width="46" height="50" rx="2" fill="#fff" stroke="#141414"/><path d="M33 8C45-2 75-2 87 8" stroke="#c4321f" stroke-width="2.5" fill="none"/><g transform="translate(84 4) rotate(25)">{{ fletxa | safe }}</g></svg></div>
     <span class="casella"></span>
   </li>
   <li class="pas">
     <span class="num">4</span>
     <div class="text"><b>Torna-la a la safata</b>Col·loca-la com t'ha indicat la prova del pas 1, de manera que el <b style="display:inline">full 1</b> sigui el primer a entrar. Si la impressora ha deixat l'últim full a sobre i no vols reordenar la pila, fes servir el PDF «cares del darrere, ordre invers».</div>
-    <div class="dibuix"><svg viewBox="0 0 120 70"><path d="M20 58h80l-10-14H30z" fill="#ede9e0" stroke="#1b1a17"/><rect x="34" y="22" width="52" height="28" fill="#fff" stroke="#1b1a17"/><path d="M60 16V4" stroke="#c4321f" stroke-width="2.5"/><g transform="translate(57 2) rotate(-90 3 3)">{{ fletxa | safe }}</g></svg></div>
+    <div class="dibuix"><svg viewBox="0 0 120 70"><path d="M20 58h80l-10-14H30z" fill="#e9e9e9" stroke="#141414"/><rect x="34" y="22" width="52" height="28" fill="#fff" stroke="#141414"/><path d="M60 16V4" stroke="#c4321f" stroke-width="2.5"/><g transform="translate(57 2) rotate(-90 3 3)">{{ fletxa | safe }}</g></svg></div>
     <span class="casella"></span>
   </li>
   <li class="pas">
     <span class="num">5</span>
     <div class="text"><b>Imprimeix les cares del darrere</b>Comprova el primer full: darrere la portada (pàgina 1) hi ha d'haver la pàgina 2, i darrere la pàgina {{ pla.total }} la pàgina {{ pla.total - 1 }}.</div>
-    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="12" width="100" height="50" rx="2" fill="#fff" stroke="#1b1a17"/><rect x="16" y="18" width="40" height="38" fill="#ede9e0"/><rect x="64" y="18" width="40" height="38" fill="#ede9e0"/><text x="36" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">2</text><text x="84" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">{{ pla.total - 1 }}</text></svg></div>
+    <div class="dibuix"><svg viewBox="0 0 120 70"><rect x="10" y="12" width="100" height="50" rx="2" fill="#fff" stroke="#141414"/><rect x="16" y="18" width="40" height="38" fill="#e9e9e9"/><rect x="64" y="18" width="40" height="38" fill="#e9e9e9"/><text x="36" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">2</text><text x="84" y="41" font-size="12" text-anchor="middle" font-family="sans-serif">{{ pla.total - 1 }}</text></svg></div>
     <span class="casella"></span>
   </li>
   <li class="pas">
     <span class="num">6</span>
     <div class="text"><b>Plega i cus</b>Posa els fulls un dins de l'altre en ordre (el full 1 a fora), doblega'ls pel mig i cus-los pel plec. Cada cançó començarà a la pàgina de l'esquerra.</div>
-    <div class="dibuix"><svg viewBox="0 0 120 70"><path d="M60 10 18 18v44l42-8 42 8V18z" fill="#fff" stroke="#1b1a17"/><path d="M60 10v44" stroke="#1b1a17"/><path d="M60 18v4m0 6v4m0 6v4m0 6v4" stroke="#c4321f" stroke-width="2.5"/></svg></div>
+    <div class="dibuix"><svg viewBox="0 0 120 70"><path d="M60 10 18 18v44l42-8 42 8V18z" fill="#fff" stroke="#141414"/><path d="M60 10v44" stroke="#141414"/><path d="M60 18v4m0 6v4m0 6v4m0 6v4" stroke="#c4321f" stroke-width="2.5"/></svg></div>
     <span class="casella"></span>
   </li>
 </ol>

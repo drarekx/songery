@@ -67,7 +67,7 @@ function mira(v) {
              autocomplete="off" aria-label="Enllaç de YouTube">
       <button class="btn btn-petit shrink-0" :disabled="afegint">Afegeix</button>
     </form>
-    <p v-if="error" class="text-[12px] leading-snug text-vermello-700" role="alert">{{ error }}</p>
+    <p v-if="error" class="text-[12px] leading-snug text-perill-700" role="alert">{{ error }}</p>
     <ul class="flex flex-col gap-2">
       <li v-for="(v, i) in store.videos" :key="v.id" class="flex gap-2 rounded-md border border-paper-300 bg-white p-1.5">
         <button type="button" class="relative h-12 w-20 shrink-0 overflow-hidden rounded bg-ink-900" title="Mira el vídeo" @click="mira(v)">
@@ -80,7 +80,7 @@ function mira(v) {
                  :readonly="!store.editable" @change="canvia(v.id, { titol: $event.target.value })">
           <div class="flex items-center gap-1 text-[12px] text-ink-500">
             <label class="flex flex-1 items-center gap-1">
-              <input type="checkbox" class="h-3.5 w-3.5 accent-vermello-500" title="Surt a l'índex de vídeos"
+              <input type="checkbox" class="h-3.5 w-3.5 accent-accent-500" title="Surt a l'índex de vídeos"
                      :checked="v.inclou_qr" :disabled="!store.editable" @change="canvia(v.id, { inclou_qr: $event.target.checked })">
               <span>A l'índex<template v-if="v.inici"> · des de {{ minuts(v.inici) }}</template></span>
             </label>

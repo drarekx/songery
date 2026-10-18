@@ -10,12 +10,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Paper i tinta: la paleta d'una impremta.
-        paper: { 50: "#fcfbf8", 100: "#f6f4ef", 200: "#ede9e0", 300: "#dfd9cc", DEFAULT: "#f6f4ef" },
-        ink: { 300: "#a7a196", 400: "#8a8478", 500: "#6b665c", 700: "#3a3832", 900: "#1b1a17", DEFAULT: "#1b1a17" },
-        // Vermelló: el color dels acords, únic accent.
-        vermello: { 50: "#fdf4f2", 100: "#fbe4df", 200: "#f5c3b8", 500: "#c4321f", 600: "#a8281a", 700: "#8a2015" },
-        taula: "#e6e2d8", // taula de llum on es veuen les pàgines
+        // Blanc, negre i grisos neutres.
+        paper: { 50: "#fafafa", 100: "#f5f5f5", 200: "#e9e9e9", 300: "#d9d9d9", DEFAULT: "#f5f5f5" },
+        ink: { 300: "#a6a6a6", 400: "#8c8c8c", 500: "#6b6b6b", 700: "#3b3b3b", 900: "#141414", DEFAULT: "#141414" },
+        // Accent de la interfície: el negre (botons principals, selecció, focus).
+        accent: { 50: "#f2f2f2", 100: "#e6e6e6", 200: "#d4d4d4", 500: "#141414", 600: "#2e2e2e", 700: "#000000" },
+        // Vermell: només per esborrar i per als errors.
+        perill: { 50: "#fdf3f2", 100: "#fbe2df", 200: "#f4c0b9", 500: "#b42318", 600: "#b42318", 700: "#8f1c13" },
+        taula: "#ebebeb", // taula de llum on es veuen les pàgines
       },
       fontFamily: {
         display: ['"Newsreader"', "Georgia", "serif"],
@@ -23,8 +25,8 @@ module.exports = {
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       boxShadow: {
-        full: "0 1px 2px rgb(27 26 23 / 0.10), 0 6px 18px -6px rgb(27 26 23 / 0.18)",
-        suau: "0 1px 2px rgb(27 26 23 / 0.06), 0 1px 1px rgb(27 26 23 / 0.04)",
+        full: "0 1px 2px rgb(20 20 20 / 0.10), 0 6px 18px -6px rgb(20 20 20 / 0.18)",
+        suau: "0 1px 2px rgb(20 20 20 / 0.06), 0 1px 1px rgb(20 20 20 / 0.04)",
       },
     },
   },

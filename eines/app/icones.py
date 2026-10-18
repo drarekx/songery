@@ -12,27 +12,35 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 
 AQUI = Path(__file__).resolve().parent
-VERMELLO = (196, 50, 31, 255)
+NEGRE = (20, 20, 20, 255)
+BLANC = (255, 255, 255, 255)
+GRIS = (166, 166, 166, 255)
 
 
 def icona_app(mida: int = 1024) -> Image.Image:
-    """Quadrat arrodonit vermelló amb un llibret obert, a l'estil de les icones de macOS."""
+    """Quadrat arrodonit negre amb un llibret obert (el logo), a l'estil de les icones de macOS.
+
+    El dibuix segueix el logo de la web (viewBox de 64 × 64) dins el quadrat de 824 px de macOS."""
     k = mida / 1024
+    u = 824 / 64  # una unitat del logo, en píxels de la icona de 1024
+
+    def punt(x: float, y: float) -> tuple[float, float]:
+        return ((100 + x * u) * k, (100 + y * u) * k)
+
     img = Image.new("RGBA", (mida, mida), (0, 0, 0, 0))
     # Ombra suau
     ombra = Image.new("RGBA", (mida, mida), (0, 0, 0, 0))
     ImageDraw.Draw(ombra).rounded_rectangle([100 * k, 118 * k, 924 * k, 942 * k], radius=185 * k, fill=(0, 0, 0, 90))
     img.alpha_composite(ombra.filter(ImageFilter.GaussianBlur(18 * k)))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([100 * k, 100 * k, 924 * k, 924 * k], radius=185 * k, fill=VERMELLO)
-    # Llibret obert: dues pàgines amb el plec al mig i línies de lletra
-    blanc = (255, 255, 255, 255)
-    d.polygon([(250 * k, 300 * k), (500 * k, 340 * k), (500 * k, 760 * k), (250 * k, 720 * k)], fill=blanc)
-    d.polygon([(524 * k, 340 * k), (774 * k, 300 * k), (774 * k, 720 * k), (524 * k, 760 * k)], fill=blanc)
-    for i in range(5):
-        y = 410 + i * 62
-        d.line([(300 * k, (y - 8) * k), (450 * k, (y + 16) * k)], fill=(*VERMELLO[:3], 200), width=int(14 * k))
-        d.line([(574 * k, (y + 16) * k), (724 * k, (y - 8) * k)], fill=(210, 205, 196, 255), width=int(14 * k))
+    d.rounded_rectangle([100 * k, 100 * k, 924 * k, 924 * k], radius=185 * k, fill=NEGRE)
+    # Llibret obert: dues pàgines lleugerament inclinades, amb línies de lletra
+    d.polygon([punt(13, 18.5), punt(30.5, 22), punt(30.5, 47), punt(13, 43.5)], fill=BLANC)
+    d.polygon([punt(33.5, 22), punt(51, 18.5), punt(51, 43.5), punt(33.5, 47)], fill=BLANC)
+    gruix = max(1, int(1.6 * u * k))
+    for (x1, y1, x2, y2) in [(17, 27.5, 26.5, 29.4), (17, 32.3, 26.5, 34.2), (17, 37.1, 23.5, 38.4),
+                             (37.5, 29.4, 47, 27.5), (37.5, 34.2, 47, 32.3), (37.5, 39, 44, 37.7)]:
+        d.line([punt(x1, y1), punt(x2, y2)], fill=GRIS, width=gruix)
     return img
 
 
@@ -42,7 +50,7 @@ def icona_menu(mida: int = 44) -> Image.Image:
     d = ImageDraw.Draw(img)
     k = mida / 44
     negre = (0, 0, 0, 255)
-    d.polygon([(4 * k, 9 * k), (21 * k, 12 * k), (21 * k, 38 * k), (4 * k, 35 * k)], outline=negre, width=int(3 * k))
+    d.polygon([(4 * k, 9 * k), (21 * k, 12 * k), (21 * k, 38 * k), (4 * k, 35 * k)], fill=negre)
     d.polygon([(23 * k, 12 * k), (40 * k, 9 * k), (40 * k, 35 * k), (23 * k, 38 * k)], fill=negre)
     return img
 

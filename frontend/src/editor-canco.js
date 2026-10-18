@@ -347,7 +347,7 @@ export function creaEditorCanco(element, opcions) {
       creaImatge(opcions.urlImatge),
       creaAcord(opcions.editaAcord),
       Bold, Italic, Tonica, Cor, Mida,
-      UndoRedo, Dropcursor.configure({ color: "#c4321f", width: 2 }), Gapcursor,
+      UndoRedo, Dropcursor.configure({ color: "#141414", width: 2 }), Gapcursor,
       Placeholder.configure({
         placeholder: ({ node, pos }) => {
           if (node.type.name === "seccio") return "Nom de la secció (Chorus, Verse 1…)";

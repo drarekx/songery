@@ -13,7 +13,7 @@ const GRUPS = [
     { nom: "refes", titol: "Refés (⇧⌘Z)", icona: '<path d="m13 5 4 4-4 4M17 9H8a4 4 0 0 0 0 8h1"/>' },
   ] },
   { etiqueta: "Afegeix", eines: [
-    { nom: "nou-lletra", titol: "Marc de lletra amb acords", icona: '<rect x="3" y="3" width="14" height="14" rx="1"/><path d="M6 8h8M6 11h8M6 14h5"/><path d="M6 5.5h1.5" stroke="#c4321f" stroke-width="2"/>' },
+    { nom: "nou-lletra", titol: "Marc de lletra amb acords", icona: '<rect x="3" y="3" width="14" height="14" rx="1"/><path d="M6 8h8M6 11h8M6 14h5"/><path d="M6 5.5h1.5" stroke-width="2.4"/>' },
     { nom: "nou-text", titol: "Text", icona: '<path d="M4 5h12M10 5v11M8 16h4"/>' },
     { nom: "nou-imatge", titol: "Imatge", icona: '<rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8.5" r="1.5"/><path d="m3 14 4-4 3 3 2-2 5 5"/>' },
     { nom: "nou-forma", titol: "Rectangle", icona: '<rect x="3.5" y="5" width="13" height="10" rx="1"/>' },

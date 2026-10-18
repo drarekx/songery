@@ -46,7 +46,7 @@
         <span class="flex items-center gap-1">
           <span class="min-w-0 flex-1 truncate font-display text-[17px] font-medium leading-snug" title="{{ c.titol }}">{{ c.titol }}</span>
           <form method="post" action="{{ url_for('canconer_a_paperera', id_canconer=c.id) }}" class="-mr-1.5 shrink-0 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
-            <button class="flex h-8 w-8 items-center justify-center rounded text-ink-500 hover:bg-white/60 hover:text-vermello-700" title="Envia'l a la paperera (es pot recuperar)" aria-label="Envia «{{ c.titol }}» a la paperera">
+            <button class="flex h-8 w-8 items-center justify-center rounded text-ink-500 hover:bg-white/60 hover:text-perill-700" title="Envia'l a la paperera (es pot recuperar)" aria-label="Envia «{{ c.titol }}» a la paperera">
               <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg>
             </button>
           </form>
@@ -72,7 +72,7 @@
         <svg class="h-7 w-7 self-center" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
         <label for="titol-nou" class="text-[13px]">Un cançoner nou</label>
         <input id="titol-nou" name="titol" required placeholder="Títol…" autocomplete="off"
-               class="w-full border-0 border-b border-ink-300 bg-transparent px-0 py-1 text-center font-display text-xl text-ink-900 placeholder:text-ink-300 focus:border-vermello-500 focus:outline-none focus:ring-0">
+               class="w-full border-0 border-b border-ink-300 bg-transparent px-0 py-1 text-center font-display text-xl text-ink-900 placeholder:text-ink-300 focus:border-accent-500 focus:outline-none focus:ring-0">
         <button class="btn btn-primari btn-petit self-center">Crea'l</button>
       </form>
       <form method="post" action="{{ url_for('canconer_exemple') }}" class="px-0.5">

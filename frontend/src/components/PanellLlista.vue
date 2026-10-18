@@ -107,10 +107,10 @@ function deixa() {
       <li v-for="(c, i) in cancons" :key="c.id" :data-id="c.id" @contextmenu.prevent="menuCanco($event, c, i)"
           class="group relative flex items-center rounded-md transition"
           :class="[actiu(`canco:${c.id}`) ? 'bg-white shadow-suau ring-1 ring-paper-300' : 'hover:bg-paper-200/70', { 'opacity-60': !c.inclosa, arrossegant: arrossegada === c.id }]">
-        <span v-if="actiu(`canco:${c.id}`)" class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-vermello-500" aria-hidden="true"></span>
+        <span v-if="actiu(`canco:${c.id}`)" class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-500" aria-hidden="true"></span>
         <span class="nansa flex w-4 shrink-0 cursor-grab touch-none select-none items-center justify-center self-stretch text-ink-300 opacity-0 transition group-hover:opacity-100 max-lg:opacity-100"
               title="Arrossega per reordenar" aria-hidden="true" @pointerdown="comencaArrossegar($event, c)">⠿</span>
-        <input type="checkbox" class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-vermello-500" title="Surt al PDF" :aria-label="`«${c.titol || 'Sense títol'}» surt al PDF`"
+        <input type="checkbox" class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-500" title="Surt al PDF" :aria-label="`«${c.titol || 'Sense títol'}» surt al PDF`"
                :checked="c.inclosa" @change="store.crida('canviaEntrada', c.id, { inclosa: $event.target.checked })">
         <button type="button" class="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-2 pr-1 text-left" @click="obre('canco', c.id)">
           <span class="flex min-w-0 flex-1 flex-col">

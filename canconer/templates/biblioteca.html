@@ -72,7 +72,7 @@
         {% for s in cancons %}
           <li class="fila-biblioteca llista-biblioteca px-5 py-3" data-canco="{{ s.id }}">
             <div class="flex min-w-0 flex-col">
-              <a href="{{ url_for('biblioteca_canco', id_canco=s.id) }}" class="truncate font-display text-[17px] font-medium hover:text-vermello-700">{{ s.titol or "Sense títol" }}</a>
+              <a href="{{ url_for('biblioteca_canco', id_canco=s.id) }}" class="truncate font-display text-[17px] font-medium hover:text-accent-700">{{ s.titol or "Sense títol" }}</a>
               <span class="truncate text-[13px] italic text-ink-500">{{ s.autor or "Sense autor" }}</span>
             </div>
             <div class="hidden flex-wrap items-center gap-1 md:flex">
@@ -86,7 +86,7 @@
                 {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
                 <input type="hidden" name="ordre" value="{{ ordre }}">
                 <input type="hidden" name="pagina" value="{{ pagina }}">
-                <button class="eina h-8 w-8 hover:bg-vermello-50 hover:text-vermello-700" aria-label="Envia «{{ s.titol }}» a la paperera" data-tooltip="A la paperera">
+                <button class="eina h-8 w-8 hover:bg-perill-50 hover:text-perill-700" aria-label="Envia «{{ s.titol }}» a la paperera" data-tooltip="A la paperera">
                   <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg>
                 </button>
               </form>

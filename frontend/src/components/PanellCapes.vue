@@ -46,7 +46,7 @@ const ressalta = (p, ids, si) => store.crida("ressaltaCapes", p, ids, si);
                     :style="{ fontFamily: e.font ? FONTS[e.font] || '' : '' }"
                     @click="ressalta(p, [e.id], false); store.crida('seleccionaCapa', p, e.id, { afegeix: $event.shiftKey, sol: true })">{{ e.nom }}</button>
             <button type="button" class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-400 hover:bg-paper-200 hover:text-ink-900"
-                    :class="e.bloquejat ? 'text-vermello-600' : 'opacity-0 group-hover:opacity-100'"
+                    :class="e.bloquejat ? 'text-accent-600' : 'opacity-0 group-hover:opacity-100'"
                     :title="e.bloquejat ? 'Desbloqueja' : 'Bloqueja (els clics hi passen a través)'"
                     :aria-label="e.bloquejat ? 'Desbloqueja' : 'Bloqueja'" :disabled="!store.editable"
                     @click="store.crida('bloquejaCapa', p, e.id)">

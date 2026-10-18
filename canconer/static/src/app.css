@@ -36,8 +36,8 @@
 @layer base {
   [hidden] { display: none !important; }
   html { -webkit-tap-highlight-color: transparent; }
-  ::selection { @apply bg-vermello-100 text-ink-900; }
-  :focus-visible { @apply outline-none ring-2 ring-vermello-500/60 ring-offset-1 ring-offset-paper-50; }
+  ::selection { @apply bg-accent-100 text-ink-900; }
+  :focus-visible { @apply outline-none ring-2 ring-accent-500/60 ring-offset-1 ring-offset-paper-50; }
   summary { @apply cursor-pointer select-none; }
   summary::-webkit-details-marker { display: none; }
 }
@@ -55,16 +55,16 @@
       px-3.5 text-sm font-medium text-ink-900 shadow-suau transition
       hover:border-ink-300 hover:bg-white active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
   }
-  .btn-primari { @apply border-vermello-600 bg-vermello-500 text-white hover:border-vermello-700 hover:bg-vermello-600; }
+  .btn-primari { @apply border-accent-600 bg-accent-500 text-white hover:border-accent-700 hover:bg-accent-600; }
   .btn-fantasma { @apply border-transparent bg-transparent shadow-none hover:border-transparent hover:bg-paper-200; }
-  .btn-perill { @apply border-transparent bg-transparent text-vermello-600 shadow-none hover:border-vermello-200 hover:bg-vermello-50; }
+  .btn-perill { @apply border-transparent bg-transparent text-perill-600 shadow-none hover:border-perill-200 hover:bg-perill-50; }
   .btn-petit { @apply min-h-[2rem] px-2.5 text-[13px]; }
   .btn-icona { @apply min-h-[2rem] w-8 px-0; }
 
   /* Triar plantilla (pàgina mestra) en crear una cançó */
   .targeta-plantilla {
     @apply flex w-full flex-col items-center gap-2 rounded-lg border border-paper-300 bg-white p-3 transition
-      hover:border-ink-300 hover:shadow-suau aria-[current=true]:border-vermello-500 aria-[current=true]:ring-2 aria-[current=true]:ring-vermello-200;
+      hover:border-ink-300 hover:shadow-suau aria-[current=true]:border-accent-500 aria-[current=true]:ring-2 aria-[current=true]:ring-accent-200;
   }
   .miniatura-mestra { @apply relative shrink-0 overflow-hidden bg-white shadow-[0_0_0_1px] shadow-paper-300; }
   .miniatura-mestra .pagina { @apply pointer-events-none; }
@@ -76,35 +76,35 @@
   @screen sm { .llista-biblioteca { grid-template-columns: minmax(0, 1fr) 6.5rem 7.5rem; } }
   @screen md { .llista-biblioteca { grid-template-columns: minmax(0, 1fr) 13rem 6.5rem 7.5rem; } }
   .fila-biblioteca { @apply relative transition-colors hover:bg-paper-50; }
-  .fila-biblioteca.actiu { @apply bg-paper-50; box-shadow: inset 3px 0 0 theme("colors.vermello.500"); }
+  .fila-biblioteca.actiu { @apply bg-paper-50; box-shadow: inset 3px 0 0 theme("colors.accent.500"); }
   .pagina-boto { @apply inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-transparent px-2 font-mono text-[13px] text-ink-700 transition hover:bg-paper-200; }
   .pagina-boto[aria-current="page"] { @apply border-ink-900 bg-ink-900 font-semibold text-white hover:bg-ink-900; }
   .pagina-previa {
     @apply relative w-full overflow-hidden bg-white;
     aspect-ratio: 148 / 210;
-    box-shadow: 0 14px 30px -14px rgb(27 26 23 / 0.35), 0 1px 2px rgb(27 26 23 / 0.12);
+    box-shadow: 0 14px 30px -14px rgb(20 20 20 / 0.35), 0 1px 2px rgb(20 20 20 / 0.12);
   }
   .pagina-previa > .pagina { position: absolute; left: 0; top: 0; }
 
   .llibret {
     @apply relative block overflow-hidden bg-white transition duration-200 ease-out;
     aspect-ratio: 148 / 210;
-    box-shadow: 0 10px 24px -16px rgb(27 26 23 / 0.45), 0 1px 0 rgb(27 26 23 / 0.06);
+    box-shadow: 0 10px 24px -16px rgb(20 20 20 / 0.45), 0 1px 0 rgb(20 20 20 / 0.06);
   }
   .llibret:hover, .llibret:focus-visible {
     transform: translateY(-6px) rotate(-0.6deg);
-    box-shadow: 0 22px 40px -18px rgb(27 26 23 / 0.5), 0 2px 0 rgb(27 26 23 / 0.06);
+    box-shadow: 0 22px 40px -18px rgb(20 20 20 / 0.5), 0 2px 0 rgb(20 20 20 / 0.06);
   }
-  .llibret:focus-visible { @apply outline-none ring-2 ring-vermello-500 ring-offset-4 ring-offset-taula; }
+  .llibret:focus-visible { @apply outline-none ring-2 ring-accent-500 ring-offset-4 ring-offset-taula; }
   /* El plec del llibret, a l'esquerra */
-  .llibret::after { content: ""; @apply pointer-events-none absolute inset-y-0 left-0 w-3; background: linear-gradient(90deg, rgb(27 26 23 / 0.09), transparent); }
+  .llibret::after { content: ""; @apply pointer-events-none absolute inset-y-0 left-0 w-3; background: linear-gradient(90deg, rgb(20 20 20 / 0.09), transparent); }
   .portada-llibret { @apply absolute inset-0 block; }
   .portada-llibret > .pagina { position: absolute; left: 0; top: 0; }
   .llibret-nou {
-    @apply flex flex-col justify-center gap-3 border-2 border-dashed border-ink-300 px-[14%] text-center text-ink-500 transition hover:border-ink-400 focus-within:border-vermello-500;
+    @apply flex flex-col justify-center gap-3 border-2 border-dashed border-ink-300 px-[14%] text-center text-ink-500 transition hover:border-ink-400 focus-within:border-accent-500;
     aspect-ratio: 148 / 210;
   }
-  .enllac-llibret { @apply inline-flex min-h-[2.25rem] items-center rounded px-1.5 text-ink-700 hover:text-vermello-700; }
+  .enllac-llibret { @apply inline-flex min-h-[2.25rem] items-center rounded px-1.5 text-ink-700 hover:text-accent-700; }
   .enllac-llibret:first-child { @apply -ml-1.5; }
 
   /* Selector de color (CMYK per a impremta) */
@@ -114,24 +114,24 @@
   .text-color { @apply truncate; }
   .mostra-color { @apply h-5 w-5 shrink-0 rounded border border-ink-900/15; }
   .mostra-color.gran { @apply h-9 w-9 rounded-md; }
-  .mostra-color.buit { background: repeating-linear-gradient(45deg, #fff 0 4px, #e6e2d8 4px 8px); }
+  .mostra-color.buit { background: repeating-linear-gradient(45deg, #fff 0 4px, #ebebeb 4px 8px); }
   .popover-color { @apply fixed z-50 flex w-[19rem] flex-col gap-2 rounded-xl border border-paper-300 bg-paper-50 p-3 shadow-full; }
   .fila-canal { @apply flex items-center gap-2; }
-  .barra-canal { @apply h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full; background: linear-gradient(90deg, #fff, var(--canal)); accent-color: var(--canal); border: 1px solid rgb(27 26 23 / 0.12); }
-  .mostra-paleta { @apply h-6 w-6 rounded border border-ink-900/15 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vermello-500; }
+  .barra-canal { @apply h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full; background: linear-gradient(90deg, #fff, var(--canal)); accent-color: var(--canal); border: 1px solid rgb(20 20 20 / 0.12); }
+  .mostra-paleta { @apply h-6 w-6 rounded border border-ink-900/15 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500; }
 
   /* Diàlegs de l'aplicació (confirmar, avisar, preguntar) */
   .dialeg-app {
     @apply w-[min(28rem,calc(100vw-2rem))] overflow-visible rounded-2xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full;
     animation: dialeg-entra 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   }
-  .dialeg-app::backdrop { background: rgb(27 26 23 / 0.35); backdrop-filter: blur(3px); animation: fons-entra 0.18s ease-out; }
+  .dialeg-app::backdrop { background: rgb(20 20 20 / 0.35); backdrop-filter: blur(3px); animation: fons-entra 0.18s ease-out; }
   .dialeg-app.tancant { animation: dialeg-surt 0.16s ease-in forwards; }
   .dialeg-app.tancant::backdrop { animation: fons-surt 0.16s ease-in forwards; }
   .dialeg-app-cos { @apply grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-5 p-6; }
   .dialeg-app-icona { @apply flex h-11 w-11 items-center justify-center rounded-full bg-paper-200 text-ink-700; }
   .dialeg-app-icona svg { @apply h-6 w-6; }
-  .dialeg-perill .dialeg-app-icona { @apply bg-vermello-100 text-vermello-600; }
+  .dialeg-perill .dialeg-app-icona { @apply bg-perill-100 text-perill-600; }
   .dialeg-info .dialeg-app-icona { @apply bg-sky-100 text-sky-800; }
   .dialeg-text .dialeg-app-icona { @apply bg-amber-100 text-amber-800; }
   .dialeg-app-contingut { @apply flex min-w-0 flex-col gap-2 pt-1; }
@@ -139,7 +139,7 @@
   .dialeg-app-text { @apply whitespace-pre-line text-[14px] leading-relaxed text-ink-700; }
   .dialeg-app-camp { @apply mt-2; }
   .dialeg-app-botons { @apply col-span-2 flex justify-end gap-2; }
-  .btn-perill-ple { @apply border-vermello-600 bg-vermello-600 text-white hover:border-vermello-700 hover:bg-vermello-700; }
+  .btn-perill-ple { @apply border-perill-600 bg-perill-600 text-white hover:border-perill-700 hover:bg-perill-700; }
 
   /* Menú del botó dret */
   .menu-context {
@@ -148,9 +148,9 @@
   }
   .menu-context-item {
     @apply flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13.5px] text-ink-900 outline-none transition-colors
-      hover:bg-vermello-500 hover:text-white focus-visible:bg-vermello-500 focus-visible:text-white disabled:pointer-events-none disabled:opacity-40;
+      hover:bg-accent-500 hover:text-white focus-visible:bg-accent-500 focus-visible:text-white disabled:pointer-events-none disabled:opacity-40;
   }
-  .menu-context-item.perill { @apply text-vermello-700 hover:bg-vermello-600 hover:text-white; }
+  .menu-context-item.perill { @apply text-perill-700 hover:bg-perill-600 hover:text-white; }
   .menu-context-item:hover .menu-context-drecera, .menu-context-item:focus-visible .menu-context-drecera { @apply text-white/80; }
   .menu-context-marca { @apply w-3 shrink-0 text-center text-[12px]; }
   .menu-context-drecera { @apply font-sans text-[12px] text-ink-400; }
@@ -162,24 +162,24 @@
   .pas-actualitzacio[data-estat="pendent"] { @apply opacity-50; }
   .pas-actualitzacio[data-estat="actiu"] { @apply bg-paper-100; }
   .icona-pas { @apply mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-paper-300 text-[13px] font-bold; }
-  .pas-actualitzacio[data-estat="actiu"] .icona-pas { @apply animate-spin border-vermello-500 border-t-transparent; }
+  .pas-actualitzacio[data-estat="actiu"] .icona-pas { @apply animate-spin border-accent-500 border-t-transparent; }
   .pas-actualitzacio[data-estat="fet"] .icona-pas { @apply border-emerald-600 bg-emerald-600 text-white; }
   .pas-actualitzacio[data-estat="fet"] .icona-pas::after { content: "✓"; }
-  .pas-actualitzacio[data-estat="error"] .icona-pas { @apply border-vermello-600 bg-vermello-600 text-white; }
+  .pas-actualitzacio[data-estat="error"] .icona-pas { @apply border-perill-600 bg-perill-600 text-white; }
   .pas-actualitzacio[data-estat="error"] .icona-pas::after { content: "!"; }
 
   /* Fila de l'historial de versions (biblioteca) */
   .fila-versio {
     @apply flex w-full items-start gap-3 border-b border-paper-200 px-4 py-3 text-left transition hover:bg-paper-100
-      aria-[current=true]:bg-vermello-50 aria-[current=true]:shadow-[inset_3px_0_0] aria-[current=true]:shadow-vermello-500;
+      aria-[current=true]:bg-accent-50 aria-[current=true]:shadow-[inset_3px_0_0] aria-[current=true]:shadow-accent-500;
   }
 
   /* Camps de formulari */
   .etiqueta { @apply mb-1.5 block text-[13px] font-semibold text-ink-700; }
   .camp {
     @apply block w-full rounded-md border border-paper-300 bg-white px-3 py-2 text-[15px] text-ink-900 shadow-suau
-      transition placeholder:text-ink-300 hover:border-ink-300 focus:border-vermello-500 focus:outline-none
-      focus:ring-2 focus:ring-vermello-500/20;
+      transition placeholder:text-ink-300 hover:border-ink-300 focus:border-accent-500 focus:outline-none
+      focus:ring-2 focus:ring-accent-500/20;
   }
   .ajuda-camp { @apply mt-1.5 text-[13px] leading-snug text-ink-500; }
 
@@ -189,13 +189,13 @@
     @apply absolute inset-0 rounded-full bg-paper-300 transition
       after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition;
   }
-  .interruptor input:checked + span { @apply bg-vermello-500 after:translate-x-4; }
-  .interruptor input:focus-visible + span { @apply ring-2 ring-vermello-500/40; }
+  .interruptor input:checked + span { @apply bg-accent-500 after:translate-x-4; }
+  .interruptor input:focus-visible + span { @apply ring-2 ring-accent-500/40; }
 
   /* Superfícies */
   .targeta { @apply rounded-lg border border-paper-300 bg-paper-50 shadow-suau; }
   .xip { @apply inline-flex items-center gap-1 rounded-full bg-paper-200 px-2 py-0.5 text-xs font-medium text-ink-700; }
-  .xip-acord { @apply rounded bg-vermello-50 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-vermello-700; }
+  .xip-acord { @apply rounded bg-accent-50 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-accent-700; }
   .avis { @apply flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-900; }
 
   /* Selector segmentat */
@@ -207,7 +207,7 @@
   .pestanya {
     @apply relative inline-flex h-full items-center whitespace-nowrap px-1 text-sm font-medium text-ink-500 transition hover:text-ink-900;
   }
-  .pestanya[aria-current="page"] { @apply text-ink-900 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-vermello-500; }
+  .pestanya[aria-current="page"] { @apply text-ink-900 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-accent-500; }
 
   /* Visor de PDF: pàgines sobre la taula de llum */
   /* "safe center": si les pàgines són més amples que la zona (zoom), s'alineen a l'esquerra i es pot fer scroll. */
@@ -219,12 +219,12 @@
   .visor-doble .fulls-doble.amb-plec::after {
     content: "";
     @apply pointer-events-none absolute inset-y-0 left-1/2 w-10 -translate-x-1/2;
-    background: linear-gradient(90deg, transparent, rgb(27 26 23 / 0.07) 45%, rgb(27 26 23 / 0.14) 50%, rgb(27 26 23 / 0.07) 55%, transparent);
+    background: linear-gradient(90deg, transparent, rgb(20 20 20 / 0.07) 45%, rgb(20 20 20 / 0.14) 50%, rgb(20 20 20 / 0.07) 55%, transparent);
   }
   .visor-full canvas { @apply shadow-full; }
   .visor-pagines canvas { @apply block bg-white; }
   .visor-pagines canvas.clicable { @apply cursor-pointer; }
-  .visor-pagines canvas.marcada { @apply relative z-10 outline outline-2 outline-offset-0 outline-vermello-500; }
+  .visor-pagines canvas.marcada { @apply relative z-10 outline outline-2 outline-offset-0 outline-accent-500; }
   .visor-buit { @apply block; }
   .pagina-visor { @apply relative block; }
 
@@ -233,7 +233,7 @@
   .amb-ordre .capa-ordre { @apply flex; }
   .capa-ordre .casella-ordre { @apply flex flex-1 flex-col items-center justify-center gap-1; }
   .numero-ordre {
-    @apply flex aspect-square min-w-[3.25rem] items-center justify-center rounded-full bg-vermello-500/85 px-2
+    @apply flex aspect-square min-w-[3.25rem] items-center justify-center rounded-full bg-accent-500/85 px-2
       font-display text-[1.9rem] font-semibold leading-none text-white shadow-full ring-4 ring-white/70;
   }
   .text-ordre { @apply rounded bg-white/85 px-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-700; }
@@ -269,7 +269,7 @@
 
   /* Panell dels diagrames d'acords */
   .panell-acords { @apply absolute left-3 top-[3.25rem] z-40 flex w-[22rem] flex-col gap-3 rounded-xl border border-paper-300 bg-paper-50 p-4 shadow-full; }
-  .fitxa-acord { @apply flex cursor-grab flex-col items-center justify-center rounded-md border border-paper-300 bg-white p-1 transition hover:border-vermello-500 hover:shadow-suau active:cursor-grabbing disabled:cursor-default disabled:opacity-50; }
+  .fitxa-acord { @apply flex cursor-grab flex-col items-center justify-center rounded-md border border-paper-300 bg-white p-1 transition hover:border-accent-500 hover:shadow-suau active:cursor-grabbing disabled:cursor-default disabled:opacity-50; }
   .fitxa-acord svg { @apply h-auto w-full; }
   .separador { @apply mx-1 h-5 w-px bg-paper-300; }
 
@@ -281,7 +281,7 @@
   /* Dissenyador de portada */
   .el-disseny.buit { @apply outline-dashed outline-1 outline-ink-300; }
   .el-disseny:hover { @apply outline outline-1 outline-sky-400; }
-  .nansa-disseny { @apply pointer-events-auto absolute h-2.5 w-2.5 rounded-sm border-2 border-vermello-500 bg-white; }
+  .nansa-disseny { @apply pointer-events-auto absolute h-2.5 w-2.5 rounded-sm border-2 border-accent-500 bg-white; }
   .nansa-nw { @apply -left-[6px] -top-[6px] cursor-nwse-resize; }
   .nansa-n { @apply -top-[6px] left-1/2 -ml-[5px] cursor-ns-resize; }
   .nansa-ne { @apply -right-[6px] -top-[6px] cursor-nesw-resize; }
@@ -300,10 +300,10 @@
   .peu-pagina-editor { @apply text-[11px] text-ink-500; }
   .capa-seleccio { @apply pointer-events-none absolute inset-0; }
   .guia-marges { @apply pointer-events-none absolute border border-dashed border-sky-500/70; }
-  .marc-seleccio { @apply pointer-events-none absolute border-2 border-vermello-500; }
-  .marc-seleccio.editant { @apply border-dashed border-vermello-500/70; }
-  .marc-seleccio.multiple { @apply border-vermello-500/80; }
-  .contorn-seleccio { @apply pointer-events-none absolute border border-dashed border-vermello-500/70; }
+  .marc-seleccio { @apply pointer-events-none absolute border-2 border-accent-500; }
+  .marc-seleccio.editant { @apply border-dashed border-accent-500/70; }
+  .marc-seleccio.multiple { @apply border-accent-500/80; }
+  .contorn-seleccio { @apply pointer-events-none absolute border border-dashed border-accent-500/70; }
   .pagina-editor.desti-arrossegament { outline: 3px solid rgb(56 189 248); outline-offset: 2px; }
   .mode-editor .capa-elements > .el.origen-arrossegat { opacity: 0.25; }
   .fantasma-arrossegament { opacity: 0.7; pointer-events: none; outline: 1px dashed rgb(14 165 233); }
@@ -313,26 +313,26 @@
   .mode-ma, .mode-ma .capa-elements > .el, .mode-ma .pagina-editor { cursor: grab !important; }
   .movent-ma, .movent-ma .capa-elements > .el, .movent-ma .pagina-editor { cursor: grabbing !important; user-select: none; }
   .mode-editor .capa-elements > .el:hover { outline: 1px solid rgb(56 189 248 / 0.9); }
-  .mode-editor .marc-lletra.desborda { outline: 2px dashed #c4321f; outline-offset: -1px; }
+  .mode-editor .marc-lletra.desborda { outline: 2px dashed #b42318; outline-offset: -1px; }
   /* Mentre s'edita, es veu també la lletra que no hi cap (per sota del marc), amb una línia on s'acaba */
   .mode-editor .marc-lletra.editant { overflow: visible; z-index: 5; }
   .mode-editor .marc-lletra.editant.desborda::after {
     content: "Fins aquí hi cap · el que hi ha a sota passarà a la pàgina següent amb «Reparteix» o «Talla aquí»";
-    @apply pointer-events-none absolute -left-px -right-px top-full border-t-2 border-dashed border-vermello-500 bg-vermello-50/90 px-1 font-sans text-[8px] font-semibold leading-relaxed text-vermello-700;
+    @apply pointer-events-none absolute -left-px -right-px top-full border-t-2 border-dashed border-perill-500 bg-perill-50/90 px-1 font-sans text-[8px] font-semibold leading-relaxed text-perill-700;
   }
   /* Fora de l'edició, un avís discret a la cantonada dels marcs que no hi caben */
   .mode-editor .marc-lletra.desborda:not(.editant)::after {
     content: "No hi cap · botó dret ▸ Reparteix";
-    @apply pointer-events-none absolute bottom-0 right-0 rounded-tl bg-vermello-500 px-1 font-sans text-[8px] font-semibold leading-relaxed text-white;
+    @apply pointer-events-none absolute bottom-0 right-0 rounded-tl bg-perill-500 px-1 font-sans text-[8px] font-semibold leading-relaxed text-white;
   }
   .mode-editor .qr-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }
   .mode-editor .el-qr[data-petit] { outline: 2px dashed #d97706; outline-offset: 1px; }
   .mode-editor .diagrama-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }
   .mode-editor .marc-lletra.editant, .mode-editor .el-text.editant { @apply cursor-text; outline: none; }
-  .mode-editor .marc-lletra.editant .acord-nom { @apply cursor-pointer rounded-sm hover:bg-vermello-100; }
-  .mode-editor .marc-lletra.editant .acord.seleccionat .acord-nom { @apply bg-vermello-500 text-white; }
+  .mode-editor .marc-lletra.editant .acord-nom { @apply cursor-pointer rounded-sm hover:bg-accent-100; }
+  .mode-editor .marc-lletra.editant .acord.seleccionat .acord-nom { @apply bg-accent-500 text-white; }
   .mode-editor .marc-lletra.editant p.is-empty:first-child::before { content: attr(data-placeholder); @apply pointer-events-none float-left h-0 font-sans text-[12px] italic text-ink-300; }
-  .vista-llibre .pagina-editor.clicable { @apply cursor-pointer transition hover:ring-2 hover:ring-vermello-500/60; }
+  .vista-llibre .pagina-editor.clicable { @apply cursor-pointer transition hover:ring-2 hover:ring-accent-500/60; }
   .contingut-llenc.vista-llibre { @apply flex-row flex-wrap items-start justify-center gap-x-8 gap-y-6; min-width: 0; }
   .vista-llibre .doble-editor { @apply gap-0; }
   .eines-inactives .eina { @apply pointer-events-none opacity-35; }
@@ -340,8 +340,8 @@
   /* Elements bloquejats: els clics hi passen a través (es seleccionen des de Capes) */
   .mode-editor .capa-elements > .el[data-bloquejat] { pointer-events: none; }
   .mode-editor .capa-elements > .el.ressaltat { outline: 2px solid rgb(14 165 233) !important; outline-offset: 1px; }
-  .nansa-rotacio { @apply pointer-events-auto absolute -top-7 left-1/2 -ml-[7px] h-3.5 w-3.5 cursor-grab rounded-full border-2 border-vermello-500 bg-white; }
-  .nansa-rotacio::after { content: ""; @apply absolute left-1/2 top-full h-3 w-0.5 -translate-x-1/2 bg-vermello-500; }
+  .nansa-rotacio { @apply pointer-events-auto absolute -top-7 left-1/2 -ml-[7px] h-3.5 w-3.5 cursor-grab rounded-full border-2 border-accent-500 bg-white; }
+  .nansa-rotacio::after { content: ""; @apply absolute left-1/2 top-full h-3 w-0.5 -translate-x-1/2 bg-accent-500; }
 
   /* Selector de tipografies */
   .selector-font { @apply flex w-full items-center justify-between gap-2 rounded-md border border-paper-300 bg-white px-3 py-1.5 text-left text-[15px] shadow-suau transition hover:border-ink-300; }
@@ -349,7 +349,7 @@
 
   /* Llista de capes */
   .fila-capa { @apply flex items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-[13px] transition hover:border-sky-300 hover:bg-sky-50; }
-  .fila-capa[aria-current="true"] { @apply border-vermello-200 bg-vermello-50; }
+  .fila-capa[aria-current="true"] { @apply border-accent-200 bg-accent-50; }
 
   /* Llista del panell esquerre */
   .item-llista { @apply flex items-center gap-2 rounded-md px-2 py-1.5 text-[13.5px] text-ink-700 transition hover:bg-paper-200/70; }

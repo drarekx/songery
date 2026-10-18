@@ -26,10 +26,10 @@
     <ul class="mt-2 flex flex-col gap-1.5 text-[14px]">
       {% for u in usos %}
       <li class="flex flex-wrap items-center gap-2">
-        <a href="{{ url_for('canconer', id_canconer=u.id, canco=canco.id) }}" class="font-medium hover:text-vermello-700">{{ u.titol }}</a>
+        <a href="{{ url_for('canconer', id_canconer=u.id, canco=canco.id) }}" class="font-medium hover:text-accent-700">{{ u.titol }}</a>
         {% if u.versio_id %}<span class="rounded bg-sky-100 px-1.5 py-0.5 text-[12px] text-sky-900">fa servir la v{{ u.versio_numero }}, fixada</span>
         {% else %}<span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[12px] text-emerald-900">segueix l'esborrany (sempre l'última)</span>{% endif %}
-        <a href="{{ url_for('canconer', id_canconer=u.id, canco=canco.id) }}" class="text-[13px] text-vermello-600 underline">Edita-la aquí</a>
+        <a href="{{ url_for('canconer', id_canconer=u.id, canco=canco.id) }}" class="text-[13px] text-accent-600 underline">Edita-la aquí</a>
       </li>
       {% endfor %}
     </ul>

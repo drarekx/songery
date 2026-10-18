@@ -5,7 +5,7 @@
 {% macro descarrega(tipus, titol, detall, primari=false) %}
 <a href="{{ url_for('canconer_pdf', id_canconer=c.id, tipus=tipus, v=v, baixa=1, instrument=instrument) }}"
    class="group flex items-center gap-4 rounded-lg border px-4 py-3.5 transition hover:-translate-y-px
-          {{ 'border-vermello-600 bg-vermello-500 text-white shadow-full hover:bg-vermello-600' if primari else 'border-paper-300 bg-white shadow-suau hover:border-ink-300' }}">
+          {{ 'border-accent-600 bg-accent-500 text-white shadow-full hover:bg-accent-600' if primari else 'border-paper-300 bg-white shadow-suau hover:border-ink-300' }}">
   <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md {{ 'bg-white/15' if primari else 'bg-paper-200 text-ink-700' }}">
     <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>
   </span>
@@ -55,7 +55,7 @@
       {% if c.pagina_acords %}
       <p class="text-[13px] leading-snug text-ink-500">La pàgina d'acords del PDF surt per a <strong class="text-ink-900">{{ "ukulele" if instrument == "ukulele" else "guitarra" }}</strong>. Pots treure les dues versions del mateix cançoner: el nom del fitxer porta l'instrument.</p>
       {% else %}
-      <p class="text-[13px] leading-snug text-ink-500">Aquest cançoner no té pàgina de diagrames. L'activa a <a class="text-vermello-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}">Opcions</a>.</p>
+      <p class="text-[13px] leading-snug text-ink-500">Aquest cançoner no té pàgina de diagrames. L'activa a <a class="text-accent-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}">Opcions</a>.</p>
       {% endif %}
     </section>
 
@@ -77,7 +77,7 @@
         {% else %}
         El PDF surt exactament com el dissenyes, a vora plena.
         {% endif %}
-        <a class="text-vermello-600 underline" href="{{ url_for('marges_llista', torna=request.full_path) }}">Gestiona les mestres de marges</a>
+        <a class="text-accent-600 underline" href="{{ url_for('marges_llista', torna=request.full_path) }}">Gestiona les mestres de marges</a>
       </p>
     </section>
 

@@ -68,7 +68,7 @@
               <div class="segmentat w-full">
                 {% for valor, text in [("inici", "Al principi"), ("final", "Al final")] %}
                 <label class="flex-1"><input type="radio" name="posicio_acords" value="{{ valor }}" class="peer sr-only" {% if c.posicio_acords == valor %}checked{% endif %}>
-                  <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-vermello-500/40">{{ text }}</span></label>
+                  <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500/40">{{ text }}</span></label>
                 {% endfor %}
               </div>
               <p class="ajuda-camp">Al principi, després de l'índex. Al final, just abans de la contraportada.</p>
@@ -78,7 +78,7 @@
               <div class="segmentat w-full">
                 {% for valor, text in [("guitarra", "Guitarra"), ("ukulele", "Ukulele")] %}
                 <label class="flex-1"><input type="radio" name="instrument" value="{{ valor }}" class="peer sr-only" {% if c.instrument == valor %}checked{% endif %}>
-                  <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-vermello-500/40">{{ text }}</span></label>
+                  <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500/40">{{ text }}</span></label>
                 {% endfor %}
               </div>
               <p class="ajuda-camp">Ukulele amb afinació estàndard (Sol · Do · Mi · La). A Imprimir es pot canviar per a cada PDF.</p>
@@ -103,15 +103,15 @@
         <h2 class="text-[14px] font-semibold">Còpies i fitxers</h2>
         <a href="{{ url_for('canconer_exporta', id_canconer=c.id) }}" class="btn btn-petit justify-start">Exporta a un fitxer .canconer</a>
         <form method="post" action="{{ url_for('canconer_duplica', id_canconer=c.id) }}" class="flex flex-col gap-2">
-          <label class="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="duplicar_cancons" class="h-4 w-4 accent-vermello-500"> Duplica també les cançons</label>
+          <label class="flex items-center gap-2 text-[13px] text-ink-700"><input type="checkbox" name="duplicar_cancons" class="h-4 w-4 accent-accent-500"> Duplica també les cançons</label>
           <button class="btn btn-petit justify-start">Duplica el cançoner</button>
         </form>
         <p class="text-[12px] leading-snug text-ink-500">L'exportació inclou les cançons amb el seu historial, les imatges i les tipografies importades. S'importa des de la pàgina d'inici.</p>
       </section>
 
       <form method="post" action="{{ url_for('canconer_a_paperera', id_canconer=c.id) }}"
-            class="rounded-lg border border-vermello-200 bg-vermello-50/50 p-4">
-        <h2 class="text-[14px] font-semibold text-vermello-700">Envia'l a la paperera</h2>
+            class="rounded-lg border border-perill-200 bg-perill-50/50 p-4">
+        <h2 class="text-[14px] font-semibold text-perill-700">Envia'l a la paperera</h2>
         <p class="mt-1 text-[13px] text-ink-500">Desapareix de la llista però es pot recuperar fins que buidis la paperera. Les cançons es queden a la biblioteca.</p>
         <button class="btn btn-perill btn-petit -ml-2.5 mt-2">Envia'l a la paperera</button>
       </form>

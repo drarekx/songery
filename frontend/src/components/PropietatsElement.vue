@@ -71,7 +71,7 @@ function insereixVariable(v) {
     <!-- Marc de lletra -->
     <div v-if="es('lletra')" class="flex flex-col gap-3">
       <p class="rounded-md px-3 py-2 text-[13px] leading-snug"
-         :class="e.infoMarc?.alerta ? 'bg-vermello-50 text-vermello-700' : 'bg-paper-200/60 text-ink-700'">{{ e.infoMarc?.text }}</p>
+         :class="e.infoMarc?.alerta ? 'bg-perill-50 text-perill-700' : 'bg-paper-200/60 text-ink-700'">{{ e.infoMarc?.text }}</p>
       <button type="button" class="btn btn-primari btn-petit" :disabled="!store.editable" @click="store.crida('editaLletra')">Edita la lletra</button>
       <label class="flex items-center justify-between gap-3 text-[14px]">Ajusta la mida perquè hi càpiga
         <span class="interruptor"><input class="peer sr-only" type="checkbox" :checked="e.ajusta !== false" :disabled="!store.editable"
@@ -124,7 +124,7 @@ function insereixVariable(v) {
           <label><span class="etiqueta">Espaiat</span>
             <input type="number" step="0.01" class="camp py-1.5 text-[13px]" placeholder="estil" :value="format.espaiat ?? ''"
                    @input="store.canviaFormat('espaiat', $event.target.value === '' ? '' : Number($event.target.value))"></label>
-          <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-vermello-500" :checked="!!format.cursiva"
+          <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-accent-500" :checked="!!format.cursiva"
                  @change="store.canviaFormat('cursiva', $event.target.checked)"> Cursiva</label>
           <div class="flex flex-col gap-1 text-[13px]"><span class="etiqueta mb-0">Color</span>
             <SelectorColor :model-value="format.color || ''" :per-defecte="estil.color" buit="Color de l'estil" :colors="colors"
@@ -202,7 +202,7 @@ function insereixVariable(v) {
             <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M13 7a5 5 0 1 0-1.5 4.5M13 3v4H9"/></svg></button>
         </div></div>
       <label><span class="etiqueta">Opacitat</span>
-        <input type="range" min="0" max="1" step="0.05" class="mt-3 w-full accent-vermello-500" :value="e.opacitat ?? 1" :disabled="!store.editable"
+        <input type="range" min="0" max="1" step="0.05" class="mt-3 w-full accent-accent-500" :value="e.opacitat ?? 1" :disabled="!store.editable"
                @input="numero('opacitat', $event.target.value)"></label>
     </fieldset>
     <div class="grid grid-cols-2 gap-2">

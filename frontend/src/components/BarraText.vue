@@ -31,11 +31,11 @@ const format = (nom) => store.crida("format", nom);
 </script>
 
 <template>
-  <div v-if="store.edicio" class="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-vermello-200 bg-vermello-50 px-3 py-1.5" role="toolbar" aria-label="Format de la lletra">
-    <span class="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-vermello-700">Lletra</span>
+  <div v-if="store.edicio" class="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-accent-200 bg-accent-50 px-3 py-1.5" role="toolbar" aria-label="Format de la lletra">
+    <span class="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent-700">Lletra</span>
     <button type="button" class="eina" data-tooltip="Acord sobre la paraula seleccionada o al cursor (⌘K, o escriu [G])" aria-label="Afegeix un acord"
             @mousedown.prevent @click="format('acord')">
-      <span class="font-mono text-[13px] font-bold text-vermello-600">G</span>
+      <span class="font-mono text-[13px] font-bold text-accent-600">G</span>
     </button>
     <template v-for="(grup, g) in GRUPS" :key="g">
       <span v-if="g" class="separador" aria-hidden="true"></span>
@@ -47,7 +47,7 @@ const format = (nom) => store.crida("format", nom);
     </template>
     <span class="separador" aria-hidden="true"></span>
     <div class="flex items-center gap-1.5" title="Mida de la lletra de tota la cançó (a totes les pàgines)">
-      <span class="text-[12px] font-medium text-vermello-700">Mida</span>
+      <span class="text-[12px] font-medium text-accent-700">Mida</span>
       <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
         <button type="button" class="w-7 rounded-l-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més petita"
                 @mousedown.prevent @click="store.crida('midaMarc', store.edicio.mida - 0.5)">−</button>
@@ -58,8 +58,8 @@ const format = (nom) => store.crida("format", nom);
       </div>
       <span class="text-[11px] text-ink-500">pt</span>
       <label class="ml-1 flex items-center gap-1.5 text-[12px] text-ink-700" title="Si no hi cap, la lletra es fa més petita automàticament">
-        <input type="checkbox" class="h-3.5 w-3.5 accent-vermello-500" :checked="store.edicio.ajusta" @change="store.crida('ajustaMarc', $event.target.checked)"> Ajusta</label>
-      <span class="text-[11px]" :class="store.edicio.efectiva?.alerta ? 'text-vermello-600' : 'text-ink-500'">{{ store.edicio.efectiva?.text }}</span>
+        <input type="checkbox" class="h-3.5 w-3.5 accent-accent-500" :checked="store.edicio.ajusta" @change="store.crida('ajustaMarc', $event.target.checked)"> Ajusta</label>
+      <span class="text-[11px]" :class="store.edicio.efectiva?.alerta ? 'text-perill-600' : 'text-ink-500'">{{ store.edicio.efectiva?.text }}</span>
     </div>
     <button type="button" class="eina eina-text ml-auto" title="Acaba d'editar (Esc)" @mousedown.prevent @click="format('surt')"><span class="text-[12px]">Fet</span></button>
   </div>

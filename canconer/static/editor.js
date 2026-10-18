@@ -1274,7 +1274,7 @@ function obrePopoverAcord(pos, nom, rect) {
   $("#elimina-acord").classList.toggle("hidden", pos === null);
   const suggeriments = [...new Set([...acordsDelDocument(edicio.editor), ...ACORDS_COMUNS])].slice(0, 24);
   $("#suggeriments-acord").replaceChildren(...suggeriments.map((a) => {
-    const b = el("button", { text: a, classe: "xip-acord cursor-pointer hover:bg-vermello-100", atributs: { type: "button" } });
+    const b = el("button", { text: a, classe: "xip-acord cursor-pointer hover:bg-accent-100", atributs: { type: "button" } });
     b.addEventListener("click", () => confirmaAcord(a));
     return b;
   }));
@@ -1996,7 +1996,7 @@ function pintaLlistaFonts() {
   const llista = $("#llista-fonts");
   const files = [];
   const afegeix = (f) => {
-    const b = el("button", { text: f.nom, classe: "flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[17px] hover:bg-paper-100 aria-selected:bg-vermello-50 aria-selected:text-vermello-700", atributs: { type: "button", "aria-selected": String((selectorFont?.actual ?? null) === f.clau) } });
+    const b = el("button", { text: f.nom, classe: "flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[17px] hover:bg-paper-100 aria-selected:bg-accent-50 aria-selected:text-accent-700", atributs: { type: "button", "aria-selected": String((selectorFont?.actual ?? null) === f.clau) } });
     if (f.css) b.style.fontFamily = f.css;
     b.addEventListener("click", () => {
       selectorFont?.tria(f.clau);
@@ -2357,7 +2357,7 @@ async function cercaBiblioteca() {
     const ja = presents.has(r.id);
     const li = el("li", { classe: "border-b border-paper-200 last:border-b-0" });
     const etiqueta = el("label", { classe: "flex cursor-pointer items-center gap-3 px-5 py-2.5 hover:bg-paper-100" + (ja ? " opacity-50" : "") });
-    const casella = el("input", { classe: "h-4 w-4 accent-vermello-500", atributs: { type: "checkbox" } });
+    const casella = el("input", { classe: "h-4 w-4 accent-accent-500", atributs: { type: "checkbox" } });
     casella.disabled = ja;
     casella.checked = seleccionades.has(r.id);
     casella.addEventListener("change", () => {
@@ -2452,7 +2452,7 @@ function pintaMestresOrigen() {
   ul.replaceChildren(...origen.mestres.map((m) => {
     const li = el("li");
     const etiqueta = el("label", { classe: "flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-paper-100" });
-    const casella = el("input", { classe: "h-4 w-4 accent-vermello-500", atributs: { type: "checkbox", value: m.id } });
+    const casella = el("input", { classe: "h-4 w-4 accent-accent-500", atributs: { type: "checkbox", value: m.id } });
     casella.addEventListener("change", () => { $("#confirma-copia-mestres").disabled = !ul.querySelector("input:checked"); });
     const parella = el("span", { classe: "flex gap-px" });
     // Les miniatures es dibuixen amb els estils d'aquest cançoner: és com quedaran un cop copiades.
@@ -2509,7 +2509,7 @@ async function pintaBiblioteca() {
   if (!elements.length) return ul.replaceChildren(el("li", { text: "Encara no n'hi ha cap. Selecciona un element i prem «Desa l'element a la biblioteca».", classe: "col-span-2 text-[13px] text-ink-500" }));
   ul.replaceChildren(...elements.map((item) => {
     const li = el("li", { classe: "group relative" });
-    const boto = el("button", { classe: "flex w-full flex-col gap-1 rounded-md border border-paper-300 bg-white p-2 text-left transition hover:border-vermello-500", atributs: { type: "button", title: "Afegeix-lo a la pàgina" } });
+    const boto = el("button", { classe: "flex w-full flex-col gap-1 rounded-md border border-paper-300 bg-white p-2 text-left transition hover:border-accent-500", atributs: { type: "button", title: "Afegeix-lo a la pàgina" } });
     // Previsualització: els elements dins del seu requadre, escalats.
     const x0 = Math.min(...item.elements.map((e) => e.x));
     const y0 = Math.min(...item.elements.map((e) => e.y));
@@ -2525,7 +2525,7 @@ async function pintaBiblioteca() {
     vista.append(interior);
     boto.append(vista, el("span", { text: item.nom, classe: "truncate text-[12px] font-medium" }));
     boto.addEventListener("click", () => enganxaElements(item.elements, 0));
-    const esborra = el("button", { text: "×", classe: "absolute right-1 top-1 hidden h-6 w-6 rounded bg-white text-ink-500 shadow-suau hover:text-vermello-600 group-hover:block", atributs: { type: "button", title: "Esborra de la biblioteca" } });
+    const esborra = el("button", { text: "×", classe: "absolute right-1 top-1 hidden h-6 w-6 rounded bg-white text-ink-500 shadow-suau hover:text-perill-600 group-hover:block", atributs: { type: "button", title: "Esborra de la biblioteca" } });
     esborra.addEventListener("click", async () => {
       if (!await confirma({ titol: `Esborrar «${item.nom}»?`, text: "Desapareix de la biblioteca d'elements. Les pàgines on ja l'has posat no canvien.", accepta: "Esborra", perill: true })) return;
       await api(`${urls.elements}/${item.id}`, "DELETE");

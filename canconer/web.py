@@ -51,7 +51,7 @@ def registra_error(text: str) -> str:
 def _pagina_error(missatge: str, detall: str, registre: str) -> str:
     """Pàgina d'error autònoma (no depèn de les plantilles, per si l'error ve d'allà)."""
     return f"""<!doctype html><html lang="ca"><meta charset="utf-8"><title>Error · Cançoners</title>
-<body style="font:15px/1.5 -apple-system,sans-serif;background:#f6f4ef;color:#1b1a17;max-width:46rem;margin:3rem auto;padding:0 1rem">
+<body style="font:15px/1.5 -apple-system,sans-serif;background:#f5f5f5;color:#141414;max-width:46rem;margin:3rem auto;padding:0 1rem">
 <h1 style="font-size:1.6rem">Alguna cosa ha fallat</h1>
 <p>Cançoners {escape(actualitzacions.versio_actual())} no ha pogut fer això. Les teves dades no s'han tocat.</p>
 <p style="background:#fbe9e7;border-radius:6px;padding:.75rem 1rem;color:#8c1d14"><strong>{escape(missatge)}</strong></p>

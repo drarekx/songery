@@ -94,7 +94,7 @@ describe("element", () => {
     element({ tipus: "lletra", estil: "text", infoMarc: { alerta: true, text: "La lletra no hi cap." } });
     const w = munta();
     const avis = w.findAll("p").find((p) => p.text() === "La lletra no hi cap.");
-    expect(avis.classes()).toContain("text-vermello-700");
+    expect(avis.classes()).toContain("text-perill-700");
   });
 
   it("un QR massa petit avisa", () => {

@@ -54,9 +54,9 @@ function numero(clau, prop, valor) {
               <SelectorColor :model-value="e.color" :colors="() => store.crida('colorsDelDocument')"
                              @update:model-value="store.canviaEstil(clau, 'color', $event)" /></div>
             <div class="flex flex-col justify-end gap-1.5 pb-1">
-              <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-vermello-500" :checked="e.cursiva"
+              <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-accent-500" :checked="e.cursiva"
                      @change="store.canviaEstil(clau, 'cursiva', $event.target.checked)"> Cursiva</label>
-              <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-vermello-500" :checked="e.majuscules"
+              <label class="flex items-center gap-2 text-[13px]"><input type="checkbox" class="h-4 w-4 accent-accent-500" :checked="e.majuscules"
                      @change="store.canviaEstil(clau, 'majuscules', $event.target.checked)"> Majúscules</label>
             </div>
           </div>
