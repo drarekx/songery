@@ -17,7 +17,8 @@ major=$(sw_vers -productVersion | cut -d. -f1)
 (( major >= 12 )) || error "Cançoners necessita macOS 12 (Monterey) o posterior. Tens $(sw_vers -productVersion)."
 [[ "$(uname -m)" == "arm64" ]] || error "Aquesta versió de Cançoners és per a Macs amb Apple Silicon (M1 o posterior)."
 
-negreta "Descarregant Cançoners…"
+versio=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | sed -nE 's/.*"tag_name": *"v?([^"]+)".*/\1/p' | head -1 || true)
+negreta "Descarregant Cançoners ${versio:-(última versió)}…"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 curl -fL --progress-bar "$URL" -o "$tmp/Canconers.zip" || error "No s'ha pogut descarregar $URL"
@@ -25,6 +26,7 @@ ditto -x -k "$tmp/Canconers.zip" "$tmp"
 [[ -d "$tmp/$APP" ]] || error "El fitxer descarregat no conté $APP"
 
 # Només s'instal·la si la signatura és vàlida i és la nostra.
+negreta "Comprovant la signatura…"
 codesign --verify --deep --strict "$tmp/$APP" 2>/dev/null || error "La signatura de l'app descarregada no és vàlida. No s'ha instal·lat res."
 codesign -dv "$tmp/$APP" 2>&1 | grep -q "TeamIdentifier=$EQUIP" || error "L'app descarregada no està signada per l'equip esperat. No s'ha instal·lat res."
 
@@ -43,6 +45,10 @@ fi
 # La versió anterior es guarda fins que la nova arrenca bé.
 anterior=""
 if [[ -d "$desti/$APP" ]]; then
+    # La versió nova ho dirà en obrir-se (i de quina venia).
+    versio_anterior=$(defaults read "$desti/$APP/Contents/Info" CFBundleShortVersionString 2>/dev/null || true)
+    mkdir -p "$DADES"
+    printf '{"de": "%s"}\n' "${versio_anterior:-?}" > "$DADES/actualitzada.json"
     anterior="$tmp/anterior.app"
     mv "$desti/$APP" "$anterior"
 fi
@@ -61,6 +67,7 @@ if (( ! navegador )); then
 fi
 
 # Obre la versió nova i espera que el servidor respongui. Si no arrenca, torna a l'anterior.
+negreta "Obrint la versió nova…"
 inici=$(date +%s)
 open "$desti/$APP"
 arrencada=0
@@ -74,7 +81,7 @@ done
 if (( ! arrencada )) && [[ -n "$anterior" ]]; then
     pkill -f "$APP/Contents/MacOS/" 2>/dev/null || true
     sleep 1
-    rm -rf "$desti/$APP"
+    rm -rf "$desti/$APP" "$DADES/actualitzada.json"
     mv "$anterior" "$desti/$APP"
     open "$desti/$APP"
     error "La versió nova no ha arrencat i s'ha tornat a l'anterior. Les còpies de seguretat de les dades són a $DADES/copies."

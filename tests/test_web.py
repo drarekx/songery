@@ -222,3 +222,13 @@ def test_pdf_per_instrument(monkeypatch):
         assert "ukulele.pdf" in ukulele.headers["Content-Disposition"]
     finally:
         servidor.shutdown()
+
+
+def test_els_errors_es_desen_i_s_expliquen(client, monkeypatch, dades_temporals):
+    def falla(*a, **k):
+        raise RuntimeError("base de dades trencada")
+    monkeypatch.setattr(bd, "llista_canconers", falla)
+    client.application.config["TESTING"] = False  # que l'error arribi al gestor com a l'app real
+    r = client.get("/")
+    assert r.status_code == 500 and "base de dades trencada" in r.get_data(as_text=True)
+    assert "RuntimeError: base de dades trencada" in (dades_temporals / "errors.log").read_text()

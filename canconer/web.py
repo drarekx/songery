@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
+import traceback
 import unicodedata
+from datetime import datetime
+from html import escape
 
 from flask import (Flask, Response, abort, jsonify, redirect, render_template, request,
                    send_file, url_for)
@@ -30,6 +33,32 @@ def _nom_fitxer(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "-", text).strip("-").lower() or "canconer"
 
 
+def registra_error(text: str) -> str:
+    """Afegeix un error a <dades>/errors.log (es conserva només l'última part) i en retorna el camí."""
+    cami = bd.DIRECTORI / "errors.log"
+    try:
+        bd.DIRECTORI.mkdir(parents=True, exist_ok=True)
+        anterior = cami.read_text("utf-8", errors="replace")[-200_000:] if cami.exists() else ""
+        cami.write_text(anterior + text, "utf-8")
+    except OSError:
+        pass
+    return str(cami)
+
+
+def _pagina_error(missatge: str, detall: str, registre: str) -> str:
+    """Pàgina d'error autònoma (no depèn de les plantilles, per si l'error ve d'allà)."""
+    return f"""<!doctype html><html lang="ca"><meta charset="utf-8"><title>Error · Cançoners</title>
+<body style="font:15px/1.5 -apple-system,sans-serif;background:#f6f4ef;color:#1b1a17;max-width:46rem;margin:3rem auto;padding:0 1rem">
+<h1 style="font-size:1.6rem">Alguna cosa ha fallat</h1>
+<p>Cançoners {escape(actualitzacions.versio_actual())} no ha pogut fer això. Les teves dades no s'han tocat.</p>
+<p style="background:#fbe9e7;border-radius:6px;padding:.75rem 1rem;color:#8c1d14"><strong>{escape(missatge)}</strong></p>
+<p>L'error s'ha desat a <code>{escape(registre)}</code>. Si tornes a obrir l'app o la pàgina i continua passant,
+envia aquest fitxer (o el detall de sota) per poder-ho arreglar.</p>
+<p><a href="/">Torna a l'inici</a></p>
+<details><summary>Detall tècnic</summary><pre style="white-space:pre-wrap;font-size:12px">{escape(detall)}</pre></details>
+</body></html>"""
+
+
 def _enter(valor, defecte: int = 0) -> int:
     try:
         return int(valor)
@@ -43,6 +72,18 @@ def crea_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = intercanvi.MIDA_MAXIMA + 1024 * 1024
     # Les plantilles es rellegeixen si canvien (útil mentre es retoca el disseny).
     app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+    @app.errorhandler(500)
+    def error_intern(e):
+        """Desa l'error amb tot el detall i explica què ha passat (l'app de Mac no té consola)."""
+        original = getattr(e, "original_exception", None) or e
+        detall = "".join(traceback.format_exception(original))
+        missatge = f"{type(original).__name__}: {original}"
+        registre = registra_error(f"\n=== {datetime.now().isoformat(timespec='seconds')} · "
+                                  f"v{actualitzacions.versio_actual()} · {request.method} {request.full_path}\n{detall}")
+        if request.path.startswith("/api/") or request.accept_mimetypes.best == "application/json":
+            return jsonify({"error": f"Error intern: {missatge}", "registre": registre}), 500
+        return Response(_pagina_error(missatge, detall, registre), status=500, mimetype="text/html")
 
     def canconer_o_404(id_canconer: str) -> dict:
         try:

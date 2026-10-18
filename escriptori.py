@@ -104,7 +104,23 @@ def tria_fitxer(carpeta: Path) -> Path | None:
     return Path(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
 
 
+def redirigeix_sortida() -> None:
+    """Dins de l'app no hi ha consola: la sortida i els errors van a <dades>/canconers.log."""
+    if not getattr(sys, "frozen", False):
+        return
+    DADES.mkdir(parents=True, exist_ok=True)
+    registre = DADES / "canconers.log"
+    try:
+        if registre.exists() and registre.stat().st_size > 2_000_000:
+            registre.replace(registre.with_suffix(".log.1"))
+        fitxer = open(registre, "a", buffering=1, encoding="utf-8")
+    except OSError:
+        return
+    sys.stdout = sys.stderr = fitxer
+
+
 def main() -> None:
+    redirigeix_sortida()
     oberta = instancia_oberta()
     if oberta:
         obre_navegador(oberta)
@@ -142,6 +158,14 @@ def main() -> None:
             self.cercant = False
             rumps.Timer(self.mostra_resultat, 1).start()
             rumps.Timer(lambda _: self.cerca(manual=False), CADA_QUANT).start()
+            # Si l'app s'acaba d'actualitzar (l'instal·lador ho marca), es diu un sol cop.
+            marca = DADES / "actualitzada.json"
+            try:
+                anterior = json.loads(marca.read_text()).get("de")
+            except (OSError, ValueError):
+                anterior = None
+            marca.unlink(missing_ok=True)
+            self.actualitzada = anterior if anterior and anterior != versio else None
             primera = threading.Timer(8, lambda: self.cerca(manual=False))
             primera.daemon = True
             primera.start()
@@ -163,6 +187,12 @@ def main() -> None:
             threading.Thread(target=fes, daemon=True).start()
 
         def mostra_resultat(self, _) -> None:
+            if self.actualitzada:
+                abans, self.actualitzada = self.actualitzada, None
+                copies_fetes = copies.llista()
+                rumps.alert(f"Cançoners s'ha actualitzat a la {versio}",
+                            f"Tenies la {abans}. Les teves dades hi són totes."
+                            + (f"\n\nÚltima còpia de seguretat: {copies_fetes[0].name}" if copies_fetes else ""))
             if not self.resultat:
                 return
             tipus, dades, manual = self.resultat
@@ -199,14 +229,30 @@ def main() -> None:
                 rumps.alert("No s'ha actualitzat", f"No s'ha pogut fer la còpia de seguretat, així que no s'ha tocat res.\n\n{e}")
                 return
             try:
-                rumps.notification(NOM, "Actualitzant…", f"Còpia de seguretat feta: {copia.name}. L'app es tornarà a obrir sola.")
+                rumps.notification(NOM, "Actualitzant…", f"Còpia de seguretat feta: {copia.name}. Segueix el progrés a la finestra del Terminal.")
             except Exception:  # noqa: BLE001 - la notificació és només informativa
                 pass
-            FITXER_SERVIDOR.unlink(missing_ok=True)
+            # L'instal·lador s'executa en una finestra del Terminal perquè es vegi què fa (baixada,
+            # comprovació de la signatura, substitució i arrencada). Tanca aquesta app i obre la nova.
             registre = DADES / "actualitzacio.log"
-            with open(registre, "ab") as sortida:
-                subprocess.Popen(["/bin/bash", "-c", f"curl -fsSL {INSTAL_LADOR} | bash"],
-                                 stdout=sortida, stderr=subprocess.STDOUT, start_new_session=True)
+            ordre = DADES / "actualitza.command"
+            ordre.write_text(f"""#!/bin/bash
+clear
+echo "Actualitzant Cançoners {versio}…"
+echo "Còpia de seguretat de les dades: {copia}"
+echo
+set -o pipefail
+if curl -fsSL {INSTAL_LADOR} | bash 2>&1 | tee -a "{registre}"; then
+    echo
+    echo "Ja pots tancar aquesta finestra."
+else
+    echo
+    echo "L'actualització no s'ha completat. Cançoners continua com estava."
+    echo "Registre: {registre}"
+fi
+""")
+            ordre.chmod(0o755)
+            subprocess.Popen(["open", "-a", "Terminal", str(ordre)])
 
         # -------------------------------------------------------- Còpies de seguretat
 
