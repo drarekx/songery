@@ -174,6 +174,24 @@ Exemple N=12: `12|1, 2|11, 10|3, 4|9, 8|5, 6|7`. Imprimeix el PDF A4 a **mida re
 girant per la vora curta**. Per a impressores sense doble cara hi ha PDF separats de cares
 davanteres i del darrere, i un **full d'instruccions** imprimible.
 
+### Colors per a impremta (CMYK)
+
+Els colors es poden triar en CMYK (C, M, Y, K en %) a tots els selectors de color de l'editor, o en
+RGB. A Imprimir, «Per a impremta (CMYK)» dona el llibret A5 i els fulls A4 imposats en CMYK:
+
+- Els colors triats en CMYK surten **exactes**. Per aconseguir-ho, cada color CMYK es dibuixa amb un
+  RGB «testimoni» únic (`canconer/colors.py`) i, al PDF, aquestes ordres de color es canvien per les
+  CMYK (`canconer/cmyk.py`).
+- La resta (colors en RGB i imatges) la converteix Ghostscript amb el seu perfil CMYK.
+- Els colors per defecte de les plantilles ja són CMYK, i els grisos només fan servir tinta negra,
+  perquè la lletra petita no surti borrosa.
+- Els PDF de sempre (RGB) continuen igual, per a la impressora de casa.
+
+Ghostscript es compila des del codi font oficial amb `./eines/app/ghostscript.sh` (el fa servir
+`construeix.sh`) i va dins de l'app. **Llicència:** Ghostscript és © Artifex Software, sota
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html); l'app en porta la llicència i l'adreça del
+codi font (`eines/ghostscript/LICENSE` i `CODI_FONT`) i es fa servir sense modificar-lo.
+
 ## Dades
 
 - `data/canconers.sqlite3`: cançoners, cançons, versions i biblioteca d'elements.

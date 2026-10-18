@@ -43,7 +43,7 @@ def test_els_videos_es_desen_amb_el_contingut():
     assert c["videos"][0]["video"] == ID
     assert "videos" not in disseny.contingut({"pagines": [{"elements": []}]})
     e = disseny.element({"tipus": "qr", "video": "a1", "peu": False, "color": "nocolor"})
-    assert (e["video"], e["peu"], e["color"]) == ("a1", False, "#1b1a17")
+    assert (e["video"], e["peu"], e["color"]) == ("a1", False, "cmyk(0,0,0,100)")
 
 
 def _canco(i, n_videos, inclosa=True, marcats=True):

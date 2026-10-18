@@ -15,7 +15,7 @@
 </head>
 <body>
 <main id="llibret"></main>
-<script id="dades" type="application/json">{{ {"pagines": pla.pagines, "estils": pla.estils, "fonts": tipografies_navegador(), "urlImatge": url_for('imatge', id_imatge='__ID__')} | tojson }}</script>
+<script id="dades" type="application/json">{{ {"pagines": pla.pagines, "estils": pla.estils, "colors": pla.colors, "fonts": tipografies_navegador(), "urlImatge": url_for('imatge', id_imatge='__ID__')} | tojson }}</script>
 <script type="module">
   import { dibuixaLlibret } from "{{ url_for('static', filename='dist/canconer.js') }}";
   dibuixaLlibret(document.getElementById("llibret"), JSON.parse(document.getElementById("dades").textContent));

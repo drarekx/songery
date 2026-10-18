@@ -13,7 +13,12 @@ a = Analysis(
         (str(ARREL / "canconer" / "static"), "canconer/static"),
         (str(ARREL / "eines" / "app" / "icona-menu.png"), "eines/app"),
         (str(ARREL / "eines" / "app" / "VERSIO"), "eines/app"),
+        # Llicència i origen del codi font de Ghostscript (AGPL-3.0)
+        (str(ARREL / "eines" / "ghostscript" / "LICENSE"), "eines/ghostscript"),
+        (str(ARREL / "eines" / "ghostscript" / "CODI_FONT"), "eines/ghostscript"),
     ],
+    # Ghostscript, per fer el PDF en CMYK per a impremta (el compila eines/app/ghostscript.sh)
+    binaries=[(str(ARREL / "eines" / "ghostscript" / "gs"), "eines/ghostscript")],
     hiddenimports=["canconer.web", "canconer.motor_pdf", "rumps"],
     excludes=["tkinter", "pytest", "weasyprint", "PIL", "IPython", "numpy"],
     noarchive=False,

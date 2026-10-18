@@ -23,27 +23,28 @@ from . import document
 AMPLE = 148.0
 ALT = 210.0
 
-# Estils de text compartits per tot el cançoner.
+# Estils de text compartits per tot el cançoner. Els colors són CMYK (el cançoner és per imprimir):
+# els grisos, només amb tinta negra, perquè la lletra petita no surti borrosa si les planxes no casen.
 ESTILS = {
-    "titol": {"nom": "Títol", "font": "display", "mida": 18, "pes": 600, "cursiva": False, "color": "#1b1a17",
+    "titol": {"nom": "Títol", "font": "display", "mida": 18, "pes": 600, "cursiva": False, "color": "cmyk(0,0,0,100)",
               "interlineat": 1.1, "espaiat": 0, "majuscules": False},
-    "autor": {"nom": "Autor", "font": "display", "mida": 10, "pes": 400, "cursiva": True, "color": "#3a3832",
+    "autor": {"nom": "Autor", "font": "display", "mida": 10, "pes": 400, "cursiva": True, "color": "cmyk(0,0,0,88)",
               "interlineat": 1.2, "espaiat": 0, "majuscules": False},
     "llista_acords": {"nom": "Llista d'acords", "font": "sans", "mida": 8.5, "pes": 700, "cursiva": False,
-                      "color": "#b3261e", "interlineat": 1.2, "espaiat": 0.02, "majuscules": False},
-    "lletra": {"nom": "Lletra", "font": "display", "mida": 11.5, "pes": 400, "cursiva": False, "color": "#1b1a17",
+                      "color": "cmyk(0,85,90,25)", "interlineat": 1.2, "espaiat": 0.02, "majuscules": False},
+    "lletra": {"nom": "Lletra", "font": "display", "mida": 11.5, "pes": 400, "cursiva": False, "color": "cmyk(0,0,0,100)",
                "interlineat": 1.25, "espaiat": 0, "majuscules": False},
-    "acord": {"nom": "Acord", "font": "sans", "mida": 9, "pes": 700, "cursiva": False, "color": "#b3261e",
+    "acord": {"nom": "Acord", "font": "sans", "mida": 9, "pes": 700, "cursiva": False, "color": "cmyk(0,85,90,25)",
               "interlineat": 1.2, "espaiat": 0, "majuscules": False},
-    "seccio": {"nom": "Secció", "font": "sans", "mida": 7.5, "pes": 700, "cursiva": False, "color": "#6b665c",
+    "seccio": {"nom": "Secció", "font": "sans", "mida": 7.5, "pes": 700, "cursiva": False, "color": "cmyk(0,0,0,67)",
                "interlineat": 1.3, "espaiat": 0.1, "majuscules": True},
-    "nota": {"nom": "Nota", "font": "sans", "mida": 8.5, "pes": 400, "cursiva": True, "color": "#6b665c",
+    "nota": {"nom": "Nota", "font": "sans", "mida": 8.5, "pes": 400, "cursiva": True, "color": "cmyk(0,0,0,67)",
              "interlineat": 1.3, "espaiat": 0, "majuscules": False},
-    "text": {"nom": "Text", "font": "sans", "mida": 10, "pes": 400, "cursiva": False, "color": "#1b1a17",
+    "text": {"nom": "Text", "font": "sans", "mida": 10, "pes": 400, "cursiva": False, "color": "cmyk(0,0,0,100)",
              "interlineat": 1.35, "espaiat": 0, "majuscules": False},
-    "numero": {"nom": "Número de pàgina", "font": "sans", "mida": 9, "pes": 500, "cursiva": False, "color": "#6b665c",
+    "numero": {"nom": "Número de pàgina", "font": "sans", "mida": 9, "pes": 500, "cursiva": False, "color": "cmyk(0,0,0,67)",
                "interlineat": 1, "espaiat": 0, "majuscules": False},
-    "index": {"nom": "Índex", "font": "display", "mida": 11, "pes": 400, "cursiva": False, "color": "#1b1a17",
+    "index": {"nom": "Índex", "font": "display", "mida": 11, "pes": 400, "cursiva": False, "color": "cmyk(0,0,0,100)",
               "interlineat": 1.5, "espaiat": 0, "majuscules": False},
 }
 
@@ -82,12 +83,12 @@ def especials() -> dict:
     """Portada, índex, acords, índex de QR i contraportada per defecte."""
     return {
         "portada": pagina([
-            _el("forma", 0, 0, 6, ALT, fons="#b3261e", radi=0, forma="rectangle"),
+            _el("forma", 0, 0, 6, ALT, fons="cmyk(0,85,90,25)", radi=0, forma="rectangle"),
             _el("text", 18, 62, 112, 40, text="{titol}", estil="titol", alineacio="center", format={"mida": 30}),
             _el("text", 18, 106, 112, 10, text="{subtitol}", estil="text", alineacio="center",
-                format={"mida": 13, "pes": 500, "color": "#3a3832"}),
+                format={"mida": 13, "pes": 500, "color": "cmyk(0,0,0,88)"}),
             _el("text", 18, 180, 112, 8, text="{any}", estil="text", alineacio="center",
-                format={"mida": 11, "pes": 600, "color": "#8a8478", "espaiat": 0.2}),
+                format={"mida": 11, "pes": 600, "color": "cmyk(0,0,0,54)", "espaiat": 0.2}),
         ], mestra=None),
         "index": pagina([
             _el("text", 13, 14, 122, 12, text="Índex", estil="titol", alineacio="left"),

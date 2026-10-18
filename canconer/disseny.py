@@ -9,12 +9,11 @@ from __future__ import annotations
 import re
 import uuid
 
-from . import plantilles, videos
+from . import colors, plantilles, videos
 
 AMPLE = plantilles.AMPLE
 ALT = plantilles.ALT
 TIPUS = ("text", "lletra", "imatge", "forma", "numero", "index", "diagrames", "qr", "index_qr")
-_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 _CLAU = re.compile(r"^[a-z0-9_]{1,32}$")
 _FONT = re.compile(r"^[a-z0-9-]{1,48}$")
 _GRUP = re.compile(r"^[a-z0-9]{1,16}$")
@@ -32,7 +31,8 @@ def _num(valor, defecte: float, minim: float, maxim: float) -> float:
 
 
 def _color(valor, defecte: str = "") -> str:
-    return valor if isinstance(valor, str) and _COLOR.match(valor) else defecte
+    """«#rrggbb» o, per a impremta, «cmyk(c,m,y,k)» en %."""
+    return colors.normalitza(valor, defecte)
 
 
 def _format(valor) -> dict:
@@ -109,7 +109,7 @@ def element(e: dict) -> dict | None:
     elif e["tipus"] == "qr":
         net["video"] = str(e.get("video") or "")[:16]
         net["peu"] = bool(e.get("peu", True))
-        net["color"] = _color(e.get("color"), "#1b1a17")
+        net["color"] = _color(e.get("color"), "cmyk(0,0,0,100)")
     return net
 
 

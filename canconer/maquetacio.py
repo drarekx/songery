@@ -17,7 +17,7 @@ from __future__ import annotations
 import copy
 import math
 
-from . import diagrames, document, plantilles, videos
+from . import colors, diagrames, document, plantilles, videos
 
 
 def _transporta_pagines(pagines: list[dict], semitons: int) -> list[dict]:
@@ -176,4 +176,6 @@ def pla(canconer: dict) -> dict:
         "cancons": cancons,
         "estils": canconer["estils"],
         "instrument": instrument,
+        # RGB testimoni de cada color CMYK (per poder-los posar exactes al PDF per a impremta).
+        "colors": colors.taula_testimonis(colors.recull([canconer["estils"], canconer.get("mestres"), seq])),
     }

@@ -2,8 +2,9 @@
 // d'impressió que Gotenberg converteix en PDF: el que es veu aquí és exactament el que s'imprimeix.
 import {
   ALT, AMPLE, FONTS, QR_MINIM, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
-  dibuixaPagina, esAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
+  colorCss, dibuixaPagina, esAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
+import { selectorColor } from "./selector-color.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
 const urls = dades.urls;
@@ -1182,7 +1183,7 @@ const NOUS = {
   "nou-forma": () => ({ tipus: "forma", forma: "rectangle", x: 34, y: 80, w: 80, h: 50, fons: "#c4321f", radi: 0, vora: "", gruix: 0 }),
   "nou-elipse": () => ({ tipus: "forma", forma: "elipse", x: 44, y: 75, w: 60, h: 60, fons: "#c4321f", radi: 0, vora: "", gruix: 0 }),
   "nou-numero": () => ({ tipus: "numero", x: 59, y: 197, w: 30, h: 6, estil: "numero", alineacio: "center" }),
-  "nou-qr": () => ({ tipus: "qr", x: 105, y: 160, w: 28, h: 33, video: videosCanco()[0]?.id || "", peu: true, color: "#1b1a17" }),
+  "nou-qr": () => ({ tipus: "qr", x: 105, y: 160, w: 28, h: 33, video: videosCanco()[0]?.id || "", peu: true, color: "cmyk(0,0,0,100)" }),
 };
 
 const EINES = {
@@ -2158,6 +2159,24 @@ function pintaCanco() {
   $("#etiqueta-versio").textContent = entrada.versio_id ? `v${entrada.versio_numero} fixada` : entrada.versio_ultima ? `${entrada.versio_ultima} versions` : "";
 }
 
+// Selectors de color (CMYK exacte per a impremta, o RGB)
+
+/** Colors que ja fa servir el cançoner (estils i pàgina oberta), per oferir-los al selector. */
+function colorsDelDocument() {
+  const trobats = Object.values(K.estils).map((e) => e.color);
+  for (const p of pagines) {
+    trobats.push(p.fons);
+    for (const e of p.elements) trobats.push(e.color, e.fons, e.vora, e.format?.color);
+  }
+  return trobats.filter((c) => c && c !== "#ffffff");
+}
+selectorColor($("#fons-pagina"), { colors: colorsDelDocument });
+selectorColor($('[data-format-prop="color"]'), { colors: colorsDelDocument, buit: "Color de l'estil",
+  perDefecte: () => (typeof K !== "undefined" && seleccio ? K.estils[elementSel()?.estil]?.color : undefined) });
+selectorColor($('[data-per="qr"] [data-prop="color"]'), { colors: colorsDelDocument });
+selectorColor($('[data-prop="fons"]'), { colors: colorsDelDocument, buit: "Sense fons" });
+selectorColor($('[data-prop="vora"]'), { colors: colorsDelDocument, buit: "Sense vora" });
+
 // Vídeos de YouTube de la cançó (es desen amb el contingut i es versionen amb ella)
 
 function videosCanco() {
@@ -2510,7 +2529,7 @@ function pintaEstils() {
     const det = el("details", { classe: "group" });
     const resum = el("summary", { classe: "flex items-center gap-3 px-3 py-2" });
     const mostra = el("span", { text: "Aa", classe: "w-8 shrink-0 text-center" });
-    Object.assign(mostra.style, { fontFamily: FONTS[e.font], fontWeight: e.pes, fontStyle: e.cursiva ? "italic" : "normal", color: e.color, fontSize: "18px" });
+    Object.assign(mostra.style, { fontFamily: FONTS[e.font], fontWeight: e.pes, fontStyle: e.cursiva ? "italic" : "normal", color: colorCss(e.color), fontSize: "18px" });
     resum.append(mostra, el("span", { text: e.nom, classe: "flex-1 text-[14px] font-medium" }), el("span", { text: `${e.mida} pt`, classe: "font-mono text-[11px] text-ink-400" }));
     const cos = el("div", { classe: "grid grid-cols-2 gap-3 border-t border-paper-200 p-3" });
     const filaFont = el("div", { classe: "col-span-2" });
@@ -2554,12 +2573,13 @@ function pintaEstils() {
         aplicaEstils(K.estils);
         reajusta();
         desaEstils();
-        Object.assign(mostra.style, { fontFamily: FONTS[e.font], fontWeight: e.pes, fontStyle: e.cursiva ? "italic" : "normal", color: e.color });
+        Object.assign(mostra.style, { fontFamily: FONTS[e.font], fontWeight: e.pes, fontStyle: e.cursiva ? "italic" : "normal", color: colorCss(e.color) });
         resum.lastChild.textContent = `${e.mida} pt`;
       });
       if (tipus === "checkbox") label.append(input, el("span", { text: etiqueta }));
       else label.append(el("span", { text: etiqueta, classe: "etiqueta" }), input);
       cos.append(label);
+      if (tipus === "color") selectorColor(input, { colors: colorsDelDocument });
     }
     det.append(resum, cos);
     li.append(det);

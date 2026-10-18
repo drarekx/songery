@@ -18,7 +18,7 @@ from pathlib import Path
 import requests
 from pypdf import PdfReader
 
-from . import basedades, imposicio, marges, motor_pdf
+from . import basedades, cmyk, imposicio, marges, motor_pdf
 
 GOTENBERG = os.environ.get("GOTENBERG_URL", "").rstrip("/")
 # Adreça amb què Gotenberg (dins de Docker) arriba a aquesta aplicació.
@@ -115,10 +115,14 @@ def genera_a5(canconer: dict, url_imprimible: str, total_esperat: int | None = N
         return dades
 
 
-def genera(canconer: dict, tipus: str, url_imprimible: str, total_esperat: int | None = None) -> bytes:
-    """tipus: a5, a4, a4-vora-llarga, davant, darrere, darrere-girat, darrere-invers.
+def genera(canconer: dict, tipus: str, url_imprimible: str, total_esperat: int | None = None,
+           colors_cmyk: dict | None = None) -> bytes:
+    """tipus: a5, a4, a4-vora-llarga, davant, darrere, darrere-girat, darrere-invers; i, per a
+    impremta, en CMYK: a5-cmyk i a4-cmyk.
 
     Si el cançoner porta una mestra de marges ("marge"), s'aplica al PDF A5 abans d'imposar-lo.
+    En CMYK, la conversió es fa al PDF A5 (ja amb els marges) i després s'imposa.
+    colors_cmyk: taula de colors CMYK → RGB testimoni (la del pla del llibret).
     """
     dades_a5 = genera_a5(canconer, url_imprimible, total_esperat)
     marge = canconer.get("marge")
@@ -129,6 +133,18 @@ def genera(canconer: dict, tipus: str, url_imprimible: str, total_esperat: int |
         else:
             dades_a5 = marges.aplica(dades_a5, marge)
             _escriu(cami_a5, dades_a5)
+    if tipus.endswith("-cmyk"):
+        cami_cmyk = _directori_cau() / f"{clau(canconer)}-a5-cmyk.pdf"
+        if cami_cmyk.exists():
+            dades_a5 = cami_cmyk.read_bytes()
+        else:
+            dades_a5 = cmyk.converteix(dades_a5, colors_cmyk or {})
+            _escriu(cami_cmyk, dades_a5)
+        if tipus == "a5-cmyk":
+            return dades_a5
+        tipus_base = tipus.removesuffix("-cmyk")
+    else:
+        tipus_base = tipus
     if tipus == "a5":
         return dades_a5
     cami = _directori_cau() / f"{clau(canconer)}-{tipus}.pdf"
@@ -138,9 +154,9 @@ def genera(canconer: dict, tipus: str, url_imprimible: str, total_esperat: int |
                "davant": {"costat": "davant"}, "darrere": {"costat": "darrere"},
                "darrere-girat": {"costat": "darrere", "gira_darrere": True},
                "darrere-invers": {"costat": "darrere", "invers": True}}
-    if tipus not in opcions:
+    if tipus_base not in opcions:
         raise ValueError(tipus)
-    dades = imposicio.imposa(dades_a5, **opcions[tipus])
+    dades = imposicio.imposa(dades_a5, **opcions[tipus_base])
     _escriu(cami, dades)
     return dades
 

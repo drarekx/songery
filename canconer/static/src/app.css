@@ -85,6 +85,19 @@
   .enllac-llibret { @apply inline-flex min-h-[2.25rem] items-center rounded px-1.5 text-ink-700 hover:text-vermello-700; }
   .enllac-llibret:first-child { @apply -ml-1.5; }
 
+  /* Selector de color (CMYK per a impremta) */
+  .boto-color {
+    @apply inline-flex min-h-[2rem] min-w-0 max-w-[11rem] items-center gap-2 rounded-md border border-paper-300 bg-white px-2 text-left font-mono text-[11.5px] text-ink-700 shadow-suau transition hover:border-ink-300 disabled:opacity-50;
+  }
+  .text-color { @apply truncate; }
+  .mostra-color { @apply h-5 w-5 shrink-0 rounded border border-ink-900/15; }
+  .mostra-color.gran { @apply h-9 w-9 rounded-md; }
+  .mostra-color.buit { background: repeating-linear-gradient(45deg, #fff 0 4px, #e6e2d8 4px 8px); }
+  .popover-color { @apply fixed z-50 flex w-[19rem] flex-col gap-2 rounded-xl border border-paper-300 bg-paper-50 p-3 shadow-full; }
+  .fila-canal { @apply flex items-center gap-2; }
+  .barra-canal { @apply h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full; background: linear-gradient(90deg, #fff, var(--canal)); accent-color: var(--canal); border: 1px solid rgb(27 26 23 / 0.12); }
+  .mostra-paleta { @apply h-6 w-6 rounded border border-ink-900/15 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vermello-500; }
+
   /* Passos de l'actualització */
   .pas-actualitzacio { @apply flex items-start gap-4 px-5 py-4 transition; }
   .pas-actualitzacio[data-estat="pendent"] { @apply opacity-50; }

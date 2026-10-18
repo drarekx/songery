@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -23,6 +23,8 @@ TIPUS_PDF = {
     "darrere": "imprimir-A4-cares-darrere",
     "darrere-invers": "imprimir-A4-cares-darrere-ordre-invers",
     "instruccions": "instruccions-impressio",
+    "a5-cmyk": "llibret-A5-impremta-CMYK",
+    "a4-cmyk": "imprimir-A4-impremta-CMYK",
 }
 MIDA_MAXIMA_IMATGE = 12 * 1024 * 1024
 MIDA_MAXIMA_FONT = 15 * 1024 * 1024
@@ -241,7 +243,7 @@ def crea_app() -> Flask:
     def canconer_imprimir(id_canconer):
         c = canconer_impressio(id_canconer)
         return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.clau(c),
-                               instrument=c["instrument"], marges=bd.llista_marges(),
+                               instrument=c["instrument"], marges=bd.llista_marges(), gs=bool(cmyk.ghostscript()),
                                escala_marges=marges.escala(c["marge"]))
 
     @app.post("/canconer/<id_canconer>/marges")
@@ -661,11 +663,11 @@ def crea_app() -> Flask:
             if tipus == "instruccions":
                 contingut = pdf.instruccions(url_interna(url_for("canconer_instruccions", id_canconer=id_canconer)))
             else:
-                total = maquetacio.pla(c)["total"]
+                pla = maquetacio.pla(c)
                 url = url_interna(url_for("canconer_imprimible", id_canconer=id_canconer, v=pdf.empremta(c),
                                           instrument=instrument))
-                contingut = pdf.genera(c, tipus, url, total)
-        except pdf.GotenbergNoDisponible as e:
+                contingut = pdf.genera(c, tipus, url, pla["total"], colors_cmyk=pla["colors"])
+        except (pdf.GotenbergNoDisponible, cmyk.GhostscriptNoDisponible) as e:
             return Response(str(e), status=503, mimetype="text/plain; charset=utf-8")
         pdf.neteja_cau()
         # Si hi ha pàgina de diagrames, el nom del fitxer diu per a quin instrument és.

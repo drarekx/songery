@@ -28,6 +28,9 @@ fi
 echo "▸ Icones…"
 .venv-app/bin/python eines/app/icones.py >/dev/null
 
+echo "▸ Ghostscript (PDF en CMYK)…"
+./eines/app/ghostscript.sh
+
 echo "▸ Empaquetant amb PyInstaller…"
 rm -rf build "$APP" "$DMG"
 .venv-app/bin/pyinstaller --noconfirm --clean --log-level WARN --distpath dist --workpath build eines/app/canconers.spec
@@ -38,6 +41,9 @@ rm -rf "$APP/Contents/Resources/canconer/static/src" "$APP/Contents/Resources/ca
 IDENTITAT=${CANCONER_SIGNATURA:-$(security find-identity -v -p codesigning | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)}
 if [ -n "${IDENTITAT}" ]; then
   echo "▸ Signant amb «${IDENTITAT}»…"
+  # Els executables solts (Ghostscript) es signen un per un: --deep no els troba.
+  find "$APP/Contents" -type f -name gs -perm -u+x -print0 | xargs -0 -I{} \
+    codesign --force --timestamp --options runtime --sign "${IDENTITAT}" {}
   codesign --force --deep --timestamp --options runtime --entitlements eines/app/permisos.plist --sign "${IDENTITAT}" "$APP"
   codesign --verify --deep --strict "$APP"
 else

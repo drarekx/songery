@@ -16,6 +16,41 @@ export const FONTS = {
 export function registraFonts(llista) {
   for (const f of llista || []) FONTS[f.clau] = f.css;
 }
+// ---------------------------------------------------------------- Colors (RGB o CMYK per a impremta)
+
+/** RGB testimoni de cada color CMYK del cançoner (ve del pla); sense taula, l'aproximació directa. */
+const TESTIMONIS = {};
+export function registraColors(taula) {
+  Object.assign(TESTIMONIS, taula || {});
+}
+
+/** «cmyk(c,m,y,k)» → [c, m, y, k] (0-100), o null. */
+export function llegeixCmyk(valor) {
+  const m = /^cmyk\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/.exec(String(valor || "").trim());
+  return m ? m.slice(1).map((v) => Math.min(100, Math.max(0, Number(v)))) : null;
+}
+
+// Color aproximat de cada tinta d'impremta (cian, magenta, groc, negre) sobre paper blanc.
+const TINTES = [[0, 158, 224], [226, 0, 122], [255, 236, 0], [30, 28, 27]];
+
+/** Aproximació a la pantalla d'un color CMYK (la mateixa fórmula que colors.py): les tintes es
+ *  multipliquen com sobre el paper, cadascuna en la seva proporció. */
+export function cmykAHex(cmyk) {
+  const canal = (i) => {
+    const valor = cmyk.reduce((acc, quantitat, t) => acc * (1 - (quantitat / 100) * (1 - TINTES[t][i] / 255)), 1);
+    return Math.round(255 * valor).toString(16).padStart(2, "0");
+  };
+  return `#${canal(0)}${canal(1)}${canal(2)}`;
+}
+
+/** Valor CSS d'un color del disseny (RGB tal qual; CMYK amb el seu testimoni o l'aproximació). */
+export function colorCss(valor) {
+  if (!valor) return valor;
+  const cmyk = llegeixCmyk(valor);
+  if (!cmyk) return valor;
+  return TESTIMONIS[`cmyk(${cmyk.join(",")})`] || cmykAHex(cmyk);
+}
+
 const ESCALA_MINIMA = 0.45; // l'ajust automàtic no redueix la lletra per sota d'aquest factor
 
 // ---------------------------------------------------------------- Estils
@@ -27,7 +62,7 @@ function declaracions(e) {
     `font-size:calc(${Number(e.mida) || 10}pt * var(--escala, 1))`,
     `font-weight:${e.pes || 400}`,
     `font-style:${e.cursiva ? "italic" : "normal"}`,
-    `color:${e.color || "#000"}`,
+    `color:${colorCss(e.color) || "#000"}`,
     `line-height:${e.interlineat || 1.2}`,
     `letter-spacing:${e.espaiat || 0}em`,
     `text-transform:${e.majuscules ? "uppercase" : "none"}`,
@@ -69,7 +104,7 @@ function formatPropi(node, format) {
   if (format.mida) node.style.fontSize = `calc(${format.mida}pt * var(--escala, 1))`;
   if (format.pes) node.style.fontWeight = format.pes;
   if (format.cursiva !== undefined) node.style.fontStyle = format.cursiva ? "italic" : "normal";
-  if (format.color) node.style.color = format.color;
+  if (format.color) node.style.color = colorCss(format.color);
   if (format.interlineat) node.style.lineHeight = format.interlineat;
   if (format.espaiat !== undefined) node.style.letterSpacing = `${format.espaiat}em`;
   if (format.majuscules !== undefined) node.style.textTransform = format.majuscules ? "uppercase" : "none";
@@ -167,9 +202,9 @@ export function dibuixaElement(e, opcions) {
     case "forma": {
       node = document.createElement("div");
       node.className = "el el-forma";
-      node.style.background = e.fons || "transparent";
+      node.style.background = colorCss(e.fons) || "transparent";
       node.style.borderRadius = e.forma === "elipse" ? "50%" : mm(e.radi || 0);
-      if (e.vora && e.gruix) node.style.border = `${e.gruix}mm solid ${e.vora}`;
+      if (e.vora && e.gruix) node.style.border = `${e.gruix}mm solid ${colorCss(e.vora)}`;
       break;
     }
     case "index": {
@@ -207,7 +242,7 @@ export function dibuixaElement(e, opcions) {
       const codi = document.createElement("div");
       codi.className = "codi-qr";
       codi.style.width = codi.style.height = mm(costat);
-      codi.innerHTML = svgQR(video.url, e.color || "#1b1a17");
+      codi.innerHTML = svgQR(video.url, colorCss(e.color) || "#1b1a17");
       node.append(codi);
       if (peu) node.append(textNode("peu-qr estil-nota", video.titol));
       if (costat < QR_MINIM) node.dataset.petit = "";
@@ -262,7 +297,7 @@ export function reposiciona(node, e) {
 export function dibuixaPagina(pagina, opcions = {}) {
   const node = document.createElement("section");
   node.className = "pagina";
-  node.style.background = pagina.fons || "#fff";
+  node.style.background = colorCss(pagina.fons) || "#fff";
   const comunes = { ...opcions, context: pagina.context, index: pagina.index, diagrames: pagina.diagrames, qrs: pagina.qrs,
     grup: opcions.grup ?? pagina.entrada };
   if (pagina.mestra?.elements?.length) {
@@ -366,6 +401,7 @@ export async function esperaFonts(arrel = document.body) {
  */
 export async function dibuixaLlibret(contenidor, dades) {
   registraFonts(dades.fonts);
+  registraColors(dades.colors);
   aplicaEstils(dades.estils);
   const urlImatge = (id) => dades.urlImatge.replace("__ID__", id);
   const pagines = dades.pagines.map((p) => dibuixaPagina(p, { urlImatge }));
