@@ -271,7 +271,7 @@ store.connecta({
   },
   // Barres del llenç
   eina: (nom) => EINES[nom]?.(),
-  zoom: (factor) => posaZoom(factor === null ? 1 : zoom * factor),
+  zoom: (factor) => posaZoom(factor === null ? 1 : zoom * factor, null, { anima: true }),
   ma() { ma.fixa = !ma.fixa; pintaMa(); },
   format: (nom) => edicio?.editor && FORMATS[nom]?.(edicio.editor),
   midaMarc: (mida) => canviaMidaMarc(mida),
@@ -387,12 +387,18 @@ function dadesPagina(i, numero) {
 
 // ------------------------------------------------------------ Dibuix del llenç
 
-function calculaEscala() {
-  const amplada = llenc.clientWidth - 88;
-  const alcada = llenc.clientHeight - 80;
+/** Escala de les pàgines amb un zoom donat (1 = la doble pàgina ajustada a la finestra). */
+function escalaAmbZoom(z) {
+  // offsetWidth/Height (amb les barres de desplaçament) perquè l'ajust no canviï quan apareixen.
+  const amplada = llenc.offsetWidth - 88;
+  const alcada = llenc.offsetHeight - 80;
   const doble = obert?.tipus !== "especial" || false;
   const ajust = Math.min(amplada / ((doble ? 2 : 1) * AMPLE * PX_MM), alcada / (ALT * PX_MM));
-  escala = Math.max(0.25, ajust * zoom);
+  return Math.max(0.25, ajust * z);
+}
+
+function calculaEscala() {
+  escala = escalaAmbZoom(zoom);
   store.sincronitza({ zoom });
 }
 
@@ -895,28 +901,89 @@ llenc.addEventListener("dblclick", (ev) => {
   else if (e?.grup) selecciona(p, e.id, { sol: true }); // entra dins del grup
 });
 
-// Zoom amb Ctrl/⌘ + roda o el gest de pinça: el punt que hi ha sota el punter es queda on és.
+// Zoom amb Ctrl/⌘ + roda o el gest de pinça: el punt que hi ha sota el punter es queda on és. El
+// canvi és proporcional al gest (un pessic suau fa un zoom suau; un clic de roda, un pas més gran).
 llenc.addEventListener("wheel", (ev) => {
   if (!ev.ctrlKey && !ev.metaKey) return;
   ev.preventDefault();
   const r = llenc.getBoundingClientRect();
-  posaZoom(zoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1), { x: ev.clientX - r.left, y: ev.clientY - r.top });
+  const delta = ev.deltaY * (ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? 400 : 1);
+  const factor = Math.exp(-Math.max(-25, Math.min(25, delta)) * 0.008);
+  posaZoom(zoom * factor, { x: ev.clientX - r.left, y: ev.clientY - r.top });
 }, { passive: false });
 
-/** Canvia el zoom. focus: punt del llenç (px) que ha de quedar quiet; per defecte, el centre. */
-function posaZoom(z, focus = null) {
-  const f = focus || { x: llenc.clientWidth / 2, y: llenc.clientHeight / 2 };
-  // On és el punt dins del contingut, en proporció (es manté encara que el contingut canviï de mida).
-  posaZoom.fixa ??= { px: (llenc.scrollLeft + f.x) / Math.max(1, llenc.scrollWidth), py: (llenc.scrollTop + f.y) / Math.max(1, llenc.scrollHeight), f };
-  zoom = Math.max(0.3, Math.min(4, z));
+const ZOOM_MINIM = 0.3;
+const ZOOM_MAXIM = 4;
+const MARGE_LLENC = 32; // el padding de .contingut-llenc
+
+/**
+ * Canvia el zoom. focus: punt del llenç (px) que ha de quedar quiet; per defecte, el centre.
+ * Mentre dura el gest, el contingut s'escala en viu amb una transformació (sense tornar-lo a
+ * dibuixar) i es porta exactament on el deixarà el redibuix: on hi ha desplaçament, al voltant del
+ * punter; on hi cap, centrat a l'ample i a dalt. Quan el gest s'atura, es redibuixa nítid i el
+ * desplaçament deixa les pàgines al mateix lloc. anima: transició curta (botons).
+ */
+function posaZoom(z, focus = null, { anima = false } = {}) {
+  zoom = Math.max(ZOOM_MINIM, Math.min(ZOOM_MAXIM, z));
+  store.sincronitza({ zoom });
+  // Si s'està redibuixant, el gest continua quan acabi (sobre el contingut nou).
+  if (posaZoom.pintant) {
+    posaZoom.pendent = { focus, anima };
+    return;
+  }
+  const contingut = llenc.firstElementChild;
+  if (!contingut || obert?.tipus === "llibre") {
+    clearTimeout(posaZoom.t);
+    posaZoom.t = setTimeout(pintaLlenc, 60);
+    return;
+  }
+  if (!posaZoom.gest) {
+    const f = focus || { x: llenc.clientWidth / 2, y: llenc.clientHeight / 2 };
+    const rl = llenc.getBoundingClientRect();
+    const rc = contingut.getBoundingClientRect();
+    const ample = Math.max(...[...contingut.children].map((c) => c.offsetWidth), 1);
+    const alt = contingut.scrollHeight - 2 * MARGE_LLENC;
+    // On són les pàgines (a la pantalla) en començar el gest: la primera fila de dobles pàgines.
+    const fila = contingut.firstElementChild?.getBoundingClientRect() ?? rc;
+    const esquerra = fila.left;
+    const dalt = fila.top;
+    posaZoom.gest = { escala, rl, rc, ample, alt, esquerra, dalt, fx: rl.left + f.x, fy: rl.top + f.y };
+  }
+  const g = posaZoom.gest;
+  const s = escalaAmbZoom(zoom) / g.escala;
+  const hiCapAmple = g.ample * s + 2 * MARGE_LLENC <= llenc.clientWidth;
+  const hiCapAlt = g.alt * s + 2 * MARGE_LLENC <= llenc.clientHeight;
+  // On han de quedar les pàgines (a la pantalla).
+  const esquerra = hiCapAmple ? g.rl.left + (llenc.clientWidth - g.ample * s) / 2 : g.fx + (g.esquerra - g.fx) * s;
+  const dalt = hiCapAlt ? g.rl.top + MARGE_LLENC : g.fy + (g.dalt - g.fy) * s;
+  g.desti = { esquerra, dalt };
+  contingut.style.transformOrigin = "0 0";
+  contingut.style.transition = anima ? "transform 140ms ease-out" : "none";
+  contingut.style.transform = `translate(${esquerra - g.rc.left - (g.esquerra - g.rc.left) * s}px, ${dalt - g.rc.top - (g.dalt - g.rc.top) * s}px) scale(${s})`;
   clearTimeout(posaZoom.t);
   posaZoom.t = setTimeout(async () => {
-    const { px, py, f: punt } = posaZoom.fixa;
-    posaZoom.fixa = null;
-    await pintaLlenc();
-    llenc.scrollLeft = px * llenc.scrollWidth - punt.x;
-    llenc.scrollTop = py * llenc.scrollHeight - punt.y;
-  }, 60);
+    if (Math.abs(s - 1) < 1e-3) {
+      posaZoom.gest = null;
+      contingut.style.transform = "";
+      return;
+    }
+    posaZoom.pintant = true;
+    try {
+      await pintaLlenc(); // el contingut nou ja no porta la transformació
+      // Desplaça perquè la primera fila quedi just on la deixava la vista prèvia.
+      const fila = llenc.firstElementChild?.firstElementChild?.getBoundingClientRect();
+      if (fila) {
+        llenc.scrollLeft += fila.left - g.desti.esquerra;
+        llenc.scrollTop += fila.top - g.desti.dalt;
+      }
+    } finally {
+      posaZoom.gest = null;
+      posaZoom.pintant = false;
+    }
+    const pendent = posaZoom.pendent;
+    posaZoom.pendent = null;
+    if (pendent) posaZoom(zoom, pendent.focus, { anima: pendent.anima });
+  }, anima ? 170 : 140);
 }
 
 // Moure el llenç amb la mà: mantenint l'espai premut i arrossegant, amb el botó del mig del ratolí
@@ -965,7 +1032,8 @@ const deixaMa = (ev) => {
 llenc.addEventListener("pointerup", deixaMa, true);
 llenc.addEventListener("pointercancel", deixaMa, true);
 llenc.addEventListener("auxclick", (ev) => { if (ev.button === 1) ev.preventDefault(); }); // el clic del mig no obre res
-new ResizeObserver(() => { if (!gest && !edicio) pintaLlenc(); }).observe(llenc);
+// (durant un zoom no: la vista prèvia escalada fa aparèixer barres de desplaçament)
+new ResizeObserver(() => { if (!gest && !edicio && !posaZoom.gest && !posaZoom.pintant) pintaLlenc(); }).observe(llenc);
 
 // ------------------------------------------------------------ Edició de text i lletra
 
@@ -1588,7 +1656,7 @@ function menuPagina(p, punt) {
       { text: "Esborra la pàgina…", perill: true, desactivat: !editable || pagines.length < 2, fes: () => { seleccio = { p, id: null }; EINES["pagina-esborra"](); } },
     ] : []),
     separador,
-    { text: "Ajusta el zoom a la finestra", fes: () => posaZoom(1) },
+    { text: "Ajusta el zoom a la finestra", fes: () => posaZoom(1, null, { anima: true }) },
   ];
 }
 

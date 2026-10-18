@@ -2,7 +2,7 @@
 {% block titol %}{{ c.titol }} · Editor{% endblock %}
 {% block classe_body %}flex h-dvh flex-col overflow-hidden{% endblock %}
 {% block classe_capcalera %}{% endblock %}
-{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_20rem]{% endblock %}
+{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
 
 {% block accions %}
 <span id="estat" role="status" data-tipus="ok"
@@ -40,7 +40,7 @@
 
   <div id="avis-llenc"></div>
 
-  <div id="llenc" class="mode-editor relative min-h-0 flex-1 overflow-auto overscroll-contain" tabindex="-1"></div>
+  <div id="llenc" class="mode-editor relative min-h-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable]" tabindex="-1"></div>
 
   {# Historial de versions (calaix lateral sobre el llenç) #}
   <div id="historial" class="absolute inset-0 z-30 hidden bg-ink-900/20">
