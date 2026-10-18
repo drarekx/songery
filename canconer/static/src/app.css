@@ -198,6 +198,20 @@
   .eina svg { @apply h-[18px] w-[18px]; }
   .eina[aria-pressed="true"] { @apply bg-ink-900 text-white hover:bg-ink-700 hover:text-white; }
   .eina-text { @apply border border-paper-300 bg-white px-2 shadow-suau; }
+  /* Etiqueta del botó d'eina: surt a l'instant en passar-hi el ratolí (o amb el teclat) */
+  .eina[data-tooltip] { @apply relative; }
+  .eina[data-tooltip]::after {
+    content: attr(data-tooltip);
+    @apply pointer-events-none invisible absolute left-1/2 top-[calc(100%+6px)] z-[60] w-max max-w-[16rem] -translate-x-1/2 rounded-md bg-ink-900 px-2 py-1 text-left font-sans text-[12px] font-medium leading-snug text-white opacity-0 shadow-full transition-opacity duration-100;
+  }
+  .eina[data-tooltip]:hover::after, .eina[data-tooltip]:focus-visible::after { @apply visible opacity-100; }
+  /* Les de les vores no surten de la pantalla */
+  #barra-llenc > .eina:first-child[data-tooltip]::after, #barra-text > .eina:first-of-type[data-tooltip]::after { @apply left-0 translate-x-0; }
+
+  /* Panell dels diagrames d'acords */
+  .panell-acords { @apply absolute left-3 top-[3.25rem] z-40 flex w-[22rem] flex-col gap-3 rounded-xl border border-paper-300 bg-paper-50 p-4 shadow-full; }
+  .fitxa-acord { @apply flex cursor-grab flex-col items-center justify-center rounded-md border border-paper-300 bg-white p-1 transition hover:border-vermello-500 hover:shadow-suau active:cursor-grabbing disabled:cursor-default disabled:opacity-50; }
+  .fitxa-acord svg { @apply h-auto w-full; }
   .separador { @apply mx-1 h-5 w-px bg-paper-300; }
 
   /* Cursor de ProseMirror entre blocs */
@@ -240,6 +254,7 @@
   .mode-editor .marc-lletra.desborda { outline: 2px dashed #c4321f; outline-offset: -1px; }
   .mode-editor .qr-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }
   .mode-editor .el-qr[data-petit] { outline: 2px dashed #d97706; outline-offset: 1px; }
+  .mode-editor .diagrama-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }
   .mode-editor .marc-lletra.editant, .mode-editor .el-text.editant { @apply cursor-text; outline: none; }
   .mode-editor .marc-lletra.editant .acord-nom { @apply cursor-pointer rounded-sm hover:bg-vermello-100; }
   .mode-editor .marc-lletra.editant .acord.seleccionat .acord-nom { @apply bg-vermello-500 text-white; }

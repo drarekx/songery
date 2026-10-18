@@ -17,7 +17,7 @@ from __future__ import annotations
 import copy
 import math
 
-from . import colors, diagrames, document, plantilles, videos
+from . import colors, diagrames, document, parser, plantilles, videos
 
 
 def _transporta_pagines(pagines: list[dict], semitons: int) -> list[dict]:
@@ -27,7 +27,26 @@ def _transporta_pagines(pagines: list[dict], semitons: int) -> list[dict]:
             for e in p.get("elements", []):
                 if e.get("tipus") == "lletra" and e.get("doc"):
                     e["doc"] = document.transporta(e["doc"], semitons)
+                elif e.get("tipus") == "diagrama" and e.get("acord"):
+                    e["acord"] = parser.transporta_acord(e["acord"], semitons)
     return pagines
+
+
+def base_acord(acord: str) -> str:
+    """El diagrama d'un acord amb baix (G/B) és el de l'acord (G)."""
+    return acord.split("/")[0]
+
+
+def diagrames_pagines(pagines: list[dict], instrument: str) -> tuple[list[str], dict[str, str]]:
+    """Acords d'una cançó (sense repetir, en ordre) i el SVG de cada diagrama, també dels elements
+    «diagrama» que hi hagi a les pàgines."""
+    ordre: list[str] = []
+    for a in acords_pagines(pagines):
+        if base_acord(a) not in ordre:
+            ordre.append(base_acord(a))
+    solts = [base_acord(e["acord"]) for p in pagines for e in p.get("elements", [])
+             if e.get("tipus") == "diagrama" and e.get("acord")]
+    return ordre, {a: diagrames.svg(a, instrument) for a in dict.fromkeys(ordre + solts)}
 
 
 def acords_pagines(pagines: list[dict]) -> list[str]:
@@ -95,7 +114,8 @@ def pla(canconer: dict) -> dict:
     pagines_acords = math.ceil(len(svgs) / plantilles.DIAGRAMES_PER_PAGINA) if canconer.get("pagina_acords") and svgs else 0
 
     n_cancons = sum(1 for e in entrades if e.get("tipus", "canco") == "canco")
-    pagines_index = math.ceil(n_cancons / plantilles.ENTRADES_PER_PAGINA_INDEX) if n_cancons else 0
+    pagines_index = (math.ceil(n_cancons / plantilles.ENTRADES_PER_PAGINA_INDEX)
+                     if n_cancons and canconer.get("pagina_index", True) else 0)
     for i in range(pagines_index):
         afegeix("index", especials["index"], tros_index=i)
 
@@ -132,8 +152,10 @@ def pla(canconer: dict) -> dict:
             afegeix("blanc", {"mestra": "estandard", "elements": []})
         acords = acords_pagines(pagines)
         contingut = e.get("contingut") if isinstance(e.get("contingut"), dict) else {}
+        ordre_acords, svgs_canco = diagrames_pagines(pagines, instrument)
         context = {"titol": e.get("titol") or "", "autor": e.get("autor") or "", "acords": " · ".join(acords),
-                   "videos": videos.per_al_dibuix(contingut.get("videos"))}
+                   "videos": videos.per_al_dibuix(contingut.get("videos")),
+                   "ordreAcords": ordre_acords, "diagrames": svgs_canco}
         inici = len(seq) + 1
         for i, model in enumerate(pagines):
             afegeix("canco" if e.get("tipus", "canco") == "canco" else "lliure", model, context,

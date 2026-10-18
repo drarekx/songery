@@ -269,7 +269,24 @@ export function dibuixaElement(e, opcions) {
     case "diagrames": {
       node = document.createElement("div");
       node.className = "el el-diagrames";
-      node.innerHTML = (opcions.diagrames || []).join("");
+      if (e.mida) node.style.setProperty("--mida-diagrama", mm(e.mida));
+      if (e.canco) {
+        // Tots els acords de la cançó, en l'ordre en què surten.
+        node.classList.add("de-canco");
+        const llista = (context.ordreAcords || []).map((a) => context.diagrames?.[a]).filter(Boolean);
+        node.innerHTML = llista.join("");
+        if (!llista.length) node.append(textNode("diagrama-buit", "Els acords de la cançó"));
+      } else {
+        node.innerHTML = (opcions.diagrames || []).join("");
+      }
+      break;
+    }
+    case "diagrama": {
+      node = document.createElement("div");
+      node.className = "el el-diagrama";
+      const svg = context.diagrames?.[String(e.acord || "").split("/")[0]];
+      if (svg) node.innerHTML = svg;
+      else node.append(textNode("diagrama-buit", e.acord || "Acord"));
       break;
     }
     default:
@@ -449,6 +466,10 @@ export function transportaPagines(pagines, n) {
   if (!(n % 12)) return pagines;
   return pagines.map((p) => ({
     ...p,
-    elements: (p.elements || []).map((e) => (e.tipus === "lletra" ? { ...e, doc: transportaDoc(e.doc, n) } : e)),
+    elements: (p.elements || []).map((e) => {
+      if (e.tipus === "lletra") return { ...e, doc: transportaDoc(e.doc, n) };
+      if (e.tipus === "diagrama" && e.acord) return { ...e, acord: transportaAcord(e.acord, n) };
+      return e;
+    }),
   }));
 }

@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, cmyk, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -259,6 +259,14 @@ def crea_app() -> Flask:
     def _torna_segura(url: str | None) -> str | None:
         """Només s'accepten rutes internes per tornar enrere."""
         return url if url and url.startswith("/") and not url.startswith("//") else None
+
+    @app.post("/canconer/<id_canconer>/index")
+    def canconer_tria_index(id_canconer):
+        """Índex de cançons al PDF, sí o no."""
+        meta_o_404(id_canconer)
+        bd.desa_meta(id_canconer, {"pagina_index": bool(request.form.get("pagina_index"))})
+        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
+                                instrument=request.form.get("instrument") or None))
 
     @app.post("/canconer/<id_canconer>/qr")
     def canconer_tria_qr(id_canconer):
@@ -533,6 +541,14 @@ def crea_app() -> Flask:
     def api_restaura(id_canco):
         o_404(bd.restaura_versio, id_canco, (request.get_json(silent=True) or {}).get("versio_id", ""))
         return jsonify({"canco": bd.carrega_canco(id_canco)})
+
+    @app.post("/api/diagrames")
+    def api_diagrames():
+        """SVG dels diagrames d'uns acords, per a l'editor ({acord: svg})."""
+        d = request.get_json(silent=True) or {}
+        instrument = "ukulele" if d.get("instrument") == "ukulele" else "guitarra"
+        acords = [str(a)[:16] for a in (d.get("acords") or [])[:100] if a]
+        return jsonify({a: diagrames.svg(a.split("/")[0], instrument) for a in acords})
 
     @app.post("/api/video")
     def api_video():

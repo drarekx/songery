@@ -2,7 +2,7 @@
 // d'impressió que Gotenberg converteix en PDF: el que es veu aquí és exactament el que s'imprimeix.
 import {
   ALT, AMPLE, FONTS, QR_MINIM, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
-  colorCss, dibuixaPagina, esAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
+  colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import { selectorColor } from "./selector-color.js";
 
@@ -206,11 +206,34 @@ function mestraDe(idMestra, numero, costat) {
 function contextDe(numero) {
   const base = { titol: K.titol, subtitol: K.subtitol, any: K.any, contraportada: K.contraportada, pagina: numero };
   if (obert.tipus === "canco" && canco) {
-    const acords = acordsDePagines(transportaPagines(pagines, transport()));
-    return { ...base, titol: canco.titol, autor: canco.autor, acords: acords.join(" · "), videos: videosPerDibuixar() };
+    const visibles = transportaPagines(pagines, transport());
+    const acords = acordsDePagines(visibles);
+    const ordreAcords = [...new Set(acords.map(baseAcord))];
+    demanaDiagrames([...ordreAcords, ...acordsSolts(visibles)]);
+    return { ...base, titol: canco.titol, autor: canco.autor, acords: acords.join(" · "), videos: videosPerDibuixar(),
+      ordreAcords, diagrames: DIAGRAMES };
   }
   if (obert.tipus === "mestra") return { ...base, titol: "Títol de la cançó", autor: "Autor", acords: "C · G · Am · F" };
   return base;
+}
+
+// Diagrames d'acords (SVG) per als elements «diagrama» i «tots els acords»: els genera el servidor,
+// es guarden aquí i, quan n'arriben de nous, es torna a dibuixar.
+const DIAGRAMES = {};
+const baseAcord = (a) => String(a || "").split("/")[0];
+const acordsSolts = (pags) => pags.flatMap((p) => p.elements.filter((e) => e.tipus === "diagrama" && e.acord).map((e) => baseAcord(e.acord)));
+let demanant = null;
+function demanaDiagrames(acords) {
+  const falten = [...new Set(acords.filter((a) => a && !(a in DIAGRAMES)))];
+  if (!falten.length || demanant) return;
+  demanant = api(urls.diagrames, "POST", { acords: falten, instrument: K.instrument })
+    .then((svgs) => { Object.assign(DIAGRAMES, svgs); for (const a of falten) DIAGRAMES[a] ??= ""; })
+    .catch(() => null)
+    .finally(() => {
+      demanant = null;
+      if (!edicio) pintaLlenc(); // mentre s'escriu no es torna a dibuixar (es veuran en acabar)
+      if (!$("#panell-acords").classList.contains("hidden")) pintaPanellAcords();
+    });
 }
 
 function dadesPagina(i, numero) {
@@ -1273,8 +1296,80 @@ $("#fitxer-imatge").addEventListener("change", async (ev) => {
   afegeix({ id: nouId(), tipus: "imatge", x: (AMPLE - w) / 2, y: (ALT - h) / 2, w, h, src: r.id, ajust: "cover", radi: 0, rotacio: 0, opacitat: 1 });
 });
 
-// Arrossegar imatges des de l'ordinador directament a una pàgina.
-llenc.addEventListener("dragover", (ev) => { if (ev.dataTransfer?.types.includes("Files")) ev.preventDefault(); });
+// ------------------------------------------------------------ Diagrames d'acords (panell per arrossegar)
+
+const TIPUS_ACORD = "application/x-canconer-acord";
+const MIDA_DIAGRAMA = { w: 18, h: 23.7 }; // proporció dels diagrames (70 × 92)
+
+function pintaPanellAcords() {
+  const llista = $("#llista-acords");
+  if (obert?.tipus !== "canco" || !canco) {
+    return llista.replaceChildren(el("p", { text: "Obre una cançó per veure'n els acords.", classe: "col-span-4 text-[13px] text-ink-500" }));
+  }
+  const acords = [...new Set(acordsDePagines(transportaPagines(pagines, transport())).map(baseAcord))];
+  demanaDiagrames(acords);
+  const fitxa = (nom, contingut, classe) => {
+    const b = el("button", { classe: `fitxa-acord ${classe}`, atributs: { type: "button", draggable: "true", title: nom === "*" ? "Tots els acords de la cançó" : `Acord ${nom}` } });
+    b.append(contingut);
+    b.addEventListener("dragstart", (ev) => {
+      ev.dataTransfer.setData(TIPUS_ACORD, nom);
+      ev.dataTransfer.effectAllowed = "copy";
+    });
+    b.addEventListener("click", () => afegeixDiagrama(nom));
+    b.disabled = !editable;
+    return b;
+  };
+  const tots = el("span", { classe: "flex flex-col items-center gap-0.5" });
+  tots.append(el("span", { text: "Tots els acords", classe: "text-[13px] font-semibold" }),
+    el("span", { text: acords.length ? acords.join(" · ") : "La cançó encara no en té", classe: "max-w-full truncate font-mono text-[11px] text-ink-500" }));
+  llista.replaceChildren(fitxa("*", tots, "col-span-4 py-2"), ...acords.map((a) => {
+    const dibuix = el("span", { classe: "block w-full" });
+    if (DIAGRAMES[a]) dibuix.innerHTML = DIAGRAMES[a];
+    else dibuix.textContent = a;
+    return fitxa(a, dibuix, "");
+  }));
+}
+
+/** Afegeix un diagrama (o, amb «*», tots els de la cançó) a la pàgina, centrat on s'ha deixat anar. */
+function afegeixDiagrama(nom, p = paginaActual(), punt = null) {
+  if (!editable || obert?.tipus !== "canco") return;
+  const element = nom === "*"
+    ? { tipus: "diagrames", canco: true, mida: 16, w: AMPLE - 2 * MARGE, h: 26 }
+    : { tipus: "diagrama", acord: transportaAcord(nom, -transport()), ...MIDA_DIAGRAMA }; // es desa sense el transport
+  const centre = punt || { x: AMPLE / 2, y: ALT / 2 };
+  Object.assign(element, {
+    id: nouId(), rotacio: 0, opacitat: 1,
+    x: arrodoneix(Math.min(AMPLE - element.w, Math.max(0, centre.x - element.w / 2))),
+    y: arrodoneix(Math.min(ALT - element.h, Math.max(0, centre.y - element.h / 2))),
+  });
+  seleccio = { p, id: null };
+  afegeix(element);
+}
+
+EINES.acords = () => {
+  const panell = $("#panell-acords");
+  const obrir = panell.classList.contains("hidden");
+  panell.classList.toggle("hidden", !obrir);
+  $('[data-eina="acords"]').setAttribute("aria-pressed", String(obrir));
+  if (obrir) pintaPanellAcords();
+};
+$("[data-tanca-acords]").addEventListener("click", () => EINES.acords());
+
+// Arrossegar imatges des de l'ordinador, o diagrames del panell d'acords, directament a una pàgina.
+llenc.addEventListener("dragover", (ev) => {
+  if (ev.dataTransfer?.types.includes(TIPUS_ACORD)) {
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = "copy";
+  } else if (ev.dataTransfer?.types.includes("Files")) ev.preventDefault();
+});
+llenc.addEventListener("drop", (ev) => {
+  const nom = ev.dataTransfer?.getData(TIPUS_ACORD);
+  const caixa = ev.target.closest(".pagina-editor");
+  if (!nom || !caixa) return;
+  ev.preventDefault();
+  ev.stopImmediatePropagation();
+  afegeixDiagrama(nom, Number(caixa.dataset.pagina), puntMm(ev, caixa));
+});
 llenc.addEventListener("drop", async (ev) => {
   const fitxer = [...(ev.dataTransfer?.files || [])].find((f) => f.type.startsWith("image/"));
   const caixa = ev.target.closest(".pagina-editor");
@@ -1471,7 +1566,7 @@ document.addEventListener("keydown", (ev) => {
 
 // ------------------------------------------------------------ Panell de propietats
 
-const NOMS_TIPUS = { text: "Text", lletra: "Marc de lletra", imatge: "Imatge", forma: "Forma", numero: "Número de pàgina", index: "Índex", diagrames: "Diagrames d'acords", qr: "Codi QR", index_qr: "Índex de vídeos" };
+const NOMS_TIPUS = { diagrama: "Diagrama d'acord", text: "Text", lletra: "Marc de lletra", imatge: "Imatge", forma: "Forma", numero: "Número de pàgina", index: "Índex", diagrames: "Diagrames d'acords", qr: "Codi QR", index_qr: "Índex de vídeos" };
 
 function omplenaEstils(select) {
   const valor = select.value;

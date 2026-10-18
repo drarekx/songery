@@ -10,6 +10,7 @@ Cada pàgina és un llenç A5 (148 × 210 mm) amb elements col·locats en mil·l
   diagrames  diagrames d'acords (pàgina d'acords)
   qr         codi QR d'un dels vídeos de la cançó (camp "video": id del vídeo dins de la cançó)
   index_qr   llista de vídeos amb el seu QR i el número de pàgina (pàgina d'índex de QR)
+  diagrama   diagrama d'un acord (camp "acord"); amb «diagrames» i "canco": true, tots els de la cançó
 Els elements de text fan servir un estil amb nom (Títol, Lletra, Acord...) i en poden canviar propietats.
 """
 

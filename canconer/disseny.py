@@ -13,7 +13,7 @@ from . import colors, plantilles, videos
 
 AMPLE = plantilles.AMPLE
 ALT = plantilles.ALT
-TIPUS = ("text", "lletra", "imatge", "forma", "numero", "index", "diagrames", "qr", "index_qr")
+TIPUS = ("text", "lletra", "imatge", "forma", "numero", "index", "diagrames", "qr", "index_qr", "diagrama")
 _CLAU = re.compile(r"^[a-z0-9_]{1,32}$")
 _FONT = re.compile(r"^[a-z0-9-]{1,48}$")
 _GRUP = re.compile(r"^[a-z0-9]{1,16}$")
@@ -110,6 +110,14 @@ def element(e: dict) -> dict | None:
         net["video"] = str(e.get("video") or "")[:16]
         net["peu"] = bool(e.get("peu", True))
         net["color"] = _color(e.get("color"), "cmyk(0,0,0,100)")
+    elif e["tipus"] == "diagrama":
+        net["acord"] = str(e.get("acord") or "")[:16]
+    elif e["tipus"] == "diagrames":
+        # Amb "canco", tots els acords de la cançó (a la pàgina d'acords, els de tot el cançoner).
+        if e.get("canco"):
+            net["canco"] = True
+        if e.get("mida") or e.get("canco"):
+            net["mida"] = _num(e.get("mida"), 16, 8, 60)  # amplada de cada diagrama, en mm
     return net
 
 
