@@ -3,7 +3,9 @@
 import { createPinia } from "pinia";
 import { createApp, h, reactive } from "vue";
 import PanellAcords from "./components/PanellAcords.vue";
-import PanellVideos from "./components/PanellVideos.vue";
+import PanellCanco from "./components/PanellCanco.vue";
+import PanellCapes from "./components/PanellCapes.vue";
+import PanellEstils from "./components/PanellEstils.vue";
 import SelectorColor from "./components/SelectorColor.vue";
 import { TIPUS_ACORD, useEditorStore } from "./stores/editor.js";
 
@@ -17,7 +19,9 @@ function munta(component, desti, props = {}) {
 }
 
 export const muntaPanellAcords = (desti) => munta(PanellAcords, desti);
-export const muntaPanellVideos = (desti) => munta(PanellVideos, desti);
+export const muntaPanellCanco = (desti) => munta(PanellCanco, desti);
+export const muntaPanellCapes = (desti) => munta(PanellCapes, desti);
+export const muntaPanellEstils = (desti) => munta(PanellEstils, desti);
 
 /**
  * Selector de color sobre un <input> existent: el camp guarda el valor (text) i rep «input» quan

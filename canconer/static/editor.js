@@ -4,7 +4,9 @@ import {
   ALT, AMPLE, FONTS, QR_MINIM, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
   colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
-import { TIPUS_ACORD, muntaPanellAcords, muntaPanellVideos, muntaSelectorColor, pinia, useEditorStore } from "./dist/vue.js";
+import {
+  TIPUS_ACORD, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaSelectorColor, pinia, useEditorStore,
+} from "./dist/vue.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
 const urls = dades.urls;
@@ -225,9 +227,14 @@ function contextDe(numero) {
 const store = useEditorStore(pinia);
 function sincronitzaStore() {
   const esCanco = obert?.tipus === "canco" && !!canco;
+  const entrada = entradaActual();
   store.sincronitza({
     editable,
-    canco: esCanco ? { id: canco.id, titol: canco.titol } : null,
+    canco: esCanco ? { id: canco.id, titol: canco.titol || "", autor: canco.autor || "" } : null,
+    entrada: entrada ? {
+      transport: Number(entrada.transport || 0), inclosa: entrada.inclosa, inici: entrada.inici, usos: entrada.usos,
+      versio_id: entrada.versio_id, versio_numero: entrada.versio_numero, versio_ultima: entrada.versio_ultima,
+    } : null,
     acords: esCanco ? [...new Set(acordsDePagines(transportaPagines(pagines, transport())).map(baseAcord))] : [],
     diagrames: { ...DIAGRAMES },
     videos: esCanco ? copia(videosCanco()) : [],
@@ -235,9 +242,67 @@ function sincronitzaStore() {
   });
   if (esCanco) demanaDiagrames(store.acords);
 }
-store.connecta({ afegeixDiagrama: (nom) => afegeixDiagrama(nom), canviaVideos: (llista) => canviaVideos(llista) });
+store.connecta({
+  afegeixDiagrama: (nom) => afegeixDiagrama(nom),
+  canviaVideos: (llista) => canviaVideos(llista),
+  colorsDelDocument: () => colorsDelDocument(),
+  // Pestanya Cançó
+  canviaDadesCanco(prop, valor) {
+    if (!canco || !editable) return;
+    canco[prop] = valor;
+    canviat();
+    actualitzaVariables();
+    const fila = $(`#llista-ev li[data-id="${canco.id}"] .truncate`);
+    if (fila && prop === "titol") fila.textContent = valor || "Sense títol";
+  },
+  canviaEntrada: (canvis) => obert?.tipus === "canco" && canviaEntrada(obert.id, canvis),
+  aplicaTransport,
+  treuCanco,
+  obreHistorial: () => obreHistorial(),
+  // Estils
+  canviaEstil(clau, prop, valor) {
+    const e = K.estils[clau];
+    if (!e) return;
+    e[prop] = valor;
+    aplicaEstils(K.estils);
+    reajusta();
+    desaEstils();
+    if (prop === "font") pintaLlenc();
+  },
+  triaFont(boto, clau) {
+    obreSelectorFont(boto, { actual: K.estils[clau]?.font, tria: (font) => store.canviaEstil(clau, "font", font) });
+  },
+  // Capes
+  ressaltaCapes: (p, ids, si) => ids.forEach((id) => nodeElement(p, id)?.classList.toggle("ressaltat", si)),
+  seleccionaCapa(p, id, { afegeix = false, sol = false } = {}) {
+    sortEdicio();
+    selecciona(p, id, { afegeix, sol });
+    nodeElement(p, id)?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  },
+  bloquejaCapa(p, id) {
+    const e = pagines[p]?.elements.find((x) => x.id === id);
+    if (!e || !editable) return;
+    foto(true);
+    if (e.bloquejat) delete e.bloquejat;
+    else e.bloquejat = true;
+    canviat();
+    repintaPagina(p).then(pintaPropietats);
+  },
+  mouCapa(p, id, d) {
+    const elements = pagines[p]?.elements;
+    const i = elements?.findIndex((x) => x.id === id) ?? -1;
+    const j = i + d;
+    if (i < 0 || j < 0 || j >= elements.length || !editable) return;
+    foto(true);
+    [elements[i], elements[j]] = [elements[j], elements[i]];
+    canviat();
+    repintaPagina(p).then(pintaPropietats);
+  },
+});
 muntaPanellAcords("#llista-acords");
-muntaPanellVideos("#videos-canco");
+muntaPanellCanco("#panell-canco");
+muntaPanellEstils("#panell-estils");
+muntaPanellCapes("#panell-capes");
 
 // Diagrames d'acords (SVG) per als elements «diagrama» i «tots els acords»: els genera el servidor,
 // es guarden aquí i, quan n'arriben de nous, es torna a dibuixar.
@@ -1775,12 +1840,6 @@ function mostraPestanya(nom) {
 
 // ------------------------------------------------------------ Capes
 
-const ICONES_CAPA = {
-  text: "M4 5h12M10 5v11", lletra: "M4 5h12M4 9h12M4 13h8", imatge: "M3 4h14v12H3zM3 13l4-4 3 3 2-2 5 5",
-  forma: "M4 5h12v10H4z", numero: "M7 4 5.5 16M12.5 4 11 16M4 8h11M3.5 12h11", index: "M4 5h12M4 9h12M4 13h12",
-  diagrames: "M5 4v12M8 4v12M11 4v12M14 4v12M5 7h9M5 10h9",
-};
-
 function nomCapa(e, p) {
   if (e.tipus === "text") {
     const node = nodeElement(p, e.id);
@@ -1793,98 +1852,26 @@ function nomCapa(e, p) {
   return NOMS_TIPUS[e.tipus] || e.tipus;
 }
 
+/** Estat del panell de capes (el component PanellCapes): elements de cada pàgina, del de davant al del fons. */
 function pintaCapes() {
-  const seccio = $('[data-panell-pestanya="capes"]');
-  if (seccio.classList.contains("hidden")) return;
-  const caixa = $("#llista-capes");
-  if (!obert || obert.tipus === "llibre") return caixa.replaceChildren(el("p", { text: "Obre una cançó o una pàgina per veure'n les capes.", classe: "text-[13px] text-ink-500" }));
+  if (!obert || obert.tipus === "llibre") return store.sincronitza({ capes: null });
   const numeros = numerosPagina();
-  caixa.replaceChildren(...pagines.map((pagina, p) => {
-    const grup = el("div", { classe: "flex flex-col gap-0.5" });
-    const etiqueta = obert.tipus === "mestra" ? (p === 0 ? "Pàgines parells" : "Pàgines senars") : `Pàgina ${numeros[p]}`;
-    grup.append(el("h4", { text: etiqueta, classe: "mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400" }));
-    if (!pagina.elements.length) grup.append(el("p", { text: "Sense elements.", classe: "px-2 text-[12px] text-ink-400" }));
-    const llista = [...pagina.elements].reverse(); // el de davant, primer
-    // Els membres d'un grup es mostren junts, sota la capçalera del grup (a l'altura del primer).
-    const ordre = [];
-    const vistos = new Set();
-    for (const e of llista) {
-      if (!e.grup) ordre.push(e);
-      else if (!vistos.has(e.grup)) {
-        vistos.add(e.grup);
-        const membres = llista.filter((x) => x.grup === e.grup);
-        ordre.push({ capcalera: e.grup, membres }, ...membres);
-      }
-    }
-    ordre.forEach((e) => {
-      if (e.capcalera) {
-        const seleccionat = e.membres.every((m) => seleccio?.p === p && idsSel().includes(m.id));
-        const fila = el("button", { classe: "fila-capa w-full font-medium", atributs: { type: "button", "aria-current": String(seleccionat) } });
-        fila.innerHTML = '<svg class="h-4 w-4 shrink-0 text-ink-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h5l1.5 2H17v8H3z"/></svg>';
-        fila.append(el("span", { text: `Grup (${e.membres.length})`, classe: "flex-1 text-left" }));
-        fila.addEventListener("mouseenter", () => e.membres.forEach((m) => nodeElement(p, m.id)?.classList.add("ressaltat")));
-        fila.addEventListener("mouseleave", () => e.membres.forEach((m) => nodeElement(p, m.id)?.classList.remove("ressaltat")));
-        fila.addEventListener("click", (ev) => {
-          e.membres.forEach((m) => nodeElement(p, m.id)?.classList.remove("ressaltat"));
-          sortEdicio();
-          selecciona(p, e.membres[0].id, { afegeix: ev.shiftKey });
-        });
-        grup.append(fila);
-        return;
-      }
-      const fila = el("div", { classe: "fila-capa group" + (e.grup ? " ml-4" : ""), atributs: { "aria-current": String(seleccio?.p === p && idsSel().includes(e.id)) } });
-      const icona = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      icona.setAttribute("viewBox", "0 0 20 20");
-      icona.setAttribute("class", "h-4 w-4 shrink-0 text-ink-400");
-      icona.innerHTML = `<path d="${ICONES_CAPA[e.tipus] || ICONES_CAPA.forma}" fill="none" stroke="currentColor" stroke-width="1.5"/>`;
-      const nom = el("button", { text: nomCapa(e, p), classe: "min-w-0 flex-1 truncate text-left" + (e.bloquejat ? " text-ink-500" : ""), atributs: { type: "button" } });
-      if (e.tipus === "text" || e.tipus === "lletra") nom.style.fontFamily = FONTS[e.format?.font || K.estils[e.estil]?.font] || "";
-      const candau = el("button", { classe: "flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-400 hover:bg-paper-200 hover:text-ink-900" + (e.bloquejat ? " text-vermello-600" : " opacity-0 group-hover:opacity-100"), atributs: { type: "button", title: e.bloquejat ? "Desbloqueja" : "Bloqueja (els clics hi passen a través)" } });
-      candau.innerHTML = e.bloquejat
-        ? '<svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v6.5H4z"/></svg>'
-        : '<svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7V5a3 3 0 0 1 5.8-1M4 7h8v6.5H4z"/></svg>';
-      const amunt = el("button", { text: "↑", classe: "h-6 w-5 shrink-0 rounded text-ink-400 opacity-0 hover:bg-paper-200 group-hover:opacity-100 disabled:invisible", atributs: { type: "button", title: "Porta endavant" } });
-      const avall = el("button", { text: "↓", classe: "h-6 w-5 shrink-0 rounded text-ink-400 opacity-0 hover:bg-paper-200 group-hover:opacity-100 disabled:invisible", atributs: { type: "button", title: "Envia enrere" } });
-      const index = pagina.elements.indexOf(e);
-      amunt.disabled = index === pagina.elements.length - 1 || !editable;
-      avall.disabled = index === 0 || !editable;
-      candau.disabled = !editable;
-      const ressalta = (si) => nodeElement(p, e.id)?.classList.toggle("ressaltat", si);
-      fila.addEventListener("mouseenter", () => ressalta(true));
-      fila.addEventListener("mouseleave", () => ressalta(false));
-      nom.addEventListener("click", (ev) => {
-        ressalta(false);
-        sortEdicio();
-        selecciona(p, e.id, ev.shiftKey ? { afegeix: true, sol: true } : { sol: true });
-        nodeElement(p, e.id)?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-      });
-      candau.addEventListener("click", () => {
-        foto(true);
-        if (e.bloquejat) delete e.bloquejat;
-        else e.bloquejat = true;
-        canviat();
-        repintaPagina(p).then(pintaPropietats);
-      });
-      const mou = (d) => {
-        const i = pagina.elements.indexOf(e);
-        const j = i + d;
-        if (j < 0 || j >= pagina.elements.length) return;
-        foto(true);
-        [pagina.elements[i], pagina.elements[j]] = [pagina.elements[j], pagina.elements[i]];
-        canviat();
-        repintaPagina(p).then(pintaPropietats);
+  const seleccionats = seleccio ? idsSel() : [];
+  store.sincronitza({
+    capes: pagines.map((pagina, p) => {
+      const mestra = obert.tipus !== "mestra" && mestraDe(pagina.mestra, numeros[p], pagina.costat);
+      return {
+        etiqueta: obert.tipus === "mestra" ? (p === 0 ? "Pàgines parells" : "Pàgines senars") : `Pàgina ${numeros[p]}`,
+        mestra: mestra?.elements?.length || 0,
+        elements: [...pagina.elements].reverse().map((e) => ({
+          id: e.id, tipus: e.tipus, nom: nomCapa(e, p), grup: e.grup || null, bloquejat: !!e.bloquejat,
+          font: e.tipus === "text" || e.tipus === "lletra" ? e.format?.font || K.estils[e.estil]?.font || null : null,
+          seleccionat: seleccio?.p === p && seleccionats.includes(e.id),
+          index: pagina.elements.indexOf(e), total: pagina.elements.length,
+        })),
       };
-      amunt.addEventListener("click", () => mou(1));
-      avall.addEventListener("click", () => mou(-1));
-      fila.append(icona, nom, candau, amunt, avall);
-      grup.append(fila);
-    });
-    const mestra = obert.tipus !== "mestra" && mestraDe(pagina.mestra, numeros[p], pagina.costat);
-    if (mestra?.elements?.length) {
-      grup.append(el("p", { text: `+ ${mestra.elements.length} de la pàgina mestra (s'editen a Pàgines mestres)`, classe: "px-2 pt-1 text-[11.5px] text-ink-400" }));
-    }
-    return grup;
-  }));
+    }),
+  });
 }
 
 // ------------------------------------------------------------ Tipografies
@@ -2229,21 +2216,9 @@ const esMobil = () => window.matchMedia("(max-width: 1023px)").matches;
 
 // ------------------------------------------------------------ Pestanya Cançó
 
+/** La pestanya Cançó és el component PanellCanco: només cal posar al dia l'estat. */
 function pintaCanco() {
-  const entrada = entradaActual();
-  $("#sense-canco").classList.toggle("hidden", !!entrada);
-  $("#dades-canco").classList.toggle("hidden", !entrada);
-  if (!entrada || !canco) return;
-  $("#titol-ev").value = canco.titol || "";
-  $("#autor-ev").value = canco.autor || "";
-  $("#titol-ev").readOnly = $("#autor-ev").readOnly = !editable;
-  const n = Number(entrada.transport || 0);
-  $("#valor-transport").textContent = n > 0 ? `+${n}` : String(n);
-  $("#aplica-transport").disabled = !n || !editable;
-  $("#inclosa-ev").checked = entrada.inclosa;
-  $("#inici-ev").checked = entrada.inici !== "qualsevol";
   sincronitzaStore();
-  $("#etiqueta-versio").textContent = entrada.versio_id ? `v${entrada.versio_numero} fixada` : entrada.versio_ultima ? `${entrada.versio_ultima} versions` : "";
 }
 
 // Selectors de color (CMYK exacte per a impremta, o RGB)
@@ -2296,25 +2271,7 @@ function omplenaVideosQR(e) {
     : `El codi fa ${costat.toFixed(1)} mm. Per escanejar-lo bé, fes-lo de ${QR_MINIM} mm o més.`;
 }
 
-for (const [camp, prop] of [["#titol-ev", "titol"], ["#autor-ev", "autor"]]) {
-  $(camp).addEventListener("input", (ev) => {
-    if (!canco || !editable) return;
-    canco[prop] = ev.target.value;
-    canviat();
-    actualitzaVariables();
-    const fila = $(`#llista-ev li[data-id="${canco.id}"] .truncate`);
-    if (fila && prop === "titol") fila.textContent = ev.target.value || "Sense títol";
-  });
-}
-$$("[data-transport]").forEach((b) => b.addEventListener("click", () => {
-  const entrada = entradaActual();
-  if (!entrada) return;
-  let n = Number(entrada.transport || 0) + Number(b.dataset.transport);
-  if (n > 11) n -= 12;
-  if (n < -11) n += 12;
-  canviaEntrada(entrada.id, { transport: n });
-}));
-$("#aplica-transport").addEventListener("click", async () => {
+async function aplicaTransport() {
   const entrada = entradaActual();
   if (!entrada?.transport || !editable) return;
   const { contingut } = await api(urls.transporta, "POST", { contingut: { format: 2, pagines, videos: videosCanco() }, semitons: entrada.transport });
@@ -2323,10 +2280,9 @@ $("#aplica-transport").addEventListener("click", async () => {
   await api(urls.canco + canco.id, "PUT", { contingut });
   await canviaEntrada(entrada.id, { transport: 0 });
   pintaLlenc();
-});
-$("#inclosa-ev").addEventListener("change", (ev) => canviaEntrada(obert.id, { inclosa: ev.target.checked }));
-$("#inici-ev").addEventListener("change", (ev) => canviaEntrada(obert.id, { inici: ev.target.checked ? "esquerra" : "qualsevol" }));
-$("#treu-canco").addEventListener("click", async () => {
+}
+
+async function treuCanco() {
   const entrada = entradaActual();
   if (!entrada) return;
   const on = entrada.usos > 1 ? "Continuarà als altres cançoners on surt i a la biblioteca." : "Continuarà a la biblioteca.";
@@ -2336,7 +2292,7 @@ $("#treu-canco").addEventListener("click", async () => {
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
   obert = null;
   await obre(K.cancons[0] ? { tipus: "canco", id: K.cancons[0].id } : { tipus: "especial", id: "portada" });
-});
+}
 
 // Noves cançons, pàgines lliures i importació
 async function creaEntrada(tipus, mestra) {
@@ -2347,7 +2303,7 @@ async function creaEntrada(tipus, mestra) {
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
   await obre({ tipus: "canco", id: r.id });
   mostraPestanya("canco");
-  $("#titol-ev").select();
+  requestAnimationFrame(() => $("#titol-ev")?.select()); // el camp el pinta PanellCanco
 }
 $("#nova-canco").addEventListener("click", () => creaEntrada("canco"));
 
@@ -2535,69 +2491,9 @@ $("#esborra-mestra").addEventListener("click", async () => {
 
 // ------------------------------------------------------------ Estils
 
+/** Estat del panell d'estils (el component PanellEstils). */
 function pintaEstils() {
-  const ul = $("#llista-estils");
-  ul.replaceChildren(...Object.entries(K.estils).map(([clau, e]) => {
-    const li = el("li", { classe: "rounded-md border border-paper-300 bg-white" });
-    const det = el("details", { classe: "group" });
-    const resum = el("summary", { classe: "flex items-center gap-3 px-3 py-2" });
-    const mostra = el("span", { text: "Aa", classe: "w-8 shrink-0 text-center" });
-    Object.assign(mostra.style, { fontFamily: FONTS[e.font], fontWeight: e.pes, fontStyle: e.cursiva ? "italic" : "normal", color: colorCss(e.color), fontSize: "18px" });
-    resum.append(mostra, el("span", { text: e.nom, classe: "flex-1 text-[14px] font-medium" }), el("span", { text: `${e.mida} pt`, classe: "font-mono text-[11px] text-ink-400" }));
-    const cos = el("div", { classe: "grid grid-cols-2 gap-3 border-t border-paper-200 p-3" });
-    const filaFont = el("div", { classe: "col-span-2" });
-    const botoFont = el("button", { classe: "selector-font", atributs: { type: "button", "data-selector-font": "estil" } });
-    const nomFont = el("span", { text: TIPOGRAFIES.find((f) => f.clau === e.font)?.nom || e.font, classe: "nom-font" });
-    nomFont.style.fontFamily = FONTS[e.font] || "";
-    botoFont.append(nomFont);
-    botoFont.addEventListener("click", () => obreSelectorFont(botoFont, {
-      actual: e.font,
-      tria: (clau) => {
-        e.font = clau;
-        aplicaEstils(K.estils);
-        reajusta();
-        desaEstils();
-        pintaEstils();
-        pintaLlenc();
-      },
-    }));
-    filaFont.append(el("span", { text: "Tipografia", classe: "etiqueta" }), botoFont);
-    cos.append(filaFont);
-    const camps = [
-      ["mida", "Mida (pt)", "number", 0.5], ["pes", "Gruix", "select", [300, 400, 500, 600, 700, 800].map((v) => [v, v])],
-      ["interlineat", "Interlineat", "number", 0.05], ["espaiat", "Espaiat", "number", 0.01], ["color", "Color", "color"],
-      ["cursiva", "Cursiva", "checkbox"], ["majuscules", "Majúscules", "checkbox"],
-    ];
-    for (const [prop, etiqueta, tipus, extra] of camps) {
-      const label = el("label", { classe: tipus === "checkbox" ? "flex items-center gap-2 text-[13px]" : "" });
-      let input;
-      if (tipus === "select") {
-        input = el("select", { classe: "camp py-1 text-[13px]" });
-        input.append(...extra.map(([v, t]) => el("option", { text: String(t), atributs: { value: v } })));
-        input.value = e[prop];
-      } else {
-        input = el("input", { classe: tipus === "checkbox" ? "h-4 w-4 accent-vermello-500" : tipus === "color" ? "h-8 w-full cursor-pointer rounded border border-paper-300 bg-white p-0.5" : "camp py-1 font-mono text-[13px]", atributs: { type: tipus } });
-        if (tipus === "number") input.step = extra;
-        if (tipus === "checkbox") input.checked = !!e[prop];
-        else input.value = e[prop];
-      }
-      input.addEventListener("input", () => {
-        e[prop] = tipus === "checkbox" ? input.checked : tipus === "number" || prop === "pes" ? Number(input.value) : input.value;
-        aplicaEstils(K.estils);
-        reajusta();
-        desaEstils();
-        Object.assign(mostra.style, { fontFamily: FONTS[e.font], fontWeight: e.pes, fontStyle: e.cursiva ? "italic" : "normal", color: colorCss(e.color) });
-        resum.lastChild.textContent = `${e.mida} pt`;
-      });
-      if (tipus === "checkbox") label.append(input, el("span", { text: etiqueta }));
-      else label.append(el("span", { text: etiqueta, classe: "etiqueta" }), input);
-      cos.append(label);
-      if (tipus === "color") muntaSelectorColor(input, { colors: colorsDelDocument });
-    }
-    det.append(resum, cos);
-    li.append(det);
-    return li;
-  }));
+  store.sincronitza({ estils: copia(K.estils), tipografies: TIPOGRAFIES });
 }
 
 // ------------------------------------------------------------ Biblioteca d'elements
@@ -2729,7 +2625,6 @@ async function mostraVersio(v, li) {
   $$("#llista-versions li").forEach((l) => l.classList.toggle("bg-paper-100", l === li));
 }
 
-$("#obre-historial").addEventListener("click", obreHistorial);
 $("#historial").addEventListener("click", (ev) => {
   if (ev.target === $("#historial") || ev.target.closest("[data-tanca-historial]")) tancaHistorial();
 });

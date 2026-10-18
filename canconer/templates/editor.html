@@ -372,45 +372,13 @@
     </section>
 
     {# ---------- Capes #}
-    <section data-panell-pestanya="capes" class="hidden flex-col">
-      <p class="px-4 pt-4 text-[13px] leading-snug text-ink-500">Tots els elements, del de davant al del fons. Passa-hi el ratolí per veure on són i clica per seleccionar-los, encara que siguin a sota d'un altre. El cadenat evita que es puguin seleccionar clicant al llenç. Amb <kbd class="font-mono">⌥</kbd> + clic al llenç selecciones l'element de sota.</p>
-      <div id="llista-capes" class="flex flex-col gap-4 p-4"></div>
-    </section>
+    <section data-panell-pestanya="capes" class="hidden flex-col"><div id="panell-capes"></div></section>
 
     {# ---------- Cançó #}
-    <section data-panell-pestanya="canco" class="hidden flex-col gap-4 p-4">
-      <div id="sense-canco" class="hidden text-[13px] text-ink-500">Selecciona una cançó o una pàgina lliure a la llista.</div>
-      <div id="dades-canco" class="flex flex-col gap-4">
-        <label><span class="etiqueta">Títol</span><input id="titol-ev" class="camp font-display text-lg"></label>
-        <label><span class="etiqueta">Autor</span><input id="autor-ev" class="camp"></label>
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-[13px] font-semibold text-ink-700" title="S'aplica en aquest cançoner, sense canviar la cançó">Transport</span>
-          <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
-            <button type="button" data-transport="-1" class="w-8 rounded-l-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Baixa un semitò">−</button>
-            <output id="valor-transport" class="flex w-10 items-center justify-center border-x border-paper-300 font-mono text-[13px] font-semibold tabular-nums">0</output>
-            <button type="button" data-transport="1" class="w-8 rounded-r-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Puja un semitò">+</button>
-          </div>
-        </div>
-        <button type="button" id="aplica-transport" class="btn btn-petit" disabled>Aplica el transport a la cançó</button>
-        <label class="flex items-center justify-between gap-3 text-[14px]">Surt al PDF
-          <span class="interruptor"><input class="peer sr-only" type="checkbox" id="inclosa-ev"><span></span></span></label>
-        <label class="flex items-center justify-between gap-3 text-[14px]">Comença sempre a l'esquerra
-          <span class="interruptor"><input class="peer sr-only" type="checkbox" id="inici-ev"><span></span></span></label>
-        <p class="-mt-2 text-[12px] leading-snug text-ink-500">Desactiva-ho per posar-la just després de l'anterior (per exemple, dues cançons curtes a la mateixa doble pàgina).</p>
-        <div id="videos-canco" class="border-t border-paper-300 pt-4"></div>
-        <button type="button" id="obre-historial" class="btn btn-petit">
-          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5M8 5v3l2 1.5"/></svg>
-          Versions i historial <span id="etiqueta-versio" class="font-mono text-[11px] text-ink-400"></span>
-        </button>
-        <button type="button" id="treu-canco" class="btn btn-perill btn-petit">Treu del cançoner</button>
-      </div>
-    </section>
+    <section data-panell-pestanya="canco" class="hidden flex-col gap-4 p-4"><div id="panell-canco"></div></section>
 
     {# ---------- Estils #}
-    <section data-panell-pestanya="estils" class="hidden flex-col">
-      <p class="px-4 pt-4 text-[13px] leading-snug text-ink-500">Els estils s'apliquen a tot el cançoner. Canvia'n un i s'actualitzen totes les pàgines.</p>
-      <ul id="llista-estils" class="flex flex-col gap-2 p-4"></ul>
-    </section>
+    <section data-panell-pestanya="estils" class="hidden flex-col"><div id="panell-estils"></div></section>
 
     {# ---------- Biblioteca d'elements #}
     <section data-panell-pestanya="biblioteca" class="hidden flex-col gap-3 p-4">
