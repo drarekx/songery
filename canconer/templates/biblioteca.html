@@ -124,7 +124,13 @@
     <aside aria-label="Vista prèvia" class="sticky top-6 hidden w-[340px] flex-col gap-3 lg:flex">
       <div class="flex items-baseline justify-between">
         <span class="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-500">Vista prèvia</span>
-        <span id="previa-pagines" class="font-mono text-[12px] text-ink-400"></span>
+        <span class="flex items-center gap-1">
+          <button type="button" id="previa-anterior" class="eina h-7 w-7" aria-label="Pàgina anterior" disabled>
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></button>
+          <span id="previa-pagines" class="min-w-[4.5rem] text-center font-mono text-[12px] text-ink-400"></span>
+          <button type="button" id="previa-seguent" class="eina h-7 w-7" aria-label="Pàgina següent" disabled>
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button>
+        </span>
       </div>
       <div class="flex justify-center rounded-xl bg-taula p-6">
         <div id="previa" class="pagina-previa" aria-live="polite"></div>
