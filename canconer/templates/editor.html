@@ -3,7 +3,7 @@
 {% block classe_body %}flex h-dvh flex-col overflow-hidden{% endblock %}
 {% block classe_capcalera %}{% endblock %}
 {% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_var(--ample-propietats)] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
-{% block atributs_main %}id="editor" style="--ample-propietats: {{ preferencies['editor.amplePropietats'] }}px"{% endblock %}
+{% block atributs_main %}id="editor" style="--ample-propietats: {{ (preferencies | default({}, true)).get('editor.amplePropietats', 320) }}px"{% endblock %}
 
 {% block accions %}
 <span id="estat" role="status" data-tipus="ok"

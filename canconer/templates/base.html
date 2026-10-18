@@ -61,7 +61,7 @@
   · <a href="{{ url_for('actualitzacio') }}" class="underline hover:text-ink-700">Actualitzacions</a>
 </footer>
 
-<script id="preferencies" type="application/json">{{ preferencies | tojson }}</script>
+<script id="preferencies" type="application/json">{{ (preferencies | default({}, true)) | tojson }}</script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='dist/dialegs.js') }}"></script>
 {% block scripts %}{% endblock %}
