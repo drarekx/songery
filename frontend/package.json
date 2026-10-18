@@ -1,0 +1,19 @@
+{
+  "name": "canconer-frontend",
+  "private": true,
+  "description": "Editor de cançons (Tiptap) empaquetat amb esbuild per a canconer/static/dist/",
+  "scripts": {
+    "build": "esbuild src/index.js --bundle --format=esm --minify --sourcemap --target=es2022 --outfile=../canconer/static/dist/canconer.js",
+    "watch": "npm run build -- --watch"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.32.0",
+    "@tiptap/pm": "3.32.0",
+    "@tiptap/extensions": "3.32.0",
+    "@tiptap/extension-bold": "3.32.0",
+    "@tiptap/extension-italic": "3.32.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

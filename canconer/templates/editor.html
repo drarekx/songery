@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+{% block titol %}{{ c.titol }} · Editor{% endblock %}
+{% block classe_body %}flex h-dvh flex-col overflow-hidden{% endblock %}
+{% block classe_capcalera %}{% endblock %}
+{% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_20rem]{% endblock %}
+
+{% macro eina(accio, titol, cami, tecla="", text="") %}
+<button type="button" class="eina" data-eina="{{ accio }}" title="{{ titol }}{% if tecla %} ({{ tecla }}){% endif %}" aria-label="{{ titol }}">
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ cami | safe }}</svg>
+  {% if text %}<span class="text-[12px]">{{ text }}</span>{% endif %}
+</button>
+{% endmacro %}
+
+{% macro camp_num(prop, etiqueta, pas="0.5", minim="", maxim="") %}
+<label><span class="etiqueta">{{ etiqueta }}</span><input data-prop="{{ prop }}" type="number" step="{{ pas }}" {% if minim %}min="{{ minim }}"{% endif %} {% if maxim %}max="{{ maxim }}"{% endif %} class="camp py-1.5 font-mono text-[13px]"></label>
+{% endmacro %}
+
+{% block accions %}
+<span id="estat" role="status" data-tipus="ok"
+      class="group inline-flex items-center gap-2 rounded-full border border-paper-300 bg-white px-3 py-1 text-[13px] text-ink-500">
+  <span class="h-2 w-2 rounded-full bg-emerald-500 group-data-[tipus=treballant]:animate-pulse group-data-[tipus=treballant]:bg-amber-500 group-data-[tipus=error]:bg-vermello-500"></span>
+  <span id="text-estat">Tot desat</span>
+</span>
+{% endblock %}
+
+{% block contingut %}
+{# ================================================================ Llista #}
+<aside id="panell-llista" data-panell
+       class="flex min-h-0 w-full flex-col overflow-y-auto border-r border-paper-300 bg-paper-100 max-lg:hidden max-lg:data-[visible=true]:flex">
+  <div class="px-2 pt-3">
+    <button type="button" data-obre="llibre" class="item-llista w-full">
+      <svg class="h-4 w-4 shrink-0 text-ink-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3h5v10H2zM9 3h5v10H9z"/></svg>
+      <span class="flex-1 text-left">Tot el llibret</span><span id="total-pagines" class="font-mono text-[11px] text-ink-400"></span>
+    </button>
+  </div>
+  <h2 class="titol-seccio-llista">Pàgines del llibret</h2>
+  <div class="flex flex-col gap-0.5 px-2">
+    {% for nom, text in [("portada", "Portada"), ("index", "Índex"), ("acords", "Pàgina d'acords"), ("contraportada", "Contraportada")] %}
+    <button type="button" data-obre="especial:{{ nom }}" class="item-llista">
+      <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-300"></span><span class="flex-1 text-left">{{ text }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <div class="flex items-center justify-between px-4 pt-5">
+    <h2 class="titol-seccio-llista p-0">Cançons i pàgines <span id="compte-cancons" class="ml-1 font-mono normal-case tracking-normal text-ink-300"></span></h2>
+  </div>
+  <ol id="llista-ev" class="llista-ev flex flex-col gap-0.5 px-2 pt-1"></ol>
+  <div class="grid grid-cols-3 gap-1.5 px-3 pb-2 pt-2">
+    <button type="button" id="nova-canco" class="btn btn-primari btn-petit px-1" title="Cançó nova">+ Cançó</button>
+    <button type="button" id="nova-pagina" class="btn btn-petit px-1" title="Pàgina lliure: dedicatòria, il·lustració…">+ Pàgina</button>
+    <button type="button" id="obre-importa" class="btn btn-petit px-1" title="Enganxa una cançó amb acords o afegeix-ne de la biblioteca">Importa</button>
+  </div>
+
+  <div class="flex items-center justify-between px-4 pt-4">
+    <h2 class="titol-seccio-llista p-0">Pàgines mestres</h2>
+    <button type="button" id="nova-mestra" class="btn btn-fantasma btn-icona h-6 min-h-0 w-6" title="Nova pàgina mestra" aria-label="Nova pàgina mestra">+</button>
+  </div>
+  <ul id="llista-mestres" class="flex flex-col gap-0.5 px-2 pb-4 pt-1"></ul>
+</aside>
+
+{# ================================================================ Llenç #}
+<section id="panell-llenc" data-panell data-visible="true"
+         class="relative flex min-h-0 w-full min-w-0 flex-col bg-taula max-lg:hidden max-lg:data-[visible=true]:flex">
+  {# Barra d'eines general #}
+  <div id="barra-llenc" class="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-paper-300 bg-paper-50 px-3 py-1.5" role="toolbar" aria-label="Eines">
+    {{ eina("desfes", "Desfés", '<path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-1"/>', "⌘Z") }}
+    {{ eina("refes", "Refés", '<path d="m13 5 4 4-4 4M17 9H8a4 4 0 0 0 0 8h1"/>', "⇧⌘Z") }}
+    <span class="separador"></span>
+    <span class="hidden px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400 xl:inline">Afegeix</span>
+    {{ eina("nou-lletra", "Marc de lletra amb acords", '<rect x="3" y="3" width="14" height="14" rx="1"/><path d="M6 8h8M6 11h8M6 14h5"/><path d="M6 5.5h1.5" stroke="#c4321f" stroke-width="2"/>', "", "Lletra") }}
+    {{ eina("nou-text", "Text", '<path d="M4 5h12M10 5v11M8 16h4"/>', "", "Text") }}
+    {{ eina("nou-imatge", "Imatge", '<rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8.5" r="1.5"/><path d="m3 14 4-4 3 3 2-2 5 5"/>', "", "Imatge") }}
+    {{ eina("nou-forma", "Rectangle", '<rect x="3.5" y="5" width="13" height="10" rx="1"/>') }}
+    {{ eina("nou-elipse", "El·lipse", '<ellipse cx="10" cy="10" rx="7" ry="5.5"/>') }}
+    {{ eina("nou-numero", "Número de pàgina", '<path d="M6 4 4.5 16M11.5 4 10 16M3.5 8h11M3 12h11"/>') }}
+    {{ eina("importa-text", "Importa text amb acords (de webs de tabs) al marc de lletra", '<path d="M7 4H5v13h10V4h-2M7 3h6v3H7z"/><path d="M8 10h4M8 13h4"/>', "", "Importa text") }}
+    <span class="separador"></span>
+    <span class="hidden px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400 xl:inline">Pàgina</span>
+    {{ eina("pagina-nova", "Afegeix una pàgina a la cançó", '<path d="M5 3h7l3 3v11H5z"/><path d="M10 9v5M7.5 11.5h5"/>') }}
+    {{ eina("pagina-duplica", "Duplica la pàgina", '<rect x="6" y="6" width="10" height="11" rx="1"/><path d="M4 13V3h8"/>') }}
+    {{ eina("pagina-esquerra", "Mou la pàgina enrere", '<path d="m12 5-5 5 5 5"/>') }}
+    {{ eina("pagina-dreta", "Mou la pàgina endavant", '<path d="m8 5 5 5-5 5"/>') }}
+    {{ eina("pagina-esborra", "Esborra la pàgina", '<path d="M4 6h12M8 6V4h4v2M6 6l.8 11h6.4L14 6"/>') }}
+    <div class="zoom ml-auto" role="group" aria-label="Zoom">
+      <button type="button" data-zoom="-1" aria-label="Allunya" title="Allunya (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 8h9"/></svg></button>
+      <span data-zoom-valor aria-live="polite">100 %</span>
+      <button type="button" data-zoom="1" aria-label="Apropa" title="Apropa (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
+      <button type="button" data-zoom="ajusta" title="Ajusta a la finestra">Ajusta</button>
+    </div>
+  </div>
+
+  {# Barra de format de la lletra: només mentre s'edita un marc de lletra #}
+  <div id="barra-text" class="hidden flex-wrap items-center gap-x-1 gap-y-1 border-b border-vermello-200 bg-vermello-50 px-3 py-1.5" role="toolbar" aria-label="Format de la lletra">
+    <span class="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-vermello-700">Lletra</span>
+    <button type="button" class="eina eina-text" data-format="acord" title="Afegeix un acord a sobre de la paraula seleccionada o on hi ha el cursor (⌘K, o escriu [G])">
+      <span class="font-mono text-[12px] font-bold text-vermello-600">G</span><span class="text-[12px]">Acord</span>
+    </button>
+    {{ eina("tonica", "Síl·laba tònica", '<path d="M6 4v6a4 4 0 0 0 8 0V4M4 17h12" stroke-width="1.8"/>', "⌘U") | replace('data-eina', 'data-format') }}
+    {{ eina("bold", "Negreta", '<path d="M6 4h5a3 3 0 0 1 0 6H6zm0 6h6a3 3 0 0 1 0 6H6z" stroke-width="1.9"/>', "⌘B") | replace('data-eina', 'data-format') }}
+    {{ eina("italic", "Cursiva", '<path d="M12 4H8m4 12H8m3-12-2 12"/>', "⌘I") | replace('data-eina', 'data-format') }}
+    {{ eina("cor", "Veus del cor", '<circle cx="7" cy="7" r="2.5"/><circle cx="13" cy="7" r="2.5"/><path d="M3 16a4 4 0 0 1 8 0m-2 0a4 4 0 0 1 8 0"/>', "⇧⌘K") | replace('data-eina', 'data-format') }}
+    <span class="separador"></span>
+    {{ eina("seccio", "Secció (Intro, Chorus…)", '<path d="M4 5h12M4 10h7M4 15h9"/><path d="M14 10h3" stroke-width="2.4"/>', "⌥⌘1") | replace('data-eina', 'data-format') }}
+    {{ eina("nota", "Nota (x2, només veus…)", '<path d="M5 3h7l3 3v11H5z"/><path d="M8 9h4M8 12h4"/>', "⌥⌘2") | replace('data-eina', 'data-format') }}
+    {{ eina("imatge", "Imatge dins la lletra (amb el text al voltant)", '<rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8.5" r="1.5"/><path d="m3 14 4-4 3 3 2-2 5 5"/>') | replace('data-eina', 'data-format') }}
+    {{ eina("enganxa", "Importa text amb acords (de webs de tabs)", '<path d="M7 4H5v13h10V4h-2M7 3h6v3H7z"/><path d="M8 10h4M8 13h4"/>') | replace('data-eina', 'data-format') }}
+    <span class="separador"></span>
+    <button type="button" class="eina eina-text" data-format="talla" title="Mou la lletra que hi ha després del cursor a la pàgina següent">
+      <svg class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="5" cy="6" r="2.2"/><circle cx="5" cy="14" r="2.2"/><path d="m7 7 10 7M7 13l10-7"/></svg>
+      <span class="text-[12px]">Talla aquí</span>
+    </button>
+    <span class="separador"></span>
+    <div class="flex items-center gap-1.5" title="Mida de la lletra de tot el marc">
+      <span class="text-[12px] font-medium text-vermello-700">Mida</span>
+      <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
+        <button type="button" data-mida-marc="-0.5" class="w-7 rounded-l-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més petita">−</button>
+        <input id="mida-marc" type="number" step="0.5" min="5" max="40" class="w-14 border-x border-paper-300 bg-transparent text-center font-mono text-[12px] font-semibold tabular-nums outline-none" aria-label="Mida de la lletra (pt)">
+        <button type="button" data-mida-marc="0.5" class="w-7 rounded-r-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més gran">+</button>
+      </div>
+      <span class="text-[11px] text-ink-500">pt</span>
+      <label class="ml-1 flex items-center gap-1.5 text-[12px] text-ink-700" title="Si no hi cap, la lletra es fa més petita automàticament">
+        <input type="checkbox" id="ajusta-marc" class="h-3.5 w-3.5 accent-vermello-500"> Ajusta</label>
+      <span id="mida-efectiva" class="text-[11px] text-ink-500"></span>
+    </div>
+    <button type="button" class="eina eina-text ml-auto" data-format="surt" title="Acaba d'editar (Esc)"><span class="text-[12px]">Fet</span></button>
+  </div>
+
+  <div id="avis-llenc" class="mx-4 mt-3 hidden items-start gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-[13px] text-sky-950">
+    <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v6H4z"/></svg>
+    <div class="min-w-0 flex-1">
+      <p id="text-avis-llenc" class="leading-snug"></p>
+      <div id="accions-avis-llenc" class="mt-2 flex flex-wrap gap-2"></div>
+    </div>
+  </div>
+
+  <div id="llenc" class="mode-editor relative min-h-0 flex-1 overflow-auto overscroll-contain" tabindex="-1"></div>
+
+  {# Historial de versions (calaix lateral sobre el llenç) #}
+  <div id="historial" class="absolute inset-0 z-30 hidden bg-ink-900/20">
+    <div class="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col border-l border-paper-300 bg-paper-50 shadow-full">
+      <div class="flex items-center justify-between gap-2 border-b border-paper-300 px-5 py-3">
+        <h2 class="font-display text-xl font-medium">Versions</h2>
+        <button type="button" class="btn btn-fantasma btn-icona" data-tanca-historial aria-label="Tanca">
+          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg>
+        </button>
+      </div>
+      <form id="form-versio" class="flex gap-2 border-b border-paper-300 px-5 py-3">
+        <input id="nota-versio" class="camp py-1.5 text-[14px]" placeholder="Nota (opcional): «Versió de la trobada»" maxlength="200">
+        <button class="btn btn-primari btn-petit shrink-0">Desa versió</button>
+      </form>
+      <ol id="llista-versions" class="flex min-h-0 flex-1 flex-col overflow-y-auto"></ol>
+      <div id="previsualitzacio-versio" class="hidden max-h-[55%] overflow-auto border-t border-paper-300 bg-taula px-5 py-4"></div>
+    </div>
+  </div>
+</section>
+
+{# ================================================================ Propietats #}
+<aside id="panell-props" data-panell
+       class="flex min-h-0 w-full flex-col border-l border-paper-300 bg-paper-50 max-lg:hidden max-lg:data-[visible=true]:flex">
+  <nav class="flex border-b border-paper-300" role="tablist">
+    {% for clau, text in [("propietats", "Disseny"), ("capes", "Capes"), ("canco", "Cançó"), ("estils", "Estils"), ("biblioteca", "Elements")] %}
+    <button type="button" role="tab" data-pestanya="{{ clau }}" aria-selected="{{ 'true' if loop.first else 'false' }}"
+            class="flex-1 border-b-2 border-transparent px-0.5 py-2.5 text-[12.5px] font-medium text-ink-500 transition hover:text-ink-900 aria-selected:border-vermello-500 aria-selected:text-ink-900">{{ text }}</button>
+    {% endfor %}
+  </nav>
+
+  <div class="min-h-0 flex-1 overflow-y-auto">
+    {# ---------- Disseny: element seleccionat o pàgina #}
+    <section data-panell-pestanya="propietats" class="flex flex-col">
+      <div id="props-pagina" class="flex flex-col gap-4 p-4">
+        <h3 class="font-display text-lg font-medium" id="titol-props-pagina">Pàgina</h3>
+        <label id="camp-mestra"><span class="etiqueta">Pàgina mestra</span><select id="mestra-pagina" class="camp py-1.5 text-[14px]"></select></label>
+        <label class="flex items-center justify-between gap-3 text-[14px]">Color de fons <input type="color" id="fons-pagina" class="h-8 w-12 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
+        <button type="button" id="desa-pagina-biblioteca" class="btn btn-petit">Desa els elements de la pàgina a la biblioteca</button>
+        <div id="ajuda-mestra" class="hidden rounded-md bg-paper-200/60 p-3 text-[13px] leading-snug text-ink-700">
+          <label class="mb-2 block"><span class="etiqueta">Nom de la mestra</span><input id="nom-mestra" class="camp py-1.5 text-[14px]"></label>
+          El que posis aquí surt a totes les pàgines que fan servir aquesta mestra: a l'esquerra, les parells; a la dreta, les senars.
+          <button type="button" id="esborra-mestra" class="btn btn-perill btn-petit -ml-2 mt-2">Esborra aquesta mestra</button>
+        </div>
+        <p class="text-[13px] leading-snug text-ink-500">Doble clic en un marc de lletra o en un text per escriure-hi. Als textos pots fer servir
+          <code class="font-mono text-ink-900">{titol}</code> <code class="font-mono text-ink-900">{autor}</code> <code class="font-mono text-ink-900">{acords}</code>
+          <code class="font-mono text-ink-900">{pagina}</code> <code class="font-mono text-ink-900">{subtitol}</code> <code class="font-mono text-ink-900">{any}</code>.</p>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-t border-paper-300 pt-3 text-[12px] text-ink-500">
+          <dt class="font-mono text-ink-700">←↑→↓</dt><dd>mou 0,5 mm (⇧ 5 mm)</dd>
+          <dt class="font-mono text-ink-700">⌥ arrossega</dt><dd>sense guies</dd>
+          <dt class="font-mono text-ink-700">⇧ nansa</dt><dd>manté la proporció</dd>
+          <dt class="font-mono text-ink-700">⌘C ⌘V ⌘D</dt><dd>copia, enganxa, duplica</dd>
+          <dt class="font-mono text-ink-700">⇧ clic</dt><dd>afegeix a la selecció</dd>
+          <dt class="font-mono text-ink-700">arrossega</dt><dd>en una zona buida, selecciona</dd>
+          <dt class="font-mono text-ink-700">⌘A</dt><dd>selecciona tota la pàgina</dd>
+          <dt class="font-mono text-ink-700">⌘G ⇧⌘G</dt><dd>agrupa, desagrupa</dd>
+          <dt class="font-mono text-ink-700">Supr</dt><dd>esborra l'element</dd>
+        </dl>
+      </div>
+
+      {# Diversos elements seleccionats o un grup #}
+      <div id="props-multi" class="hidden flex-col gap-4 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <h3 id="titol-multi" class="font-display text-lg font-medium">Selecció</h3>
+          <div class="flex gap-0.5">
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="bloqueja" title="Bloqueja o desbloqueja"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v6.5H4z"/></svg></button>
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="davant" title="Porta al davant"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5h8v8H5z" fill="currentColor" fill-opacity=".15"/><path d="M3 11V3h8"/></svg></button>
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="darrere" title="Envia al fons"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3h8v8H3z"/><path d="M5 13h8V5" stroke-dasharray="2 1.5"/></svg></button>
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="duplica" title="Duplica (⌘D)"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="8" height="8" rx="1"/><path d="M3 10V3h7"/></svg></button>
+            <button type="button" class="btn btn-perill btn-icona" data-accio="esborra" title="Esborra (Supr)"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button>
+          </div>
+        </div>
+        <p id="info-multi" class="text-[13px] leading-snug text-ink-500"></p>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" class="btn btn-primari btn-petit" data-accio="agrupa" title="⌘G">Agrupa</button>
+          <button type="button" class="btn btn-petit" data-accio="desagrupa" title="⇧⌘G">Desagrupa</button>
+        </div>
+        <div>
+          <span class="etiqueta">Alinea</span>
+          <div class="grid grid-cols-6 gap-1">
+            {% for clau, titol, cami in [
+              ("esquerra", "A l'esquerra", "M3 2v12M5 5h8M5 10h5"), ("centre", "Al centre", "M8 2v12M4 5h8M5.5 10h5"), ("dreta", "A la dreta", "M13 2v12M3 5h8M6 10h5"),
+              ("dalt", "A dalt", "M2 3h12M5 5v8M10 5v5"), ("mig", "Al mig", "M2 8h12M5 4v8M10 5.5v5"), ("baix", "A baix", "M2 13h12M5 3v8M10 6v5")] %}
+            <button type="button" class="btn btn-icona h-8 w-full" data-alinea-multi="{{ clau }}" title="{{ titol }}" aria-label="{{ titol }}"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="{{ cami }}"/></svg></button>
+            {% endfor %}
+          </div>
+        </div>
+        <p class="text-[12px] leading-snug text-ink-500">Arrossega per moure-ho tot junt. Les nanses de les cantonades ho escalen tot, també la mida de la lletra. Doble clic en un element del grup per tocar-lo sol.</p>
+        <button type="button" id="desa-multi-biblioteca" class="btn btn-fantasma btn-petit">Desa la selecció a la biblioteca</button>
+      </div>
+
+      <div id="props-element" class="hidden flex-col gap-4 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <h3 id="titol-props" class="font-display text-lg font-medium">Element</h3>
+          <div class="flex gap-0.5">
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="bloqueja" title="Bloqueja: no es podrà seleccionar clicant al llenç (es desbloqueja a Capes)" aria-pressed="false"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v6.5H4z"/></svg></button>
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="davant" title="Porta al davant"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5h8v8H5z" fill="currentColor" fill-opacity=".15"/><path d="M3 11V3h8"/></svg></button>
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="darrere" title="Envia al fons"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3h8v8H3z"/><path d="M5 13h8V5" stroke-dasharray="2 1.5"/></svg></button>
+            <button type="button" class="btn btn-fantasma btn-icona" data-accio="duplica" title="Duplica (⌘D)"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="8" height="8" rx="1"/><path d="M3 10V3h7"/></svg></button>
+            <button type="button" class="btn btn-perill btn-icona" data-accio="esborra" title="Esborra (Supr)"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg></button>
+          </div>
+        </div>
+
+        <div id="nota-grup" class="hidden items-center justify-between gap-2 rounded-md bg-sky-50 px-3 py-2 text-[13px] text-sky-950">
+          <span>Forma part d'un grup.</span>
+          <button type="button" id="selecciona-grup" class="btn btn-petit">Selecciona el grup</button>
+        </div>
+
+        <div data-per="lletra" class="flex flex-col gap-3">
+          <p id="info-marc" class="rounded-md bg-paper-200/60 px-3 py-2 text-[13px] leading-snug text-ink-700"></p>
+          <button type="button" id="edita-lletra" class="btn btn-primari btn-petit">Edita la lletra</button>
+          <label class="flex items-center justify-between gap-3 text-[14px]">Ajusta la mida perquè hi càpiga
+            <span class="interruptor"><input class="peer sr-only" type="checkbox" data-prop="ajusta"><span></span></span></label>
+          <div class="grid grid-cols-2 gap-3">
+            {{ camp_num("columnes", "Columnes", "1", "1", "4") }}
+            {{ camp_num("separacio", "Separació (mm)", "0.5", "0", "40") }}
+          </div>
+        </div>
+
+        <div data-per="text" class="flex flex-col gap-3">
+          <label><span class="etiqueta">Text</span><textarea data-prop="text" rows="3" class="camp text-[14px]"></textarea></label>
+          <div class="flex flex-wrap gap-1">
+            {% for v in ["titol", "autor", "acords", "pagina", "subtitol", "any", "contraportada"] %}<button type="button" class="xip hover:bg-paper-300" data-variable="{{ v }}">{ {{- v -}} }</button>{% endfor %}
+          </div>
+        </div>
+
+        <div data-per="text numero index lletra" class="flex flex-col gap-3">
+          <label><span class="etiqueta">Estil</span><select data-prop="estil" class="camp py-1.5 text-[14px]"></select></label>
+          <details class="group rounded-md border border-paper-300 bg-white">
+            <summary class="flex items-center justify-between px-3 py-2 text-[13px] font-medium">Canvia només aquest element
+              <svg class="h-3.5 w-3.5 text-ink-400 transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 6 4 4 4-4"/></svg></summary>
+            <div class="grid grid-cols-2 gap-3 border-t border-paper-200 p-3">
+              <div class="col-span-2"><span class="etiqueta">Tipografia</span>
+                <button type="button" id="font-element" class="selector-font" data-selector-font="element"><span class="nom-font">(de l'estil)</span><svg class="h-3.5 w-3.5 shrink-0 text-ink-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 6 4 4 4-4"/></svg></button></div>
+              <label><span class="etiqueta">Mida (pt)</span><input data-format-prop="mida" type="number" step="0.5" min="3" class="camp py-1.5 text-[13px]" placeholder="estil"></label>
+              <label><span class="etiqueta">Gruix</span><select data-format-prop="pes" class="camp py-1.5 text-[14px]"><option value="">(estil)</option><option>300</option><option>400</option><option>500</option><option>600</option><option>700</option><option>800</option></select></label>
+              <label><span class="etiqueta">Interlineat</span><input data-format-prop="interlineat" type="number" step="0.05" class="camp py-1.5 text-[13px]" placeholder="estil"></label>
+              <label><span class="etiqueta">Espaiat</span><input data-format-prop="espaiat" type="number" step="0.01" class="camp py-1.5 text-[13px]" placeholder="estil"></label>
+              <label class="flex items-center gap-2 text-[13px]"><input data-format-prop="cursiva" type="checkbox" class="h-4 w-4 accent-vermello-500"> Cursiva</label>
+              <label class="flex items-center justify-between gap-2 text-[13px]">Color <input data-format-prop="color" type="color" class="h-7 w-10 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
+              <button type="button" id="treu-format" class="btn btn-fantasma btn-petit col-span-2">Torna a l'estil</button>
+            </div>
+          </details>
+          <div class="segmentat w-full" role="group" aria-label="Alineació" data-per="text numero index">
+            {% for v, t in [("left", "Esquerra"), ("center", "Centre"), ("right", "Dreta"), ("justify", "Justificat")] %}
+            <button type="button" class="flex-1" data-alinea="{{ v }}">{{ t }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div data-per="imatge" class="flex flex-col gap-3">
+          <div class="segmentat w-full" role="group" aria-label="Ajust">
+            <button type="button" class="flex-1" data-ajust="cover">Omple</button>
+            <button type="button" class="flex-1" data-ajust="contain">Sencera</button>
+          </div>
+          {{ camp_num("radi", "Cantonades (mm)", "0.5", "0") }}
+          <button type="button" id="canvia-imatge" class="btn btn-petit">Canvia la imatge…</button>
+        </div>
+
+        <div data-per="forma" class="grid grid-cols-2 gap-3">
+          <label class="flex items-center justify-between gap-2 text-[14px]">Fons <input data-prop="fons" type="color" class="h-8 w-10 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
+          <label class="flex items-center justify-between gap-2 text-[14px]">Vora <input data-prop="vora" type="color" class="h-8 w-10 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
+          {{ camp_num("gruix", "Gruix vora (mm)", "0.25", "0") }}
+          {{ camp_num("radi", "Cantonades (mm)", "0.5", "0") }}
+        </div>
+
+        <fieldset class="grid grid-cols-2 gap-3 border-t border-paper-300 pt-4">
+          <legend class="sr-only">Posició i mida</legend>
+          {{ camp_num("x", "X (mm)") }}
+          {{ camp_num("y", "Y (mm)") }}
+          {{ camp_num("w", "Amplada (mm)", "0.5", "1") }}
+          {{ camp_num("h", "Alçada (mm)", "0.5", "1") }}
+          <div><span class="etiqueta">Rotació (°)</span>
+            <div class="flex gap-1">
+              <input data-prop="rotacio" type="number" step="1" class="camp min-w-0 py-1.5 font-mono text-[13px]">
+              <button type="button" class="btn btn-icona shrink-0" data-gira="-90" title="Gira 90° a l'esquerra"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a5 5 0 1 1 1.5 4.5M3 3v4h4"/></svg></button>
+              <button type="button" class="btn btn-icona shrink-0" data-gira="90" title="Gira 90° a la dreta"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 7a5 5 0 1 0-1.5 4.5M13 3v4H9"/></svg></button>
+            </div></div>
+          <label><span class="etiqueta">Opacitat</span><input data-prop="opacitat" type="range" min="0" max="1" step="0.05" class="mt-3 w-full accent-vermello-500"></label>
+        </fieldset>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" class="btn btn-petit" data-centra="x">Centra en horitzontal</button>
+          <button type="button" class="btn btn-petit" data-centra="y">Centra en vertical</button>
+        </div>
+        <button type="button" id="desa-element-biblioteca" class="btn btn-fantasma btn-petit">Desa l'element a la biblioteca</button>
+      </div>
+    </section>
+
+    {# ---------- Capes #}
+    <section data-panell-pestanya="capes" class="hidden flex-col">
+      <p class="px-4 pt-4 text-[13px] leading-snug text-ink-500">Tots els elements, del de davant al del fons. Passa-hi el ratolí per veure on són i clica per seleccionar-los, encara que siguin a sota d'un altre. El cadenat evita que es puguin seleccionar clicant al llenç. Amb <kbd class="font-mono">⌥</kbd> + clic al llenç selecciones l'element de sota.</p>
+      <div id="llista-capes" class="flex flex-col gap-4 p-4"></div>
+    </section>
+
+    {# ---------- Cançó #}
+    <section data-panell-pestanya="canco" class="hidden flex-col gap-4 p-4">
+      <div id="sense-canco" class="hidden text-[13px] text-ink-500">Selecciona una cançó o una pàgina lliure a la llista.</div>
+      <div id="dades-canco" class="flex flex-col gap-4">
+        <label><span class="etiqueta">Títol</span><input id="titol-ev" class="camp font-display text-lg"></label>
+        <label><span class="etiqueta">Autor</span><input id="autor-ev" class="camp"></label>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[13px] font-semibold text-ink-700" title="S'aplica en aquest cançoner, sense canviar la cançó">Transport</span>
+          <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
+            <button type="button" data-transport="-1" class="w-8 rounded-l-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Baixa un semitò">−</button>
+            <output id="valor-transport" class="flex w-10 items-center justify-center border-x border-paper-300 font-mono text-[13px] font-semibold tabular-nums">0</output>
+            <button type="button" data-transport="1" class="w-8 rounded-r-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Puja un semitò">+</button>
+          </div>
+        </div>
+        <button type="button" id="aplica-transport" class="btn btn-petit" disabled>Aplica el transport a la cançó</button>
+        <label class="flex items-center justify-between gap-3 text-[14px]">Surt al PDF
+          <span class="interruptor"><input class="peer sr-only" type="checkbox" id="inclosa-ev"><span></span></span></label>
+        <label class="flex items-center justify-between gap-3 text-[14px]">Comença sempre a l'esquerra
+          <span class="interruptor"><input class="peer sr-only" type="checkbox" id="inici-ev"><span></span></span></label>
+        <p class="-mt-2 text-[12px] leading-snug text-ink-500">Desactiva-ho per posar-la just després de l'anterior (per exemple, dues cançons curtes a la mateixa doble pàgina).</p>
+        <button type="button" id="obre-historial" class="btn btn-petit">
+          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5M8 5v3l2 1.5"/></svg>
+          Versions i historial <span id="etiqueta-versio" class="font-mono text-[11px] text-ink-400"></span>
+        </button>
+        <button type="button" id="treu-canco" class="btn btn-perill btn-petit">Treu del cançoner</button>
+      </div>
+    </section>
+
+    {# ---------- Estils #}
+    <section data-panell-pestanya="estils" class="hidden flex-col">
+      <p class="px-4 pt-4 text-[13px] leading-snug text-ink-500">Els estils s'apliquen a tot el cançoner. Canvia'n un i s'actualitzen totes les pàgines.</p>
+      <ul id="llista-estils" class="flex flex-col gap-2 p-4"></ul>
+    </section>
+
+    {# ---------- Biblioteca d'elements #}
+    <section data-panell-pestanya="biblioteca" class="hidden flex-col gap-3 p-4">
+      <p class="text-[13px] leading-snug text-ink-500">Elements desats per reutilitzar-los en qualsevol pàgina o cançoner. Clica'n un per afegir-lo a la pàgina.</p>
+      <ul id="llista-elements" class="grid grid-cols-2 gap-3"></ul>
+    </section>
+  </div>
+</aside>
+
+{# ================================================================ Diàlegs #}
+<input type="file" id="fitxer-imatge" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" class="hidden">
+
+{# Selector de tipografies #}
+<div id="popover-fonts" class="fixed z-50 hidden w-80 flex-col overflow-hidden rounded-lg border border-paper-300 bg-white shadow-full" role="dialog" aria-label="Tipografia">
+  <div class="border-b border-paper-200 p-2"><input id="cerca-fonts" type="search" class="camp py-1.5 text-[14px]" placeholder="Cerca una tipografia…" autocomplete="off"></div>
+  <ul id="llista-fonts" class="max-h-[22rem] overflow-y-auto py-1"></ul>
+  <button type="button" id="obre-importa-font" class="flex items-center gap-2 border-t border-paper-200 px-3 py-2.5 text-left text-[13px] font-medium text-vermello-700 hover:bg-vermello-50">
+    <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3v10M3 8h10"/></svg> Importa una tipografia (TTF, OTF, WOFF…)</button>
+</div>
+
+<dialog id="dialeg-font" class="w-[min(30rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
+  <form id="form-font" class="flex flex-col">
+    <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
+      <h2 class="font-display text-xl font-medium">Importa una tipografia</h2>
+      <button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
+    </div>
+    <div class="flex flex-col gap-3 px-5 py-4">
+      <label><span class="etiqueta">Fitxers</span><input id="fitxers-font" type="file" multiple required accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" class="camp py-1.5 text-[13px]"></label>
+      <label><span class="etiqueta">Nom de la família</span><input id="nom-font" class="camp" required placeholder="p. ex. La meva lletra"></label>
+      <p class="text-[12px] leading-snug text-ink-500">Si tens diversos fitxers de la mateixa família (normal, negreta, cursiva…), selecciona'ls tots: el gruix i l'estil es dedueixen del nom de cada fitxer (Bold, Light, Italic…). Assegura't que tens llicència per fer-la servir.</p>
+      <p id="error-font" class="avis hidden"></p>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-paper-300 px-5 py-3">
+      <button type="button" class="btn btn-fantasma" data-tanca-dialeg>Cancel·la</button>
+      <button class="btn btn-primari">Importa</button>
+    </div>
+  </form>
+</dialog>
+
+{# Bombolla sobre el text seleccionat mentre s'edita la lletra #}
+<div id="bombolla" class="fixed z-40 hidden items-center gap-0.5 rounded-lg border border-paper-300 bg-white p-1 shadow-full" role="toolbar" aria-label="Text seleccionat">
+  <button type="button" data-bombolla="acord" class="eina eina-text h-7 border-0 shadow-none" title="Posa un acord a sobre (⌘K)">
+    <span class="font-mono text-[12px] font-bold text-vermello-600">G</span><span class="text-[12px]">Acord</span>
+  </button>
+  <span class="separador"></span>
+  <button type="button" data-bombolla="tonica" class="eina h-7" title="Síl·laba tònica (⌘U)" aria-label="Síl·laba tònica"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4v6a4 4 0 0 0 8 0V4M4 17h12"/></svg></button>
+  <button type="button" data-bombolla="bold" class="eina h-7" title="Negreta (⌘B)" aria-label="Negreta"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 4h5a3 3 0 0 1 0 6H6zm0 6h6a3 3 0 0 1 0 6H6z"/></svg></button>
+  <span class="separador"></span>
+  <label class="sr-only" for="mida-seleccio">Mida del text seleccionat</label>
+  <select id="mida-seleccio" class="h-7 rounded-md border border-paper-300 bg-white px-1.5 text-[12px]" title="Mida del text seleccionat">
+    <option value="0.8">Petita</option><option value="1">Normal</option><option value="1.25">Gran</option><option value="1.5">Molt gran</option><option value="2">Enorme</option>
+  </select>
+</div>
+
+<div id="popover-acord" class="fixed z-50 hidden w-72 rounded-lg border border-paper-300 bg-white p-3 shadow-full" role="dialog" aria-label="Acord">
+  <form id="form-acord" class="flex gap-2">
+    <input id="nom-acord" class="camp py-1.5 font-mono text-[15px] font-semibold" placeholder="G, Am7, D/F#…" autocomplete="off" spellcheck="false">
+    <button class="btn btn-primari btn-petit shrink-0">D'acord</button>
+  </form>
+  <p id="error-acord" class="mt-1.5 hidden text-[12px] text-vermello-600">No és un acord vàlid.</p>
+  <div id="suggeriments-acord" class="mt-2.5 flex flex-wrap gap-1"></div>
+  <button type="button" id="elimina-acord" class="btn btn-perill btn-petit -mb-1 -ml-2 mt-2 hidden">Elimina l'acord</button>
+</div>
+
+<dialog id="dialeg-importa" class="w-[min(44rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
+  <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
+    <h2 class="font-display text-xl font-medium">Importa una cançó</h2>
+    <button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
+  </div>
+  <nav class="flex gap-5 border-b border-paper-300 px-5" role="tablist">
+    <button type="button" role="tab" data-pestanya-importa="text" aria-selected="true" class="-mb-px border-b-2 border-transparent py-2.5 text-[14px] font-medium text-ink-500 aria-selected:border-vermello-500 aria-selected:text-ink-900">Enganxa una cançó</button>
+    <button type="button" role="tab" data-pestanya-importa="biblioteca" aria-selected="false" class="-mb-px border-b-2 border-transparent py-2.5 text-[14px] font-medium text-ink-500 aria-selected:border-vermello-500 aria-selected:text-ink-900">De la biblioteca</button>
+  </nav>
+
+  <form id="importa-text" data-panell-importa="text" class="flex flex-col gap-3 px-5 py-4">
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label><span class="etiqueta">Títol</span><input id="importa-titol" class="camp" placeholder="Títol de la cançó" required></label>
+      <label><span class="etiqueta">Autor</span><input id="importa-autor" class="camp" placeholder="Opcional"></label>
+    </div>
+    <label><span class="etiqueta">Lletra amb acords</span>
+      <textarea id="importa-cos" rows="14" wrap="off" spellcheck="false" required class="camp font-mono text-[13px] leading-snug"
+                placeholder="[Verse 1]&#10;G           D/F#      Em&#10;Primera línia de la lletra..."></textarea></label>
+    <p class="text-[12px] leading-snug text-ink-500">Enganxa-la tal com surt a les webs de tabs: els acords en una línia a sobre de la lletra, alineats amb espais. Els acords queden ancorats a la síl·laba i, si és llarga, es reparteix en dues pàgines.</p>
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn btn-fantasma" data-tanca-dialeg>Cancel·la</button>
+      <button class="btn btn-primari">Crea la cançó</button>
+    </div>
+  </form>
+
+  <div data-panell-importa="biblioteca" class="hidden">
+    <div class="px-5 pt-4">
+      <input id="cerca-biblioteca" type="search" class="camp" placeholder="Cerca per títol o autor…" autocomplete="off">
+      <p class="mt-2 text-[12px] text-ink-500">S'importen fixades a la seva última versió, amb el seu disseny de pàgines.</p>
+    </div>
+    <ul id="resultats-biblioteca" class="mt-3 max-h-[50vh] overflow-y-auto border-y border-paper-300"></ul>
+    <div class="flex items-center justify-between gap-3 px-5 py-3">
+      <span id="compte-seleccio" class="text-[13px] text-ink-500"></span>
+      <button type="button" id="confirma-importa" class="btn btn-primari" disabled>Importa</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dialeg-text" class="w-[min(44rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
+  <form method="dialog" id="form-text">
+    <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
+      <h2 class="font-display text-xl font-medium">Importa text amb acords</h2>
+      <button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
+    </div>
+    <div class="px-5 py-4">
+      <p class="mb-2 text-[13px] text-ink-500">Enganxa la cançó tal com surt a les webs de tabs: els acords en una línia a sobre de la lletra.</p>
+      <textarea id="text-importa" rows="14" wrap="off" spellcheck="false" class="camp font-mono text-[13px] leading-snug"
+                placeholder="[Verse 1]&#10;G           D/F#      Em&#10;Primera línia de la lletra..."></textarea>
+      <label class="mt-3 flex items-center gap-2 text-[14px]"><input type="checkbox" id="substitueix-text" class="h-4 w-4 accent-vermello-500"> Substitueix tot el que hi ha al marc (si no, s'afegeix al final o on hi ha el cursor)</label>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-paper-300 px-5 py-3">
+      <button type="button" class="btn btn-fantasma" data-tanca-dialeg>Cancel·la</button>
+      <button class="btn btn-primari" value="importa">Converteix i insereix</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<nav class="grid shrink-0 grid-cols-3 border-t border-paper-300 bg-paper-50 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Panells de l'editor">
+  {% for id, text in [("panell-llista", "Llista"), ("panell-llenc", "Pàgines"), ("panell-props", "Propietats")] %}
+  <button type="button" data-mostra="{{ id }}" class="flex h-14 flex-col items-center justify-center gap-0.5 text-xs font-medium text-ink-400 aria-[current=true]:text-vermello-600"
+          {% if id == "panell-llenc" %}aria-current="true"{% endif %}>{{ text }}</button>
+  {% endfor %}
+</nav>
+
+<link rel="stylesheet" href="{{ url_for('fonts_css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<script id="dades-editor" type="application/json">{{ {
+  "actual": actual,
+  "fonts": tipografies_navegador(),
+  "especial": especial,
+  "urls": {
+    "canconer": url_for('api_canconer', id_canconer=c.id),
+    "pla": url_for('api_pla', id_canconer=c.id),
+    "disseny": url_for('api_disseny', id_canconer=c.id),
+    "ordre": url_for('canconer_ordre', id_canconer=c.id),
+    "nova": url_for('api_canco_nova', id_canconer=c.id),
+    "importa": url_for('api_importa', id_canconer=c.id),
+    "entrada": "/api/canconer/" ~ c.id ~ "/entrada/",
+    "canco": "/api/canco/",
+    "versio": "/api/versio/",
+    "biblioteca": url_for('api_biblioteca'),
+    "elements": url_for('api_elements'),
+    "converteix": url_for('api_converteix'),
+    "transporta": url_for('api_transporta'),
+    "imatges": url_for('api_imatge_nova'),
+    "imatge": "/imatges/",
+    "fonts": url_for('api_fonts'),
+    "fontsCss": url_for('fonts_css'),
+  },
+} | tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='editor.js') }}"></script>
+{% endblock %}

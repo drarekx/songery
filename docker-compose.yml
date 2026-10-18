@@ -1,0 +1,12 @@
+# Gotenberg: converteix en PDF la pàgina d'impressió amb Chromium (el mateix motor que l'editor).
+#   docker compose up -d
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: canconer-gotenberg
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    extra_hosts:
+      # Perquè Gotenberg pugui obrir l'aplicació que corre a l'ordinador (també a Linux).
+      - "host.docker.internal:host-gateway"

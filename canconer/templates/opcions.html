@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block titol %}{{ c.titol }} · Opcions{% endblock %}
+
+{% macro seccio(titol, descripcio) %}
+<div class="grid gap-x-10 gap-y-4 border-t border-paper-300 py-8 first:border-t-0 first:pt-0 md:grid-cols-[14rem_minmax(0,1fr)]">
+  <div>
+    <h2 class="font-display text-xl font-medium">{{ titol }}</h2>
+    <p class="mt-1 text-[13px] leading-snug text-ink-500">{{ descripcio }}</p>
+  </div>
+  <div class="flex flex-col gap-5">{{ caller() }}</div>
+</div>
+{% endmacro %}
+
+{% block contingut %}
+<div class="flex flex-col gap-8">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-3xl font-medium tracking-tight sm:text-4xl">Opcions</h1>
+      <p class="mt-1 text-ink-500">Dades del cançoner i aspecte de les cançons al llibret.</p>
+    </div>
+    {% if desat %}
+    <p data-efimer class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[13px] font-medium text-emerald-800 ring-1 ring-emerald-200 transition-opacity duration-700">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>
+      Canvis desats
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_19rem]">
+    <form method="post" class="targeta p-6 sm:p-8">
+      {% call seccio("Dades", "Es fan servir a la portada ({titol}, {subtitol}, {any}) i a l'índex.") %}
+        <div>
+          <label class="etiqueta" for="titol">Títol</label>
+          <input id="titol" name="titol" value="{{ c.titol }}" class="camp font-display text-lg" required>
+        </div>
+        <div class="grid gap-5 sm:grid-cols-[minmax(0,1fr)_8rem]">
+          <div>
+            <label class="etiqueta" for="subtitol">Subtítol</label>
+            <input id="subtitol" name="subtitol" value="{{ c.subtitol }}" class="camp" placeholder="Grup o trobada">
+          </div>
+          <div>
+            <label class="etiqueta" for="any">Any</label>
+            <input id="any" name="any" value="{{ c.any }}" class="camp font-mono" inputmode="numeric" maxlength="12">
+          </div>
+        </div>
+      {% endcall %}
+
+      {% call seccio("Contraportada", "Text per a l'última pàgina ({contraportada} al disseny): dedicatòria, agraïments, contacte…") %}
+        <div>
+          <label class="etiqueta" for="contraportada">Text</label>
+          <textarea id="contraportada" name="contraportada" rows="4" class="camp">{{ c.contraportada }}</textarea>
+        </div>
+      {% endcall %}
+
+      {% call seccio("Acords", "Pàgina amb els diagrames de tots els acords del cançoner.") %}
+        <p class="rounded-md bg-paper-200/60 px-4 py-3 text-[13px] leading-snug text-ink-700">La tipografia, les mides i els colors es canvien als <strong>Estils</strong> de l'editor, i el disseny de cada pàgina directament a l'editor.</p>
+        <div class="rounded-md border border-paper-300 bg-white">
+          <div class="flex items-center justify-between gap-4 px-4 py-3">
+            <div>
+              <p class="text-[14px] font-semibold">Pàgina de diagrames d'acords</p>
+              <p class="text-[13px] text-ink-500">Els diagrames de tots els acords de les cançons que surten al PDF.</p>
+            </div>
+            <label class="interruptor"><input class="peer sr-only" type="checkbox" name="pagina_acords" {% if c.pagina_acords %}checked{% endif %} aria-label="Pàgina de diagrames d'acords"><span></span></label>
+          </div>
+          <div class="grid gap-4 border-t border-paper-200 px-4 py-3 sm:grid-cols-2">
+            <fieldset>
+              <legend class="etiqueta">On va</legend>
+              <div class="segmentat w-full">
+                {% for valor, text in [("inici", "Al principi"), ("final", "Al final")] %}
+                <label class="flex-1"><input type="radio" name="posicio_acords" value="{{ valor }}" class="peer sr-only" {% if c.posicio_acords == valor %}checked{% endif %}>
+                  <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-vermello-500/40">{{ text }}</span></label>
+                {% endfor %}
+              </div>
+              <p class="ajuda-camp">Al principi, després de l'índex. Al final, just abans de la contraportada.</p>
+            </fieldset>
+            <fieldset>
+              <legend class="etiqueta">Instrument</legend>
+              <div class="segmentat w-full">
+                {% for valor, text in [("guitarra", "Guitarra"), ("ukulele", "Ukulele")] %}
+                <label class="flex-1"><input type="radio" name="instrument" value="{{ valor }}" class="peer sr-only" {% if c.instrument == valor %}checked{% endif %}>
+                  <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-vermello-500/40">{{ text }}</span></label>
+                {% endfor %}
+              </div>
+              <p class="ajuda-camp">Ukulele amb afinació estàndard (Sol · Do · Mi · La).</p>
+            </fieldset>
+          </div>
+        </div>
+      {% endcall %}
+
+      <div class="sticky bottom-0 -mx-6 -mb-6 flex justify-end gap-2 rounded-b-lg border-t border-paper-300 bg-paper-50/95 px-6 py-4 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8">
+        <a href="{{ url_for('canconer', id_canconer=c.id) }}" class="btn btn-fantasma">Torna a l'editor</a>
+        <button class="btn btn-primari">Desa els canvis</button>
+      </div>
+    </form>
+
+    <aside class="flex flex-col gap-6 lg:sticky lg:top-24">
+      <div class="flex flex-col gap-3">
+        <h2 class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">Portada i contraportada</h2>
+        <a href="{{ url_for('canconer', id_canconer=c.id, especial='portada') }}" class="btn">Dissenya la portada a l'editor →</a>
+      </div>
+
+      <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
+            data-confirma="Segur que vols esborrar tot el cançoner «{{ c.titol }}»? No es pot desfer."
+            class="rounded-lg border border-vermello-200 bg-vermello-50/50 p-4">
+        <h2 class="text-[14px] font-semibold text-vermello-700">Esborrar el cançoner</h2>
+        <p class="mt-1 text-[13px] text-ink-500">S'esborren totes les cançons. No es pot desfer.</p>
+        <button class="btn btn-perill btn-petit -ml-2.5 mt-2">Esborra el cançoner</button>
+      </form>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+

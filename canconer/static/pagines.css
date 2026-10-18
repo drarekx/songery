@@ -1,0 +1,54 @@
+/* Estils de les pàgines del llibret. Els fan servir l'editor i la pàgina d'impressió (Gotenberg),
+   perquè el resultat sigui idèntic. Mides en mil·límetres sobre un A5.
+   Les tipografies (@font-face) es carreguen de /fonts.css. */
+
+.pagina {
+  position: relative;
+  width: 148mm;
+  height: 210mm;
+  overflow: hidden;
+  background: #fff;
+  color: #1b1a17;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  text-rendering: geometricPrecision;
+  font-kerning: normal;
+}
+.pagina * { box-sizing: border-box; }
+.capa-mestra, .capa-elements { position: absolute; inset: 0; }
+.el { position: absolute; margin: 0; transform-origin: center; }
+.el-text { white-space: pre-wrap; overflow-wrap: break-word; }
+.el-imatge { display: block; }
+
+/* Marc de lletra (Tiptap): l'acord queda a sobre de la síl·laba que el segueix */
+.marc-lletra { overflow: hidden; column-fill: auto; }
+.marc-lletra .ProseMirror { outline: none; white-space: pre-wrap; word-wrap: break-word; }
+.marc-lletra .ProseMirror::after { content: ""; display: block; clear: both; }
+.marc-lletra .linia { margin: 0; min-height: 1.25em; break-inside: avoid; }
+.marc-lletra .linia.amb-acords { padding-top: 1.05em; }
+.marc-lletra .seccio { margin: 0.45em 0 0.1em; break-after: avoid; }
+.marc-lletra .seccio:first-child { margin-top: 0; }
+.marc-lletra .nota { margin: 0; }
+.marc-lletra .acord { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: baseline; }
+.marc-lletra .acord-nom { position: absolute; left: 0; bottom: 100%; white-space: nowrap; line-height: 1.1; }
+.marc-lletra .linia.nomes-acords { display: flex; flex-wrap: wrap; column-gap: 1.1em; padding-top: 0; }
+.marc-lletra .linia.nomes-acords .acord { position: static; width: auto; height: auto; }
+.marc-lletra .linia.nomes-acords .acord-nom { position: static; }
+.marc-lletra .tonica { text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.14em; }
+.marc-lletra .cor { font-style: italic; opacity: 0.75; }
+.marc-lletra .imatge-ed { margin: 0.2em 0 0.4em; max-width: 100%; }
+.marc-lletra .imatge-ed[data-posicio="esquerra"] { float: left; margin-right: 4mm; }
+.marc-lletra .imatge-ed[data-posicio="dreta"] { float: right; margin-left: 4mm; }
+.marc-lletra .imatge-ed[data-posicio="centre"] { display: block; margin-left: auto; margin-right: auto; clear: both; }
+.marc-lletra .imatge-ed img { display: block; width: 100%; height: auto; }
+.marc-lletra .eines-imatge { display: none; }
+.marc-lletra p.is-empty::before { content: none; }
+
+/* Índex i diagrames */
+.el-index { overflow: hidden; }
+.fila-index { display: flex; align-items: baseline; gap: 1.5mm; }
+.titol-index { flex: none; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.punts-index { flex: 1; border-bottom: 0.25mm dotted currentColor; opacity: 0.45; transform: translateY(-0.6mm); }
+.pagina-index { flex: none; font-variant-numeric: tabular-nums; }
+.el-diagrames { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3mm 2mm; overflow: hidden; }
+.el-diagrames svg { width: 22.5mm; height: auto; }

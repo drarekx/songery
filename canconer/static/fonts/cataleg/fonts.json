@@ -1,0 +1,1081 @@
+[
+ {
+  "clau": "playfair-display",
+  "nom": "Playfair Display",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "playfair-display-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "playfair-display-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "lora",
+  "nom": "Lora",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "lora-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "lora-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "merriweather",
+  "nom": "Merriweather",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "merriweather-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "merriweather-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "eb-garamond",
+  "nom": "EB Garamond",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "eb-garamond-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "eb-garamond-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "cormorant-garamond",
+  "nom": "Cormorant Garamond",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "cormorant-garamond-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "cormorant-garamond-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "libre-baskerville",
+  "nom": "Libre Baskerville",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "libre-baskerville-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "libre-baskerville-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "crimson-pro",
+  "nom": "Crimson Pro",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "crimson-pro-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "crimson-pro-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "pt-serif",
+  "nom": "PT Serif",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "pt-serif-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "pt-serif-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "pt-serif-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "pt-serif-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "source-serif-4",
+  "nom": "Source Serif 4",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "source-serif-4-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "source-serif-4-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "noto-serif",
+  "nom": "Noto Serif",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "noto-serif-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "noto-serif-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "spectral",
+  "nom": "Spectral",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "spectral-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "spectral-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "spectral-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "spectral-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "alegreya",
+  "nom": "Alegreya",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "alegreya-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "alegreya-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "bitter",
+  "nom": "Bitter",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "bitter-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "bitter-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "roboto-slab",
+  "nom": "Roboto Slab",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "roboto-slab-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "zilla-slab",
+  "nom": "Zilla Slab",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "zilla-slab-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "zilla-slab-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "zilla-slab-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "zilla-slab-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "arvo",
+  "nom": "Arvo",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "arvo-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "arvo-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "arvo-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "arvo-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "dm-serif-display",
+  "nom": "DM Serif Display",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "dm-serif-display-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "dm-serif-display-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "fraunces",
+  "nom": "Fraunces",
+  "categoria": "serif",
+  "cares": [
+   {
+    "fitxer": "fraunces-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "fraunces-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "roboto",
+  "nom": "Roboto",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "roboto-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "roboto-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "open-sans",
+  "nom": "Open Sans",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "open-sans-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "open-sans-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "lato",
+  "nom": "Lato",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "lato-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "lato-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "lato-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "lato-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "montserrat",
+  "nom": "Montserrat",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "montserrat-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "montserrat-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "raleway",
+  "nom": "Raleway",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "raleway-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "raleway-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "poppins",
+  "nom": "Poppins",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "poppins-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "poppins-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "poppins-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "poppins-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "nunito",
+  "nom": "Nunito",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "nunito-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "nunito-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "work-sans",
+  "nom": "Work Sans",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "work-sans-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "work-sans-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "rubik",
+  "nom": "Rubik",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "rubik-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "rubik-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "inter",
+  "nom": "Inter",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "inter-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "inter-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "dm-sans",
+  "nom": "DM Sans",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "dm-sans-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "dm-sans-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "fira-sans",
+  "nom": "Fira Sans",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "fira-sans-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "fira-sans-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "fira-sans-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "fira-sans-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "karla",
+  "nom": "Karla",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "karla-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "karla-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "mulish",
+  "nom": "Mulish",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "mulish-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "mulish-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "barlow",
+  "nom": "Barlow",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "barlow-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "barlow-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "barlow-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "barlow-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "source-sans-3",
+  "nom": "Source Sans 3",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "source-sans-3-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "source-sans-3-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "pt-sans",
+  "nom": "PT Sans",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "pt-sans-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "pt-sans-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "pt-sans-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "pt-sans-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "cabin",
+  "nom": "Cabin",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "cabin-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "cabin-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "josefin-sans",
+  "nom": "Josefin Sans",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "josefin-sans-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "josefin-sans-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "quicksand",
+  "nom": "Quicksand",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "quicksand-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "oswald",
+  "nom": "Oswald",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "oswald-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "archivo",
+  "nom": "Archivo",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "archivo-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "archivo-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "comfortaa",
+  "nom": "Comfortaa",
+  "categoria": "sans",
+  "cares": [
+   {
+    "fitxer": "comfortaa-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "bebas-neue",
+  "nom": "Bebas Neue",
+  "categoria": "display",
+  "cares": [
+   {
+    "fitxer": "bebas-neue-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "abril-fatface",
+  "nom": "Abril Fatface",
+  "categoria": "display",
+  "cares": [
+   {
+    "fitxer": "abril-fatface-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "righteous",
+  "nom": "Righteous",
+  "categoria": "display",
+  "cares": [
+   {
+    "fitxer": "righteous-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "lobster",
+  "nom": "Lobster",
+  "categoria": "display",
+  "cares": [
+   {
+    "fitxer": "lobster-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "alfa-slab-one",
+  "nom": "Alfa Slab One",
+  "categoria": "display",
+  "cares": [
+   {
+    "fitxer": "alfa-slab-one-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "special-elite",
+  "nom": "Special Elite",
+  "categoria": "display",
+  "cares": [
+   {
+    "fitxer": "special-elite-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "pacifico",
+  "nom": "Pacifico",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "pacifico-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "dancing-script",
+  "nom": "Dancing Script",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "dancing-script-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "caveat",
+  "nom": "Caveat",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "caveat-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "great-vibes",
+  "nom": "Great Vibes",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "great-vibes-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "satisfy",
+  "nom": "Satisfy",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "satisfy-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "amatic-sc",
+  "nom": "Amatic SC",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "amatic-sc-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "amatic-sc-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "indie-flower",
+  "nom": "Indie Flower",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "indie-flower-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "permanent-marker",
+  "nom": "Permanent Marker",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "permanent-marker-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "shadows-into-light",
+  "nom": "Shadows Into Light",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "shadows-into-light-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "patrick-hand",
+  "nom": "Patrick Hand",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "patrick-hand-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "kalam",
+  "nom": "Kalam",
+  "categoria": "manuscrita",
+  "cares": [
+   {
+    "fitxer": "kalam-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "kalam-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   }
+  ]
+ },
+ {
+  "clau": "roboto-mono",
+  "nom": "Roboto Mono",
+  "categoria": "mono",
+  "cares": [
+   {
+    "fitxer": "roboto-mono-100-900-normal.woff2",
+    "pes": "100 900",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "roboto-mono-100-900-italic.woff2",
+    "pes": "100 900",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "space-mono",
+  "nom": "Space Mono",
+  "categoria": "mono",
+  "cares": [
+   {
+    "fitxer": "space-mono-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "space-mono-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "space-mono-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "space-mono-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "courier-prime",
+  "nom": "Courier Prime",
+  "categoria": "mono",
+  "cares": [
+   {
+    "fitxer": "courier-prime-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "courier-prime-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "courier-prime-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "courier-prime-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ },
+ {
+  "clau": "ibm-plex-mono",
+  "nom": "IBM Plex Mono",
+  "categoria": "mono",
+  "cares": [
+   {
+    "fitxer": "ibm-plex-mono-400-normal.woff2",
+    "pes": "400",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "ibm-plex-mono-400-italic.woff2",
+    "pes": "400",
+    "estil": "italic"
+   },
+   {
+    "fitxer": "ibm-plex-mono-700-normal.woff2",
+    "pes": "700",
+    "estil": "normal"
+   },
+   {
+    "fitxer": "ibm-plex-mono-700-italic.woff2",
+    "pes": "700",
+    "estil": "italic"
+   }
+  ]
+ }
+]

@@ -1,0 +1,203 @@
+/* Font d'estils de Tailwind. Es compila a static/app.css amb: ./eines/css.sh */
+
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("fonts/newsreader-latin-opsz-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("fonts/newsreader-latin-opsz-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Hanken Grotesk";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/hanken-grotesk-latin-wght-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2");
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  ::selection { @apply bg-vermello-100 text-ink-900; }
+  :focus-visible { @apply outline-none ring-2 ring-vermello-500/60 ring-offset-1 ring-offset-paper-50; }
+  summary { @apply cursor-pointer select-none; }
+  summary::-webkit-details-marker { display: none; }
+}
+
+@layer components {
+  /* Botons */
+  .btn {
+    @apply inline-flex min-h-[2.5rem] items-center justify-center gap-2 rounded-md border border-paper-300 bg-paper-50
+      px-3.5 text-sm font-medium text-ink-900 shadow-suau transition
+      hover:border-ink-300 hover:bg-white active:translate-y-px disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-primari { @apply border-vermello-600 bg-vermello-500 text-white hover:border-vermello-700 hover:bg-vermello-600; }
+  .btn-fantasma { @apply border-transparent bg-transparent shadow-none hover:border-transparent hover:bg-paper-200; }
+  .btn-perill { @apply border-transparent bg-transparent text-vermello-600 shadow-none hover:border-vermello-200 hover:bg-vermello-50; }
+  .btn-petit { @apply min-h-[2rem] px-2.5 text-[13px]; }
+  .btn-icona { @apply min-h-[2rem] w-8 px-0; }
+
+  /* Camps de formulari */
+  .etiqueta { @apply mb-1.5 block text-[13px] font-semibold text-ink-700; }
+  .camp {
+    @apply block w-full rounded-md border border-paper-300 bg-white px-3 py-2 text-[15px] text-ink-900 shadow-suau
+      transition placeholder:text-ink-300 hover:border-ink-300 focus:border-vermello-500 focus:outline-none
+      focus:ring-2 focus:ring-vermello-500/20;
+  }
+  .ajuda-camp { @apply mt-1.5 text-[13px] leading-snug text-ink-500; }
+
+  /* Interruptor (checkbox) */
+  .interruptor { @apply relative inline-flex h-6 w-10 shrink-0 cursor-pointer; }
+  .interruptor span {
+    @apply absolute inset-0 rounded-full bg-paper-300 transition
+      after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition;
+  }
+  .interruptor input:checked + span { @apply bg-vermello-500 after:translate-x-4; }
+  .interruptor input:focus-visible + span { @apply ring-2 ring-vermello-500/40; }
+
+  /* Superfícies */
+  .targeta { @apply rounded-lg border border-paper-300 bg-paper-50 shadow-suau; }
+  .xip { @apply inline-flex items-center gap-1 rounded-full bg-paper-200 px-2 py-0.5 text-xs font-medium text-ink-700; }
+  .xip-acord { @apply rounded bg-vermello-50 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-vermello-700; }
+  .avis { @apply flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-900; }
+
+  /* Selector segmentat */
+  .segmentat { @apply inline-flex rounded-md border border-paper-300 bg-paper-200 p-0.5; }
+  .segmentat button { @apply rounded-[5px] px-3 py-1 text-[13px] font-medium text-ink-500 transition hover:text-ink-900; }
+  .segmentat button[aria-pressed="true"] { @apply bg-white text-ink-900 shadow-suau; }
+
+  /* Pestanyes de la capçalera */
+  .pestanya {
+    @apply relative inline-flex h-full items-center whitespace-nowrap px-1 text-sm font-medium text-ink-500 transition hover:text-ink-900;
+  }
+  .pestanya[aria-current="page"] { @apply text-ink-900 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-vermello-500; }
+
+  /* Visor de PDF: pàgines sobre la taula de llum */
+  /* "safe center": si les pàgines són més amples que la zona (zoom), s'alineen a l'esquerra i es pot fer scroll. */
+  .visor-pagines { @apply flex min-w-full flex-wrap gap-x-10 gap-y-8 px-4 py-6; justify-content: safe center; }
+  .visor-doble, .visor-full { @apply relative m-0 flex flex-col items-center; }
+  .visor-doble .fulls-doble { @apply relative flex; }
+  .visor-doble .pagina-visor { @apply shadow-full; }
+  .visor-full .fulls-doble { @apply relative; }
+  .visor-doble .fulls-doble.amb-plec::after {
+    content: "";
+    @apply pointer-events-none absolute inset-y-0 left-1/2 w-10 -translate-x-1/2;
+    background: linear-gradient(90deg, transparent, rgb(27 26 23 / 0.07) 45%, rgb(27 26 23 / 0.14) 50%, rgb(27 26 23 / 0.07) 55%, transparent);
+  }
+  .visor-full canvas { @apply shadow-full; }
+  .visor-pagines canvas { @apply block bg-white; }
+  .visor-pagines canvas.clicable { @apply cursor-pointer; }
+  .visor-pagines canvas.marcada { @apply relative z-10 outline outline-2 outline-offset-0 outline-vermello-500; }
+  .visor-buit { @apply block; }
+  .pagina-visor { @apply relative block; }
+
+  /* Ordre de les pàgines sobre el PDF: només a la pantalla, amb l'interruptor «Mostra l'ordre» */
+  .capa-ordre { @apply pointer-events-none absolute inset-0 hidden; }
+  .amb-ordre .capa-ordre { @apply flex; }
+  .capa-ordre .casella-ordre { @apply flex flex-1 flex-col items-center justify-center gap-1; }
+  .numero-ordre {
+    @apply flex aspect-square min-w-[3.25rem] items-center justify-center rounded-full bg-vermello-500/85 px-2
+      font-display text-[1.9rem] font-semibold leading-none text-white shadow-full ring-4 ring-white/70;
+  }
+  .text-ordre { @apply rounded bg-white/85 px-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-700; }
+  .ordre-full .casella-ordre + .casella-ordre { border-left: 2px dashed rgb(196 50 31 / 0.55); }
+  .titol-ordre { @apply absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink-900/85 px-3 py-1 text-[12px] font-semibold text-white; }
+  .visor-pagines figcaption { @apply mt-2.5 max-w-full truncate text-center text-xs text-ink-500; }
+  .visor-pagines figcaption strong { @apply font-mono font-semibold text-ink-900; }
+
+  /* Controls de zoom */
+  .zoom { @apply inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau; }
+  .zoom button { @apply flex min-w-[2rem] items-center justify-center px-1.5 text-ink-500 transition hover:bg-paper-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-35; }
+  .zoom button:first-child { @apply rounded-l-md; }
+  .zoom button:last-child { @apply rounded-r-md border-l border-paper-300 px-2.5 text-[12px] font-medium; }
+  .zoom [data-zoom-valor] { @apply flex w-14 items-center justify-center border-x border-paper-300 font-mono text-[12px] tabular-nums text-ink-700; }
+
+  /* Llista de cançons de l'editor */
+  .llista-ev li.arrossegant { @apply z-10 rounded-md bg-white opacity-90 shadow-full; }
+
+  /* Barra d'eines de l'editor de cançons */
+  .eina { @apply inline-flex h-8 min-w-[2rem] items-center justify-center gap-1.5 rounded-md px-1.5 text-ink-500 transition hover:bg-paper-200 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-30; }
+  .eina svg { @apply h-[18px] w-[18px]; }
+  .eina[aria-pressed="true"] { @apply bg-ink-900 text-white hover:bg-ink-700 hover:text-white; }
+  .eina-text { @apply border border-paper-300 bg-white px-2 shadow-suau; }
+  .separador { @apply mx-1 h-5 w-px bg-paper-300; }
+
+  /* Cursor de ProseMirror entre blocs */
+  .ProseMirror-gapcursor { @apply relative block; }
+  .ProseMirror-gapcursor::after { content: ""; @apply absolute -top-px block w-5 border-t border-ink-900; animation: parpelleig 1.1s steps(2, start) infinite; }
+  @keyframes parpelleig { to { visibility: hidden; } }
+
+  /* Dissenyador de portada */
+  .el-disseny.buit { @apply outline-dashed outline-1 outline-ink-300; }
+  .el-disseny:hover { @apply outline outline-1 outline-sky-400; }
+  .nansa-disseny { @apply pointer-events-auto absolute h-2.5 w-2.5 rounded-sm border-2 border-vermello-500 bg-white; }
+  .nansa-nw { @apply -left-[6px] -top-[6px] cursor-nwse-resize; }
+  .nansa-n { @apply -top-[6px] left-1/2 -ml-[5px] cursor-ns-resize; }
+  .nansa-ne { @apply -right-[6px] -top-[6px] cursor-nesw-resize; }
+  .nansa-e { @apply -right-[6px] top-1/2 -mt-[5px] cursor-ew-resize; }
+  .nansa-se { @apply -bottom-[6px] -right-[6px] cursor-nwse-resize; }
+  .nansa-s { @apply -bottom-[6px] left-1/2 -ml-[5px] cursor-ns-resize; }
+  .nansa-sw { @apply -bottom-[6px] -left-[6px] cursor-nesw-resize; }
+  .nansa-w { @apply -left-[6px] top-1/2 -mt-[5px] cursor-ew-resize; }
+
+  /* Editor de pàgines: les pàgines són les reals (pagines.css), escalades; a sobre hi ha la capa de selecció */
+  .contingut-llenc { @apply flex min-w-max flex-col items-center gap-10 px-8 py-8; }
+  .doble-editor { @apply flex items-start; }
+  .pagina-editor { @apply relative shrink-0 overflow-hidden bg-white shadow-full; }
+  .pagina-editor > .pagina { position: absolute; left: 0; top: 0; }
+  .pagina-buida { @apply invisible shrink-0; }
+  .peu-pagina-editor { @apply text-[11px] text-ink-500; }
+  .capa-seleccio { @apply pointer-events-none absolute inset-0; }
+  .marc-seleccio { @apply pointer-events-none absolute border-2 border-vermello-500; }
+  .marc-seleccio.editant { @apply border-dashed border-vermello-500/70; }
+  .marc-seleccio.multiple { @apply border-vermello-500/80; }
+  .contorn-seleccio { @apply pointer-events-none absolute border border-dashed border-vermello-500/70; }
+  .rectangle-seleccio { @apply pointer-events-none absolute border border-sky-500 bg-sky-400/10; }
+  .mode-editor .capa-elements > .el { cursor: move; }
+  .mode-editor .capa-elements > .el:hover { outline: 1px solid rgb(56 189 248 / 0.9); }
+  .mode-editor .marc-lletra.desborda { outline: 2px dashed #c4321f; outline-offset: -1px; }
+  .mode-editor .marc-lletra.editant, .mode-editor .el-text.editant { @apply cursor-text; outline: none; }
+  .mode-editor .marc-lletra.editant .acord-nom { @apply cursor-pointer rounded-sm hover:bg-vermello-100; }
+  .mode-editor .marc-lletra.editant .acord.seleccionat .acord-nom { @apply bg-vermello-500 text-white; }
+  .mode-editor .marc-lletra.editant p.is-empty:first-child::before { content: attr(data-placeholder); @apply pointer-events-none float-left h-0 font-sans text-[12px] italic text-ink-300; }
+  .vista-llibre .pagina-editor.clicable { @apply cursor-pointer transition hover:ring-2 hover:ring-vermello-500/60; }
+  .contingut-llenc.vista-llibre { @apply flex-row flex-wrap items-start justify-center gap-x-8 gap-y-6; min-width: 0; }
+  .vista-llibre .doble-editor { @apply gap-0; }
+  .eines-inactives .eina { @apply pointer-events-none opacity-35; }
+
+  /* Elements bloquejats: els clics hi passen a través (es seleccionen des de Capes) */
+  .mode-editor .capa-elements > .el[data-bloquejat] { pointer-events: none; }
+  .mode-editor .capa-elements > .el.ressaltat { outline: 2px solid rgb(14 165 233) !important; outline-offset: 1px; }
+  .nansa-rotacio { @apply pointer-events-auto absolute -top-7 left-1/2 -ml-[7px] h-3.5 w-3.5 cursor-grab rounded-full border-2 border-vermello-500 bg-white; }
+  .nansa-rotacio::after { content: ""; @apply absolute left-1/2 top-full h-3 w-0.5 -translate-x-1/2 bg-vermello-500; }
+
+  /* Selector de tipografies */
+  .selector-font { @apply flex w-full items-center justify-between gap-2 rounded-md border border-paper-300 bg-white px-3 py-1.5 text-left text-[15px] shadow-suau transition hover:border-ink-300; }
+  .selector-font .nom-font { @apply truncate; }
+
+  /* Llista de capes */
+  .fila-capa { @apply flex items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-[13px] transition hover:border-sky-300 hover:bg-sky-50; }
+  .fila-capa[aria-current="true"] { @apply border-vermello-200 bg-vermello-50; }
+
+  /* Llista del panell esquerre */
+  .item-llista { @apply flex items-center gap-2 rounded-md px-2 py-1.5 text-[13.5px] text-ink-700 transition hover:bg-paper-200/70; }
+  .item-llista[aria-current="true"] { @apply bg-white font-semibold text-ink-900 shadow-suau ring-1 ring-paper-300; }
+  .titol-seccio-llista { @apply px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-[0.14em] text-ink-400; }
+}

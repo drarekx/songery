@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>{{ c.titol }}</title>
+{# Pàgina que Gotenberg converteix en PDF: el llibret sencer dibuixat amb el mateix motor que l'editor. #}
+<link rel="stylesheet" href="{{ url_for('fonts_css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<style>
+  @page { size: 148mm 210mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .pagina { break-after: page; }
+  .pagina:last-child { break-after: auto; }
+</style>
+</head>
+<body>
+<main id="llibret"></main>
+<script id="dades" type="application/json">{{ {"pagines": pla.pagines, "estils": pla.estils, "fonts": tipografies_navegador(), "urlImatge": url_for('imatge', id_imatge='__ID__')} | tojson }}</script>
+<script type="module">
+  import { dibuixaLlibret } from "{{ url_for('static', filename='dist/canconer.js') }}";
+  dibuixaLlibret(document.getElementById("llibret"), JSON.parse(document.getElementById("dades").textContent));
+</script>
+</body>
+</html>

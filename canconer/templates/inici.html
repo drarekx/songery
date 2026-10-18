@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block contingut %}
+<div class="flex flex-col gap-10">
+  <div class="flex flex-col gap-2">
+    <h1 class="font-display text-4xl font-medium tracking-tight sm:text-5xl">Els teus cançoners</h1>
+    <p class="max-w-2xl text-ink-500">Escriu les cançons amb els acords a sobre de la lletra. L'aplicació les maqueta en un llibret A5 i prepara el PDF per imprimir en A4, plegar i cosir.</p>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {# Crear: sempre el primer, perquè és l'acció principal. #}
+    <section class="targeta flex flex-col gap-4 border-dashed bg-transparent p-5 shadow-none">
+      <h2 class="font-display text-xl font-medium">Nou cançoner</h2>
+      <form method="post" action="{{ url_for('canconer_nou') }}" class="flex flex-col gap-3">
+        <label class="sr-only" for="titol-nou">Títol</label>
+        <input id="titol-nou" name="titol" class="camp" placeholder="p. ex. Cançons de la trobada" required>
+        <button class="btn btn-primari">Crea el cançoner</button>
+      </form>
+      <form method="post" action="{{ url_for('canconer_exemple') }}" class="-mt-1">
+        <button class="text-[13px] text-ink-500 underline decoration-paper-300 underline-offset-4 transition hover:text-ink-900 hover:decoration-ink-400">o prova'n un d'exemple amb 4 cançons</button>
+      </form>
+    </section>
+
+    {% for c in canconers %}
+    <a href="{{ url_for('canconer', id_canconer=c.id) }}"
+       class="targeta group relative flex min-h-[11rem] flex-col overflow-hidden p-5 transition hover:-translate-y-0.5 hover:border-ink-300 hover:shadow-full">
+      {# Llom del llibret: detall decoratiu a l'esquerra. #}
+      <span class="absolute inset-y-0 left-0 w-1 bg-vermello-500/80 transition group-hover:w-1.5" aria-hidden="true"></span>
+      <span class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">{{ c.any or "Sense any" }}</span>
+      <h2 class="mt-2 font-display text-2xl font-medium leading-tight tracking-tight">{{ c.titol }}</h2>
+      {% if c.subtitol %}<p class="mt-1 text-ink-500">{{ c.subtitol }}</p>{% endif %}
+      <div class="mt-auto flex items-center justify-between gap-3 pt-5 text-[13px] text-ink-500">
+        <span>{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }}</span>
+        <span class="font-medium text-vermello-600 opacity-0 transition group-hover:opacity-100">Obre →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if not canconers %}
+  <p class="text-ink-500">Encara no hi ha cap cançoner. Crea'n un o prova l'exemple per veure com funciona.</p>
+  {% endif %}
+</div>
+{% endblock %}

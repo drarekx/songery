@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block titol %}{{ c.titol }} · Imprimir{% endblock %}
+{% block classe_main %}mx-auto w-full max-w-7xl px-4 py-8 lg:px-6{% endblock %}
+
+{% macro descarrega(tipus, titol, detall, primari=false) %}
+<a href="{{ url_for('canconer_pdf', id_canconer=c.id, tipus=tipus, v=v, baixa=1) }}"
+   class="group flex items-center gap-4 rounded-lg border px-4 py-3.5 transition hover:-translate-y-px
+          {{ 'border-vermello-600 bg-vermello-500 text-white shadow-full hover:bg-vermello-600' if primari else 'border-paper-300 bg-white shadow-suau hover:border-ink-300' }}">
+  <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md {{ 'bg-white/15' if primari else 'bg-paper-200 text-ink-700' }}">
+    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12"/></svg>
+  </span>
+  <span class="flex min-w-0 flex-col">
+    <span class="font-semibold">{{ titol }}</span>
+    <span class="text-[13px] {{ 'text-white/80' if primari else 'text-ink-500' }}">{{ detall }}</span>
+  </span>
+</a>
+{% endmacro %}
+
+{% macro pas(n, text) %}
+<li class="flex gap-3">
+  <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink-900 font-mono text-[11px] font-semibold text-white">{{ n }}</span>
+  <span class="pt-0.5 leading-snug">{{ text }}</span>
+</li>
+{% endmacro %}
+
+{% block contingut %}
+<div class="grid items-start gap-8 lg:grid-cols-[24rem_minmax(0,1fr)]">
+  <div class="flex flex-col gap-6">
+    <div>
+      <h1 class="font-display text-3xl font-medium tracking-tight sm:text-4xl">Imprimir</h1>
+      <p class="mt-1 text-ink-500">Fulls A4 en horitzontal, a doble cara, per plegar i cosir pel mig.</p>
+    </div>
+
+    <dl class="grid grid-cols-3 divide-x divide-paper-300 rounded-lg border border-paper-300 bg-paper-50">
+      {% for valor, etiqueta in [(pla.total, "pàgines A5"), (pla.fulls, "fulls A4" if pla.fulls != 1 else "full A4"), (pla.cancons | length, "cançons" if pla.cancons | length != 1 else "cançó")] %}
+      <div class="flex flex-col px-4 py-3">
+        <dt class="order-2 text-xs text-ink-500">{{ etiqueta }}</dt>
+        <dd class="font-display text-3xl font-medium tabular-nums">{{ valor }}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+
+    <p id="error-pdf" class="avis hidden"></p>
+
+    <section class="flex flex-col gap-3">
+      {{ descarrega("a4", "PDF A4 per imprimir", "Doble cara, girant per la vora curta", primari=true) }}
+      {{ descarrega("a5", "Llibret A5", "En ordre de lectura, per revisar o compartir") }}
+    </section>
+
+    <details class="group targeta" open>
+      <summary class="flex items-center justify-between gap-2 px-4 py-3 font-semibold">
+        Impressora amb doble cara
+        <svg class="h-4 w-4 text-ink-400 transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+      </summary>
+      <ol class="flex flex-col gap-3 border-t border-paper-300 px-4 py-4 text-[14px]">
+        {{ pas(1, "Imprimeix a mida real (100 %), sense «ajusta a la pàgina».") }}
+        {{ pas(2, "Tria doble cara girant per la vora curta, en horitzontal.") }}
+        {{ pas(3, "Posa els fulls un dins de l'altre tal com surten (el full 1 a fora), doblega'ls pel mig i cus-los pel plec.") }}
+      </ol>
+      <div class="flex flex-col gap-2 border-t border-paper-300 px-4 py-4 text-[14px]">
+        <p class="font-semibold">Les pàgines del darrere surten del revés?</p>
+        <p class="leading-snug text-ink-500">La impressora està girant el full per la vora llarga. Canvia-ho a «vora curta» al diàleg d'impressió (a macOS: «Doble cara · Enquadernació per la vora curta») o, més fàcil, fes servir aquest PDF, que ja porta les cares del darrere girades:</p>
+        {{ descarrega("a4-vora-llarga", "PDF A4 per a doble cara per la vora llarga", "Les cares del darrere van girades 180°") }}
+      </div>
+    </details>
+
+    <details class="group targeta">
+      <summary class="flex items-center justify-between gap-2 px-4 py-3 font-semibold">
+        Impressora sense doble cara
+        <svg class="h-4 w-4 text-ink-400 transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+      </summary>
+      <div class="flex flex-col gap-4 border-t border-paper-300 px-4 py-4 text-[14px]">
+        <div class="flex flex-col gap-2">
+          {{ descarrega("instruccions", "Full d'instruccions", "Imprimeix-lo primer: pas a pas, amb l'ordre de cada full") }}
+          {{ descarrega("davant", "1 · Cares davanteres", "Una per full, " ~ pla.fulls ~ " en total") }}
+          {{ descarrega("darrere", "2 · Cares del darrere", "Mateix ordre que les davanteres") }}
+          {{ descarrega("darrere-invers", "2 · Cares del darrere, ordre invers", "Si la impressora treu l'últim full a sobre") }}
+          {{ descarrega("darrere-girat", "2 · Cares del darrere, girades", "Si a la prova la cara del darrere ha sortit del revés") }}
+        </div>
+        <ol class="flex flex-col gap-3">
+          {{ pas(1, "Prova primer amb un full: marca'n la part de dalt, imprimeix-hi la primera cara i mira per quina cara i vora entra el paper.") }}
+          {{ pas(2, "Imprimeix totes les cares davanteres a mida real (100 %).") }}
+          {{ pas(3, "Agafa la pila sense barrejar-la i gira-la com qui passa la pàgina d'un llibre: el text de dalt ha de continuar a dalt.") }}
+          {{ pas(4, "Torna-la a la safata perquè el full 1 sigui el primer a entrar. Si no vols reordenar la pila a mà, fes servir l'ordre invers.") }}
+          {{ pas(5, "Imprimeix les cares del darrere i comprova que darrere la portada hi ha la pàgina 2.") }}
+        </ol>
+      </div>
+    </details>
+  </div>
+
+  <section class="flex min-w-0 flex-col overflow-hidden rounded-xl border border-paper-300 bg-taula lg:sticky lg:top-20">
+    <div id="barra-visor" class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-paper-300 bg-paper-100/70 px-4 py-2">
+      <div class="segmentat" role="group" aria-label="Tipus de vista">
+        <button type="button" data-mode="fulls" aria-pressed="true">Fulls A4</button>
+        <button type="button" data-mode="dobles" aria-pressed="false">Llibret A5</button>
+      </div>
+      <div class="zoom" role="group" aria-label="Zoom">
+      <button type="button" data-zoom="-1" aria-label="Allunya" title="Allunya (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 8h9"/></svg></button>
+      <span data-zoom-valor aria-live="polite">100 %</span>
+      <button type="button" data-zoom="1" aria-label="Apropa" title="Apropa (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
+      <button type="button" data-zoom="ajusta" title="Ajusta a l'amplada">Ajusta</button>
+    </div>
+      <label class="flex items-center gap-2 text-[13px] font-medium text-ink-700" title="Mostra el número de cada pàgina a sobre (no s'imprimeix)">
+        <span class="interruptor"><input class="peer sr-only" type="checkbox" id="mostra-ordre" checked><span></span></span>
+        Mostra l'ordre
+      </label>
+      <span id="explicacio-mode" class="basis-full text-[13px] text-ink-500 2xl:basis-auto"></span>
+    </div>
+    <div id="desplacament-visor" class="h-[75dvh] overflow-auto overscroll-contain lg:h-[calc(100dvh-10rem)]">
+      <div id="visor"><p class="p-8 text-center text-ink-500">Carregant el PDF…</p></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { Visor, connectaZoom } from "{{ url_for('static', filename='visor.js') }}";
+
+  const urls = {
+    dobles: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a5', v=v) }}",
+    fulls: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a4', v=v) }}",
+  };
+  const explicacions = {
+    dobles: "Com es llegirà el llibret plegat, obert per cada doble pàgina.",
+    fulls: "Ordre d'impressió: cada full té una cara davantera i una del darrere.",
+  };
+  const inicis = {{ pla.cancons | map(attribute="pagina_inici") | list | tojson }};
+  const titols = {{ pla.cancons | map(attribute="titol") | list | tojson }};
+
+  const visor = new Visor(document.getElementById("visor"), {
+    mode: "fulls",
+    desplacament: document.getElementById("desplacament-visor"),
+    titols: (n) => titols[inicis.indexOf(n)] || "",
+  });
+  connectaZoom(visor, document.getElementById("barra-visor"));
+
+  // Números de pàgina sobreposats (només a la pantalla). Es recorda l'elecció.
+  const mostraOrdre = document.getElementById("mostra-ordre");
+  try { mostraOrdre.checked = localStorage.getItem("canconer.mostraOrdre") !== "no"; } catch { /* sense emmagatzematge */ }
+  const aplicaOrdre = () => {
+    document.getElementById("visor").classList.toggle("amb-ordre", mostraOrdre.checked);
+    try { localStorage.setItem("canconer.mostraOrdre", mostraOrdre.checked ? "si" : "no"); } catch { /* sense emmagatzematge */ }
+  };
+  mostraOrdre.addEventListener("change", aplicaOrdre);
+  aplicaOrdre();
+
+  const botons = document.querySelectorAll("[data-mode]");
+  async function mostra(mode) {
+    botons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+    document.getElementById("explicacio-mode").textContent = explicacions[mode];
+    try {
+      await visor.canviaMode(mode, urls[mode]);
+    } catch (e) {
+      // El servidor retorna un 503 amb l'explicació si Gotenberg no està en marxa.
+      const r = await fetch(urls[mode]);
+      const error = document.getElementById("error-pdf");
+      error.textContent = r.ok ? "No s'ha pogut mostrar el PDF." : await r.text();
+      error.classList.remove("hidden");
+      document.getElementById("visor").replaceChildren();
+    }
+  }
+  botons.forEach((b) => b.addEventListener("click", () => mostra(b.dataset.mode)));
+  mostra("fulls");
+</script>
+{% endblock %}

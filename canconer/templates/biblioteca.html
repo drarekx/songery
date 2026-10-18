@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titol %}Biblioteca de cançons{% endblock %}
+{% block contingut %}
+<div class="flex flex-col gap-8">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-4xl font-medium tracking-tight">Biblioteca</h1>
+      <p class="mt-1 max-w-2xl text-ink-500">Totes les cançons, de tots els cançoners. Una mateixa cançó pot ser a diversos cançoners: cadascun tria quina versió fa servir. Per afegir-ne a un cançoner, fes servir «Importa» a l'editor.</p>
+    </div>
+    <form method="get" class="w-full sm:w-72">
+      <label class="sr-only" for="q">Cerca</label>
+      <input id="q" name="q" type="search" value="{{ q }}" class="camp" placeholder="Cerca per títol o autor…">
+    </form>
+  </div>
+
+  {% if cancons %}
+  <div class="targeta overflow-hidden">
+    <table class="w-full text-left text-[14px]">
+      <thead class="border-b border-paper-300 bg-paper-100 text-[12px] uppercase tracking-[0.08em] text-ink-500">
+        <tr><th class="px-4 py-2.5 font-semibold">Cançó</th><th class="hidden px-4 py-2.5 font-semibold md:table-cell">Cançoners</th>
+            <th class="px-4 py-2.5 font-semibold">Versions</th><th class="px-4 py-2.5"><span class="sr-only">Accions</span></th></tr>
+      </thead>
+      <tbody class="divide-y divide-paper-200">
+      {% for s in cancons %}
+        <tr class="hover:bg-paper-100/60">
+          <td class="px-4 py-3">
+            <p class="font-medium">{{ s.titol or "Sense títol" }}</p>
+            {% if s.autor %}<p class="text-[13px] italic text-ink-500">{{ s.autor }}</p>{% endif %}
+          </td>
+          <td class="hidden px-4 py-3 md:table-cell">
+            <div class="flex flex-wrap gap-1">
+            {% for k in s.canconers %}<a href="{{ url_for('canconer', id_canconer=k.id, canco=s.id) }}" class="xip hover:bg-paper-300">{{ k.titol }}</a>{% else %}<span class="text-[13px] text-ink-400">Cap</span>{% endfor %}
+            </div>
+          </td>
+          <td class="px-4 py-3 font-mono text-[13px] text-ink-500">{{ s.ultima or "—" }}</td>
+          <td class="px-4 py-3 text-right">
+            {% if not s.canconers %}
+            <form method="post" action="{{ url_for('biblioteca_esborra', id_canco=s.id) }}" data-confirma="Vols esborrar «{{ s.titol }}» de la biblioteca, amb totes les seves versions? No es pot desfer.">
+              <button class="btn btn-perill btn-petit">Esborra</button>
+            </form>
+            {% else %}
+            <span class="text-[12px] text-ink-400" title="Treu-la primer dels cançoners on surt">en ús</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-ink-500">{% if q %}No hi ha cap cançó que coincideixi amb «{{ q }}».{% else %}Encara no hi ha cap cançó.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}
