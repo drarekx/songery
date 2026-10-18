@@ -88,3 +88,37 @@ describe("PanellLlista", () => {
     expect(store.llista.cancons.find((c) => c.id === "b").titol).toBe("Títol nou");
   });
 });
+
+describe("cerca a la llista de cançons", () => {
+  it("filtra per títol o autor sense accents, i amaga el reordenar mentre es filtra", async () => {
+    const { mount } = await import("@vue/test-utils");
+    const { createPinia, setActivePinia } = await import("pinia");
+    const { useEditorStore } = await import("@/stores/editor.js");
+    const PanellLlista = (await import("@/components/PanellLlista.vue")).default;
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useEditorStore();
+    const ponts = {};
+    store.ponts = new Proxy(ponts, { get: (o, nom) => (o[nom] ??= vi.fn()) });
+    const c = (id, titol, autor) => ({ id, titol, autor, tipus: "canco", inclosa: true, inici: "esquerra", usos: 1, pagines: [4] });
+    store.sincronitza({ llista: { obert: null, total: 20, cancons: [
+      c("a", "El cant dels ocells", "Popular"), c("b", "La Balanguera", "Joan Alcover"), c("c", "Fum, fum, fum", "Popular"),
+      c("d", "Els segadors", "Guanyavents"), c("e", "La Santa Espina", "Guimerà"), c("f", "Plou i fa sol", "Popular"),
+    ] } });
+    const w = mount(PanellLlista, { global: { plugins: [pinia] } });
+    const titols = () => w.findAll("li[data-id]").map((li) => li.attributes("data-id"));
+    expect(titols()).toHaveLength(6);
+    await w.find("#cerca-llista").setValue("guimera");
+    expect(titols()).toEqual(["e"]);
+    expect(w.find(".nansa").exists()).toBe(false);
+    await w.find("#cerca-llista").setValue("POPULAR");
+    expect(titols()).toEqual(["a", "c", "f"]);
+    await w.find("#cerca-llista").trigger("keydown", { key: "Enter" });
+    expect(ponts.obre).toHaveBeenCalledWith({ tipus: "canco", id: "a" });
+    await w.find("#cerca-llista").trigger("keydown", { key: "Escape" });
+    expect(titols()).toHaveLength(6);
+    await w.find("#cerca-llista").setValue("xyz");
+    expect(w.text()).toContain("Cap cançó coincideix");
+    w.unmount();
+  });
+});

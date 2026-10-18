@@ -17,6 +17,21 @@ const cancons = computed(() => {
   if (!ordreProvisional.value) return store.llista.cancons;
   return ordreProvisional.value.map((id) => store.llista.cancons.find((c) => c.id === id)).filter(Boolean);
 });
+// Cerca per títol o autor (sense tenir en compte accents ni majúscules). Mentre es filtra no es pot
+// reordenar arrossegant, perquè l'ordre que es veu no és el de tot el cançoner.
+const filtre = ref("");
+const normalitza = (text) => String(text || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+const filtrant = computed(() => !!filtre.value.trim());
+const visibles = computed(() => {
+  const q = normalitza(filtre.value.trim());
+  return q ? cancons.value.filter((c) => normalitza(`${c.titol} ${c.autor || ""}`).includes(q)) : cancons.value;
+});
+const index = (c) => store.llista.cancons.findIndex((x) => x.id === c.id);
+function teclaCerca(ev) {
+  if (ev.key === "Escape") filtre.value = "";
+  else if (ev.key === "Enter" && visibles.value.length) obre("canco", visibles.value[0].id);
+}
+
 const compte = computed(() => {
   const totes = store.llista.cancons;
   return totes.length ? `${totes.filter((c) => c.inclosa).length}/${totes.length}` : "";
@@ -103,13 +118,20 @@ function deixa() {
     <div class="flex items-center justify-between px-4 pt-5">
       <h2 class="titol-seccio-llista p-0">Cançons i pàgines <span class="ml-1 font-mono normal-case tracking-normal text-ink-300">{{ compte }}</span></h2>
     </div>
+    <div v-if="store.llista.cancons.length > 5" class="px-3 pt-2">
+      <label class="sr-only" for="cerca-llista">Cerca una cançó</label>
+      <input id="cerca-llista" v-model="filtre" type="search" class="camp py-1 text-[13px]" placeholder="Cerca per títol o autor…"
+             autocomplete="off" @keydown="teclaCerca">
+    </div>
+    <p v-if="filtrant && !visibles.length" class="px-4 py-2 text-[12.5px] text-ink-500">Cap cançó coincideix amb «{{ filtre.trim() }}».</p>
     <ol ref="llistaEl" class="llista-ev flex flex-col gap-0.5 px-2 pt-1" @pointermove="arrossega" @pointerup="deixa" @pointercancel="deixa">
-      <li v-for="(c, i) in cancons" :key="c.id" :data-id="c.id" @contextmenu.prevent="menuCanco($event, c, i)"
+      <li v-for="c in visibles" :key="c.id" :data-id="c.id" @contextmenu.prevent="menuCanco($event, c, index(c))"
           class="group relative flex items-center rounded-md transition"
           :class="[actiu(`canco:${c.id}`) ? 'bg-white shadow-suau ring-1 ring-paper-300' : 'hover:bg-paper-200/70', { 'opacity-60': !c.inclosa, arrossegant: arrossegada === c.id }]">
         <span v-if="actiu(`canco:${c.id}`)" class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-500" aria-hidden="true"></span>
-        <span class="nansa flex w-4 shrink-0 cursor-grab touch-none select-none items-center justify-center self-stretch text-ink-300 opacity-0 transition group-hover:opacity-100 max-lg:opacity-100"
+        <span v-if="!filtrant" class="nansa flex w-4 shrink-0 cursor-grab touch-none select-none items-center justify-center self-stretch text-ink-300 opacity-0 transition group-hover:opacity-100 max-lg:opacity-100"
               title="Arrossega per reordenar" aria-hidden="true" @pointerdown="comencaArrossegar($event, c)">⠿</span>
+        <span v-else class="w-2 shrink-0" aria-hidden="true"></span>
         <input type="checkbox" class="h-3.5 w-3.5 shrink-0 cursor-pointer accent-accent-500" title="Surt al PDF" :aria-label="`«${c.titol || 'Sense títol'}» surt al PDF`"
                :checked="c.inclosa" @change="store.crida('canviaEntrada', c.id, { inclosa: $event.target.checked })">
         <button type="button" class="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-2 pr-1 text-left" @click="obre('canco', c.id)">
@@ -125,10 +147,10 @@ function deixa() {
             </span>
           </span>
         </button>
-        <span class="flex shrink-0 flex-col opacity-0 transition focus-within:opacity-100 group-hover:opacity-100 max-lg:opacity-100">
+        <span v-if="!filtrant" class="flex shrink-0 flex-col opacity-0 transition focus-within:opacity-100 group-hover:opacity-100 max-lg:opacity-100">
           <button v-for="[d, cami, titol] in [[-1, 'M4 10l4-4 4 4', 'Mou amunt'], [1, 'M4 6l4 4 4-4', 'Mou avall']]" :key="d" type="button"
                   class="flex h-4 w-5 items-center justify-center rounded text-ink-400 hover:bg-paper-300 hover:text-ink-900 disabled:invisible"
-                  :title="titol" :aria-label="titol" :disabled="(d < 0 && i === 0) || (d > 0 && i === cancons.length - 1)"
+                  :title="titol" :aria-label="titol" :disabled="(d < 0 && index(c) === 0) || (d > 0 && index(c) === cancons.length - 1)"
                   @click="store.crida('mouEntrada', c.id, d)">
             <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path :d="cami"/></svg>
           </button>

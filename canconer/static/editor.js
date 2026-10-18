@@ -2303,7 +2303,7 @@ function pintaLlista() {
       obert: obert?.tipus === "llibre" ? "llibre" : obert ? `${obert.tipus}:${obert.id}` : null,
       total: PLA?.total ?? null,
       cancons: K.cancons.map((c) => ({
-        id: c.id, titol: c.titol, tipus: c.tipus, inclosa: c.inclosa, inici: c.inici, usos: c.usos,
+        id: c.id, titol: c.titol, autor: c.autor, tipus: c.tipus, inclosa: c.inclosa, inici: c.inici, usos: c.usos,
         versio_numero: c.versio_id ? c.versio_numero : null,
         desfasada: !!c.versio_id && (c.versio_numero < c.versio_ultima || c.esborrany_modificat),
         pagines: PLA?.pagines.filter((x) => x.entrada === c.id).map((x) => x.numero) || [],
