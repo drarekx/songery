@@ -36,7 +36,8 @@ rm -rf build "$APP" "$DMG"
 .venv-app/bin/pyinstaller --noconfirm --clean --log-level WARN --distpath dist --workpath build eines/app/canconers.spec
 
 # Fitxers que no calen dins de l'app (fonts de Tailwind i mapes de depuració).
-rm -rf "$APP/Contents/Resources/canconer/static/src" "$APP/Contents/Resources/canconer/static/dist/"*.map
+rm -rf "$APP/Contents/Resources/canconer/static/src"
+find "$APP/Contents/Resources/canconer/static/dist" -name "*.map" -delete
 
 IDENTITAT=${CANCONER_SIGNATURA:-$(security find-identity -v -p codesigning | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"' || true)}
 if [ -n "${IDENTITAT}" ]; then

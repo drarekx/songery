@@ -203,12 +203,27 @@ codi font (`eines/ghostscript/LICENSE` i `CODI_FONT`) i es fa servir sense modif
 ## Desenvolupament
 
 ```bash
-python -m pytest                   # tests (la prova amb Gotenberg s'omet si no està en marxa)
+python -m pytest                   # tests del servidor (la prova amb Gotenberg s'omet si no està en marxa)
 ./eines/css.sh [--watch]           # compila el CSS de Tailwind (sense Node)
-cd frontend && npm install && npm run build   # editor i motor de pàgines (Tiptap + esbuild)
+cd frontend && npm install
+npm run build                      # Vite: motor de pàgines, Tiptap i components Vue → canconer/static/dist/
+npm test                           # Vitest: motor de pàgines i components Vue (Vue Test Utils)
 ```
 
-Els fitxers compilats (`canconer/static/app.css` i `canconer/static/dist/canconer.js`) ja vénen fets.
+Els fitxers compilats (`canconer/static/app.css` i `canconer/static/dist/`) ja vénen fets.
+
+### Frontend: Vue 3 + Pinia
+
+El frontend està passant a **Vue 3** amb **Pinia** per a l'estat, per parts i sense trencar res:
+
+- Les pàgines les continua generant Flask (Jinja); els components Vue es munten on cal amb les
+  funcions `munta…` de `frontend/src/vue.js`.
+- L'estat de l'editor és a l'store `useEditorStore` (`frontend/src/stores/editor.js`). Mentre hi hagi
+  parts de l'editor que encara no són Vue (`canconer/static/editor.js`), aquestes hi escriuen l'estat
+  (`sincronitza`) i hi connecten les accions que encara fan elles (`connecta`).
+- Ja són components Vue: el selector de color (`SelectorColor.vue`), el panell de diagrames d'acords
+  (`PanellAcords.vue`) i el dels vídeos (`PanellVideos.vue`). Cada component té els seus tests a
+  `frontend/tests/`.
 
 ```
 app.py                     punt d'entrada (desenvolupament)
@@ -232,7 +247,9 @@ canconer/
   static/
     pagines.css            estils de les pàgines (compartits per l'editor i la impressió)
     editor.js              editor de pàgines
-    dist/canconer.js       paquet compilat: Tiptap + motor de dibuix de pàgines
-frontend/src/              font del paquet: editor-canco.js (Tiptap) i pagines.js (motor de dibuix)
+    dist/                  compilat amb Vite: canconer.js (Tiptap + motor de dibuix) i vue.js (components)
+frontend/src/              font: editor-canco.js (Tiptap), pagines.js (motor de dibuix), colors.js,
+                           vue.js (muntatge), components/*.vue i stores/ (Pinia)
+frontend/tests/            Vitest (components Vue i motor de dibuix)
 tests/                     pytest
 ```

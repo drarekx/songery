@@ -1,10 +1,12 @@
 {
   "name": "canconer-frontend",
   "private": true,
-  "description": "Editor de cançons (Tiptap) empaquetat amb esbuild per a canconer/static/dist/",
+  "description": "Frontend de Cançoners: Vue 3 + Pinia, motor de dibuix de pàgines i editor de lletres (Tiptap). Es construeix amb Vite a canconer/static/dist/.",
   "scripts": {
-    "build": "esbuild src/index.js --bundle --format=esm --minify --sourcemap --target=es2022 --outfile=../canconer/static/dist/canconer.js",
-    "watch": "npm run build -- --watch"
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tiptap/core": "3.32.0",
@@ -12,9 +14,16 @@
     "@tiptap/extension-italic": "3.32.0",
     "@tiptap/extensions": "3.32.0",
     "@tiptap/pm": "3.32.0",
-    "qrcode-generator": "2.0.4"
+    "pinia": "4.0.3",
+    "qrcode-generator": "2.0.4",
+    "vue": "3.5.43"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
-  }
+    "@vitejs/plugin-vue": "6.0.9",
+    "@vue/test-utils": "2.5.1",
+    "happy-dom": "20.14.5",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
+  },
+  "type": "module"
 }

@@ -10,3 +10,7 @@ frontend/node_modules/
 build/
 dist/
 eines/ghostscript/
+
+# Frontend compilat (Vite): es versiona perquè l'app funcioni sense Node; els mapes no.
+!canconer/static/dist/
+canconer/static/dist/**/*.map

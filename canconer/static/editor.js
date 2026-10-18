@@ -4,7 +4,7 @@ import {
   ALT, AMPLE, FONTS, QR_MINIM, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
   colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
-import { selectorColor } from "./selector-color.js";
+import { TIPUS_ACORD, muntaPanellAcords, muntaPanellVideos, muntaSelectorColor, pinia, useEditorStore } from "./dist/vue.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
 const urls = dades.urls;
@@ -217,6 +217,28 @@ function contextDe(numero) {
   return base;
 }
 
+// ------------------------------------------------------------ Estat compartit amb els components Vue
+
+// Els components Vue (panell d'acords, vídeos…) llegeixen l'estat de l'editor de l'store de Pinia;
+// aquí s'hi escriu cada cop que canvia el que hi ha obert, i s'hi connecten les accions que encara
+// fa aquest fitxer.
+const store = useEditorStore(pinia);
+function sincronitzaStore() {
+  const esCanco = obert?.tipus === "canco" && !!canco;
+  store.sincronitza({
+    editable,
+    canco: esCanco ? { id: canco.id, titol: canco.titol } : null,
+    acords: esCanco ? [...new Set(acordsDePagines(transportaPagines(pagines, transport())).map(baseAcord))] : [],
+    diagrames: { ...DIAGRAMES },
+    videos: esCanco ? copia(videosCanco()) : [],
+    urls: { video: urls.video },
+  });
+  if (esCanco) demanaDiagrames(store.acords);
+}
+store.connecta({ afegeixDiagrama: (nom) => afegeixDiagrama(nom), canviaVideos: (llista) => canviaVideos(llista) });
+muntaPanellAcords("#llista-acords");
+muntaPanellVideos("#videos-canco");
+
 // Diagrames d'acords (SVG) per als elements «diagrama» i «tots els acords»: els genera el servidor,
 // es guarden aquí i, quan n'arriben de nous, es torna a dibuixar.
 const DIAGRAMES = {};
@@ -232,7 +254,7 @@ function demanaDiagrames(acords) {
     .finally(() => {
       demanant = null;
       if (!edicio) pintaLlenc(); // mentre s'escriu no es torna a dibuixar (es veuran en acabar)
-      if (!$("#panell-acords").classList.contains("hidden")) pintaPanellAcords();
+      sincronitzaStore();
     });
 }
 
@@ -1298,37 +1320,7 @@ $("#fitxer-imatge").addEventListener("change", async (ev) => {
 
 // ------------------------------------------------------------ Diagrames d'acords (panell per arrossegar)
 
-const TIPUS_ACORD = "application/x-canconer-acord";
 const MIDA_DIAGRAMA = { w: 18, h: 23.7 }; // proporció dels diagrames (70 × 92)
-
-function pintaPanellAcords() {
-  const llista = $("#llista-acords");
-  if (obert?.tipus !== "canco" || !canco) {
-    return llista.replaceChildren(el("p", { text: "Obre una cançó per veure'n els acords.", classe: "col-span-4 text-[13px] text-ink-500" }));
-  }
-  const acords = [...new Set(acordsDePagines(transportaPagines(pagines, transport())).map(baseAcord))];
-  demanaDiagrames(acords);
-  const fitxa = (nom, contingut, classe) => {
-    const b = el("button", { classe: `fitxa-acord ${classe}`, atributs: { type: "button", draggable: "true", title: nom === "*" ? "Tots els acords de la cançó" : `Acord ${nom}` } });
-    b.append(contingut);
-    b.addEventListener("dragstart", (ev) => {
-      ev.dataTransfer.setData(TIPUS_ACORD, nom);
-      ev.dataTransfer.effectAllowed = "copy";
-    });
-    b.addEventListener("click", () => afegeixDiagrama(nom));
-    b.disabled = !editable;
-    return b;
-  };
-  const tots = el("span", { classe: "flex flex-col items-center gap-0.5" });
-  tots.append(el("span", { text: "Tots els acords", classe: "text-[13px] font-semibold" }),
-    el("span", { text: acords.length ? acords.join(" · ") : "La cançó encara no en té", classe: "max-w-full truncate font-mono text-[11px] text-ink-500" }));
-  llista.replaceChildren(fitxa("*", tots, "col-span-4 py-2"), ...acords.map((a) => {
-    const dibuix = el("span", { classe: "block w-full" });
-    if (DIAGRAMES[a]) dibuix.innerHTML = DIAGRAMES[a];
-    else dibuix.textContent = a;
-    return fitxa(a, dibuix, "");
-  }));
-}
 
 /** Afegeix un diagrama (o, amb «*», tots els de la cançó) a la pàgina, centrat on s'ha deixat anar. */
 function afegeixDiagrama(nom, p = paginaActual(), punt = null) {
@@ -1351,7 +1343,7 @@ EINES.acords = () => {
   const obrir = panell.classList.contains("hidden");
   panell.classList.toggle("hidden", !obrir);
   $('[data-eina="acords"]').setAttribute("aria-pressed", String(obrir));
-  if (obrir) pintaPanellAcords();
+  if (obrir) sincronitzaStore();
 };
 $("[data-tanca-acords]").addEventListener("click", () => EINES.acords());
 
@@ -2250,7 +2242,7 @@ function pintaCanco() {
   $("#aplica-transport").disabled = !n || !editable;
   $("#inclosa-ev").checked = entrada.inclosa;
   $("#inici-ev").checked = entrada.inici !== "qualsevol";
-  pintaVideos();
+  sincronitzaStore();
   $("#etiqueta-versio").textContent = entrada.versio_id ? `v${entrada.versio_numero} fixada` : entrada.versio_ultima ? `${entrada.versio_ultima} versions` : "";
 }
 
@@ -2265,12 +2257,12 @@ function colorsDelDocument() {
   }
   return trobats.filter((c) => c && c !== "#ffffff");
 }
-selectorColor($("#fons-pagina"), { colors: colorsDelDocument });
-selectorColor($('[data-format-prop="color"]'), { colors: colorsDelDocument, buit: "Color de l'estil",
+muntaSelectorColor($("#fons-pagina"), { colors: colorsDelDocument });
+muntaSelectorColor($('[data-format-prop="color"]'), { colors: colorsDelDocument, buit: "Color de l'estil",
   perDefecte: () => (typeof K !== "undefined" && seleccio ? K.estils[elementSel()?.estil]?.color : undefined) });
-selectorColor($('[data-per="qr"] [data-prop="color"]'), { colors: colorsDelDocument });
-selectorColor($('[data-prop="fons"]'), { colors: colorsDelDocument, buit: "Sense fons" });
-selectorColor($('[data-prop="vora"]'), { colors: colorsDelDocument, buit: "Sense vora" });
+muntaSelectorColor($('[data-per="qr"] [data-prop="color"]'), { colors: colorsDelDocument });
+muntaSelectorColor($('[data-prop="fons"]'), { colors: colorsDelDocument, buit: "Sense fons" });
+muntaSelectorColor($('[data-prop="vora"]'), { colors: colorsDelDocument, buit: "Sense vora" });
 
 // Vídeos de YouTube de la cançó (es desen amb el contingut i es versionen amb ella)
 
@@ -2288,7 +2280,6 @@ function canviaVideos(llista) {
   if (!canco || !editable) return;
   canco.contingut = { ...(canco.contingut || {}), videos: llista };
   canviat();
-  pintaVideos();
   pintaLlenc();
 }
 
@@ -2304,79 +2295,6 @@ function omplenaVideosQR(e) {
     ? "Afegeix un vídeo a la pestanya Cançó."
     : `El codi fa ${costat.toFixed(1)} mm. Per escanejar-lo bé, fes-lo de ${QR_MINIM} mm o més.`;
 }
-
-function pintaVideos() {
-  const llista = videosCanco();
-  $("#nou-video").classList.toggle("hidden", !editable);
-  $("#llista-videos").replaceChildren(...llista.map((v, i) => {
-    const li = el("li", { classe: "flex gap-2 rounded-md border border-paper-300 bg-white p-1.5" });
-    const mini = el("button", { classe: "relative h-12 w-20 shrink-0 overflow-hidden rounded bg-ink-900", atributs: { type: "button", title: "Mira el vídeo" } });
-    const img = el("img", { classe: "h-full w-full object-cover", atributs: { src: `https://i.ytimg.com/vi/${v.video}/mqdefault.jpg`, alt: "", loading: "lazy" } });
-    img.addEventListener("error", () => img.remove()); // sense connexió
-    mini.append(img, el("span", { text: "▶", classe: "absolute inset-0 flex items-center justify-center text-white drop-shadow" }));
-    mini.addEventListener("click", () => mostraVideo(v));
-    const cos = el("div", { classe: "flex min-w-0 flex-1 flex-col gap-1" });
-    const titol = el("input", { classe: "camp px-2 py-1 text-[13px]", atributs: { value: v.titol, placeholder: "Títol del vídeo", "aria-label": "Títol del vídeo" } });
-    titol.readOnly = !editable;
-    titol.addEventListener("change", () => canviaVideos(videosCanco().map((x) => (x.id === v.id ? { ...x, titol: titol.value } : x))));
-    const fila = el("div", { classe: "flex items-center gap-1 text-[12px] text-ink-500" });
-    const qr = el("input", { classe: "h-3.5 w-3.5 accent-vermello-500", atributs: { type: "checkbox", title: "Surt a l'índex de vídeos" } });
-    qr.checked = v.inclou_qr;
-    qr.disabled = !editable;
-    qr.addEventListener("change", () => canviaVideos(videosCanco().map((x) => (x.id === v.id ? { ...x, inclou_qr: qr.checked } : x))));
-    const etiqueta = el("label", { classe: "flex flex-1 items-center gap-1" });
-    etiqueta.append(qr, el("span", { text: v.inici ? `A l'índex · des de ${Math.floor(v.inici / 60)}:${String(v.inici % 60).padStart(2, "0")}` : "A l'índex" }));
-    fila.append(etiqueta);
-    if (editable) {
-      for (const [text, desp, titolBoto] of [["↑", -1, "Puja"], ["↓", 1, "Baixa"]]) {
-        const b = el("button", { text, classe: "btn btn-fantasma h-6 min-h-0 w-6 px-0 text-[12px]", atributs: { type: "button", title: titolBoto } });
-        b.disabled = !llista[i + desp];
-        b.addEventListener("click", () => {
-          const nova = [...videosCanco()];
-          [nova[i], nova[i + desp]] = [nova[i + desp], nova[i]];
-          canviaVideos(nova);
-        });
-        fila.append(b);
-      }
-      const treu = el("button", { text: "✕", classe: "btn btn-perill h-6 min-h-0 w-6 px-0 text-[12px]", atributs: { type: "button", title: "Treu el vídeo" } });
-      treu.addEventListener("click", () => {
-        if (confirm(`Vols treure «${v.titol || urlCurta(v)}»? Els QR que hi apunten quedaran buits.`)) canviaVideos(videosCanco().filter((x) => x.id !== v.id));
-      });
-      fila.append(treu);
-    }
-    cos.append(titol, fila);
-    li.append(mini, cos);
-    return li;
-  }));
-}
-
-function mostraVideo(v) {
-  $("#titol-dialeg-video").textContent = v.titol || urlCurta(v);
-  $("#reproductor-video").src = `https://www.youtube-nocookie.com/embed/${v.video}?autoplay=1${v.inici ? `&start=${v.inici}` : ""}`;
-  $("#dialeg-video").showModal();
-}
-$("#dialeg-video").addEventListener("close", () => { $("#reproductor-video").src = "about:blank"; });
-
-$("#nou-video").addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  const error = $("#error-video");
-  error.classList.add("hidden");
-  const boto = ev.target.querySelector("button");
-  boto.disabled = true;
-  try {
-    const r = await fetch(urls.video, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: $("#url-video").value }) });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error || "No s'ha pogut afegir el vídeo.");
-    if (videosCanco().some((x) => x.video === d.video.video && x.inici === d.video.inici)) throw new Error("Aquest vídeo ja hi és.");
-    canviaVideos([...videosCanco(), d.video]);
-    $("#url-video").value = "";
-  } catch (e) {
-    error.textContent = e.message;
-    error.classList.remove("hidden");
-  } finally {
-    boto.disabled = false;
-  }
-});
 
 for (const [camp, prop] of [["#titol-ev", "titol"], ["#autor-ev", "autor"]]) {
   $(camp).addEventListener("input", (ev) => {
@@ -2674,7 +2592,7 @@ function pintaEstils() {
       if (tipus === "checkbox") label.append(input, el("span", { text: etiqueta }));
       else label.append(el("span", { text: etiqueta, classe: "etiqueta" }), input);
       cos.append(label);
-      if (tipus === "color") selectorColor(input, { colors: colorsDelDocument });
+      if (tipus === "color") muntaSelectorColor(input, { colors: colorsDelDocument });
     }
     det.append(resum, cos);
     li.append(det);

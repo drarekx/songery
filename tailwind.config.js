@@ -3,7 +3,7 @@ module.exports = {
   content: [
     "./canconer/templates/**/*.html",
     "./canconer/static/*.js",
-    "./frontend/src/**/*.js",
+    "./frontend/src/**/*.{js,vue}",
   ],
   // Classes que el JavaScript compon dinàmicament (Tailwind no les pot trobar al codi).
   safelist: ["nansa-nw", "nansa-n", "nansa-ne", "nansa-e", "nansa-se", "nansa-s", "nansa-sw", "nansa-w"],

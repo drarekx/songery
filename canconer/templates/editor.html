@@ -104,7 +104,7 @@
       </div>
       <button type="button" class="btn btn-fantasma btn-icona" data-tanca-acords aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button>
     </div>
-    <div id="llista-acords" class="grid grid-cols-4 gap-2"></div>
+    <div id="llista-acords"></div>
   </div>
 
   {# Barra de format de la lletra: només mentre s'edita un marc de lletra #}
@@ -397,16 +397,7 @@
         <label class="flex items-center justify-between gap-3 text-[14px]">Comença sempre a l'esquerra
           <span class="interruptor"><input class="peer sr-only" type="checkbox" id="inici-ev"><span></span></span></label>
         <p class="-mt-2 text-[12px] leading-snug text-ink-500">Desactiva-ho per posar-la just després de l'anterior (per exemple, dues cançons curtes a la mateixa doble pàgina).</p>
-        <div class="flex flex-col gap-2 border-t border-paper-300 pt-4">
-          <h4 class="text-[13px] font-semibold text-ink-700">Vídeos de YouTube</h4>
-          <form id="nou-video" class="flex gap-1.5">
-            <input id="url-video" class="camp min-w-0 py-1.5 text-[13px]" placeholder="Enganxa un enllaç de YouTube" autocomplete="off">
-            <button class="btn btn-petit shrink-0">Afegeix</button>
-          </form>
-          <p id="error-video" class="hidden text-[12px] leading-snug text-vermello-700"></p>
-          <ul id="llista-videos" class="flex flex-col gap-2"></ul>
-          <p class="text-[12px] leading-snug text-ink-500">Afegeix un element <strong>QR</strong> a la pàgina per posar-ne el codi. Els marcats «a l'índex» surten a l'índex de vídeos, si l'actives a Imprimir.</p>
-        </div>
+        <div id="videos-canco" class="border-t border-paper-300 pt-4"></div>
         <button type="button" id="obre-historial" class="btn btn-petit">
           <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5M8 5v3l2 1.5"/></svg>
           Versions i historial <span id="etiqueta-versio" class="font-mono text-[11px] text-ink-400"></span>
@@ -483,14 +474,6 @@
   <div id="suggeriments-acord" class="mt-2.5 flex flex-wrap gap-1"></div>
   <button type="button" id="elimina-acord" class="btn btn-perill btn-petit -mb-1 -ml-2 mt-2 hidden">Elimina l'acord</button>
 </div>
-
-<dialog id="dialeg-video" class="w-[min(56rem,94vw)] rounded-xl border border-paper-300 bg-ink-900 p-0 text-white shadow-full backdrop:bg-ink-900/60">
-  <div class="flex items-center justify-between gap-3 px-4 py-2">
-    <h2 id="titol-dialeg-video" class="truncate text-[14px] font-medium"></h2>
-    <span class="text-white"><button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button></span>
-  </div>
-  <div class="aspect-video w-full bg-black"><iframe id="reproductor-video" class="h-full w-full" title="Vídeo de YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-</dialog>
 
 <dialog id="dialeg-plantilla" class="w-[min(52rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
   <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
