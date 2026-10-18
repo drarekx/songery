@@ -244,6 +244,7 @@ def crea_app() -> Flask:
                 "subtitol": f.get("subtitol", "").strip(),
                 "any": f.get("any", "").strip(),
                 "contraportada": f.get("contraportada", "").strip(),
+                "pagina_index": bool(f.get("pagina_index")),
                 "pagina_acords": bool(f.get("pagina_acords")),
                 "posicio_acords": "final" if f.get("posicio_acords") == "final" else "inici",
                 "instrument": "ukulele" if f.get("instrument") == "ukulele" else "guitarra",
@@ -275,13 +276,6 @@ def crea_app() -> Flask:
         """Només s'accepten rutes internes per tornar enrere."""
         return url if url and url.startswith("/") and not url.startswith("//") else None
 
-    @app.post("/canconer/<id_canconer>/index")
-    def canconer_tria_index(id_canconer):
-        """Índex de cançons al PDF, sí o no."""
-        meta_o_404(id_canconer)
-        bd.desa_meta(id_canconer, {"pagina_index": bool(request.form.get("pagina_index"))})
-        return redirect(url_for("canconer_opcions", id_canconer=id_canconer) + "#marges")
-
     @app.post("/canconer/<id_canconer>/qr")
     def canconer_tria_qr(id_canconer):
         """Índex de QR dels vídeos al PDF (sí o no, i on)."""
@@ -289,7 +283,8 @@ def crea_app() -> Flask:
         posicio = request.form.get("posicio_qr", c.get("posicio_qr"))
         bd.desa_meta(id_canconer, {"pagina_qr": bool(request.form.get("pagina_qr")),
                                    "posicio_qr": "inici" if posicio == "inici" else "final"})
-        return redirect(url_for("canconer_opcions", id_canconer=id_canconer) + "#marges")
+        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
+                                instrument=request.form.get("instrument") or None))
 
     @app.get("/actualitzacio")
     def actualitzacio():

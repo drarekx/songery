@@ -249,3 +249,28 @@ def test_pagina_lliure_abans_d_una_entrada_omple_la_pagina_en_blanc():
     pla = maquetacio.pla(bd.carrega_canconer(k))["pagines"]
     assert [p["tipus"] for p in pla[:4]] == ["portada", "index", "lliure", "canco"]
     assert pla[2]["entrada"] == r.get_json()["id"] and pla[3]["numero"] == 4
+
+
+def test_l_index_de_qr_torna_a_imprimir():
+    """L'índex de QR es tria a Imprimir i hi torna (amb l'instrument triat)."""
+    from canconer import basedades as bd
+    from canconer.web import crea_app
+
+    k = bd.crea_canconer("Prova")
+    client = crea_app().test_client()
+    r = client.post(f"/canconer/{k}/qr", data={"pagina_qr": "on", "posicio_qr": "final", "instrument": "ukulele"})
+    assert f"/canconer/{k}/imprimir" in r.headers["Location"] and "instrument=ukulele" in r.headers["Location"]
+
+
+def test_l_index_es_tria_a_opcions():
+    from canconer import basedades as bd
+    from canconer.web import crea_app
+
+    k = bd.crea_canconer("Prova")
+    client = crea_app().test_client()
+    assert 'name="pagina_index" checked' in client.get(f"/canconer/{k}/opcions").get_data(as_text=True)
+    client.post(f"/canconer/{k}/opcions", data={"titol": "Prova"})  # interruptor desmarcat
+    assert bd.meta_canconer(k)["pagina_index"] is False
+    assert "Índex de cançons: no" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
+    client.post(f"/canconer/{k}/opcions", data={"titol": "Prova", "pagina_index": "on"})
+    assert bd.meta_canconer(k)["pagina_index"] is True

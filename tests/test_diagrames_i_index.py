@@ -63,6 +63,6 @@ def test_web(client):
     assert set(svgs) == {"G", "D/F#"} and "<svg" in svgs["G"]
     k = bd.crea_canconer("Sense índex")
     assert bd.meta_canconer(k)["pagina_index"] is True
-    client.post(f"/canconer/{k}/index", data={})
+    client.post(f"/canconer/{k}/opcions", data={"titol": "Sense índex"})  # l'índex es tria a Opcions
     assert bd.meta_canconer(k)["pagina_index"] is False
-    assert "índex de cançons" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
+    assert "Índex de cançons: no" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)

@@ -69,17 +69,11 @@
       </p>
     </section>
 
-    {# Índex de cançons #}
-    <section class="targeta p-4">
-      <form method="post" action="{{ url_for('canconer_tria_index', id_canconer=c.id) }}" class="flex flex-col gap-2">
-        <input type="hidden" name="instrument" value="{{ request.args.get('instrument', '') }}">
-        <label class="flex items-center justify-between gap-3">
-          <span class="text-[14px] font-semibold">Inclou l'índex de cançons</span>
-          <span class="interruptor"><input class="peer sr-only" type="checkbox" name="pagina_index" {{ "checked" if c.pagina_index }} onchange="this.form.requestSubmit()"><span></span></span>
-        </label>
-        <p class="text-[13px] leading-snug text-ink-500">{% if c.pagina_index %}Va després de la portada, amb la pàgina on comença cada cançó.{% else %}Sense índex: les cançons comencen just després de la portada.{% endif %}</p>
-        <noscript><button class="btn btn-petit">Aplica</button></noscript>
-      </form>
+    {# Índex de cançons: es tria a Opcions #}
+    <section class="targeta flex flex-col gap-1 p-4">
+      <p class="text-[14px] font-semibold">Índex de cançons: {{ "sí" if c.pagina_index else "no" }}</p>
+      <p class="text-[13px] leading-snug text-ink-500">{% if c.pagina_index %}Va després de la portada, amb la pàgina on comença cada cançó.{% else %}Sense índex: les cançons comencen just després de la portada.{% endif %}
+        <a class="text-accent-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}">Canvia-ho a Opcions</a></p>
     </section>
 
     {# Índex de QR dels vídeos vinculats a les cançons #}
