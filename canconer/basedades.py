@@ -611,6 +611,27 @@ def esborra_canco(id_canco: str) -> None:
         con.execute("DELETE FROM canco WHERE id = ?", (_valida(id_canco),))
 
 
+def esborra_pagina_lliure_buida(id_canconer: str, id_canco: str) -> bool:
+    """Esborra una pàgina lliure que no té res (cap element a cap pàgina) i que només és en aquest
+    cançoner: la que es crea en omplir una pàgina en blanc i es deixa sense fer. Torna si l'ha esborrat."""
+    with connexio() as con:
+        fila = con.execute("SELECT tipus, doc FROM canco WHERE id = ?", (_valida(id_canco),)).fetchone()
+        if not fila or fila["tipus"] != "pagina":
+            return False
+        contingut = plantilles.normalitza_contingut(json.loads(fila["doc"]))
+        if any(p.get("elements") for p in contingut.get("pagines", [])):
+            return False
+        altres = con.execute("SELECT COUNT(*) FROM entrada WHERE canco_id = ? AND canconer_id != ?",
+                             (id_canco, id_canconer)).fetchone()[0]
+        if altres:
+            return False
+        con.execute("DELETE FROM entrada WHERE canconer_id = ? AND canco_id = ?", (id_canconer, id_canco))
+        _reordena(con, id_canconer, _ids_entrades(con, id_canconer))
+        con.execute("DELETE FROM canco WHERE id = ?", (id_canco,))
+        toca_canconer(con, id_canconer)
+    return True
+
+
 # ---------------------------------------------------------------- Biblioteca d'elements
 
 

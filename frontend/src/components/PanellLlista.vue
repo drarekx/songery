@@ -147,6 +147,8 @@ function deixa() {
               <span v-if="c.inici === 'qualsevol' && c.tipus !== 'pagina'" title="Comença on toqui">↦</span>
               <span v-if="c.versio_numero" class="rounded bg-sky-100 px-1 font-mono text-[10px] text-sky-900" title="Versió fixada">v{{ c.versio_numero }}{{ c.desfasada ? " ↑" : "" }}</span>
               <span v-if="c.usos > 1" title="És en més d'un cançoner">{{ c.usos }}×</span>
+              <span v-if="c.buida" class="rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-900"
+                    title="Aquesta pàgina lliure no té res: al PDF surt en blanc">buida</span>
             </span>
           </span>
         </button>

@@ -162,3 +162,17 @@ def test_omplir_la_pagina_3_en_blanc_des_de_tot_el_llibret(pagina, servidor):
     llista = pagina.avalua("[...document.querySelectorAll('#panell-llista li[data-id]')].slice(0, 2).map((li) => li.textContent.replace(/\\s+/g, ' ').trim())")
     assert "Pàgina lliure" in llista[0] and "pàg. 3" in llista[0]
     assert "pàg. 4" in llista[1]
+
+
+def test_una_pagina_omplerta_i_deixada_buida_es_desfa(pagina, servidor):
+    obre_editor(pagina, servidor)
+    llibre = "[...document.querySelectorAll('#panell-llista button')].find((b) => b.textContent.includes('Tot el llibret')).click()"
+    pagina.avalua(llibre)
+    pagina.espera("document.querySelector('.vista-llibre .pagina-blanca')")
+    pagina.avalua("document.querySelector('.vista-llibre .pagina-blanca').click()")
+    pagina.espera("document.querySelector('.peu-pagina-editor')?.textContent === 'Pàgina 3'", 15)
+    assert "buida" in pagina.avalua("document.querySelector('#panell-llista li[data-id]').textContent")
+    # Se'n surt sense posar-hi res: es desfà i la pàgina 3 torna a ser en blanc.
+    pagina.avalua(llibre)
+    pagina.espera("document.querySelector('.vista-llibre .pagina-blanca')?.title.startsWith('Pàgina 3')", 15)
+    assert not pagina.avalua("[...document.querySelectorAll('#panell-llista li[data-id]')].some((li) => li.textContent.includes('Pàgina lliure'))")

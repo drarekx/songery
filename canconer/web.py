@@ -588,6 +588,12 @@ def crea_app() -> Flask:
         o_404(bd.actualitza_entrada, id_canconer, id_canco, **canvis)
         return jsonify({"ok": True})
 
+    @app.post("/api/canconer/<id_canconer>/entrada/<id_canco>/descarta-buida")
+    def api_descarta_pagina_buida(id_canconer, id_canco):
+        """Esborra la pàgina lliure si s'ha deixat buida (si té res, o és en un altre cançoner, no)."""
+        meta_o_404(id_canconer)
+        return jsonify({"esborrada": bd.esborra_pagina_lliure_buida(id_canconer, id_canco)})
+
     @app.delete("/api/canconer/<id_canconer>/entrada/<id_canco>")
     def api_entrada_treu(id_canconer, id_canco):
         bd.treu_entrada(id_canconer, id_canco)

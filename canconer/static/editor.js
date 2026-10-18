@@ -2331,6 +2331,7 @@ function pintaLlista() {
         versio_numero: c.versio_id ? c.versio_numero : null,
         desfasada: !!c.versio_id && (c.versio_numero < c.versio_ultima || c.esborrany_modificat),
         pagines: PLA?.pagines.filter((x) => x.entrada === c.id).map((x) => x.numero) || [],
+        buida: c.tipus === "pagina" && !(obert?.id === c.id ? pagines : c.contingut?.pagines || []).some((p) => p.elements?.length),
       })),
     },
   });
@@ -2378,6 +2379,7 @@ async function obre(desti, { forca = false } = {}) {
   store.sincronitza({ avis: null });
   sortEdicio();
   await desa();
+  await descartaSiBuida();
   obert = desti;
   seleccio = null;
   canco = null;
@@ -2501,12 +2503,35 @@ async function treuCanco() {
 }
 
 // Noves cançons, pàgines lliures i importació
+// Pàgina lliure creada omplint una pàgina en blanc: si se'n surt sense posar-hi res, es desfà (i la
+// pàgina torna a ser una pàgina en blanc automàtica).
+let paginaDeBlanc = null;
+const urlDescarta = (id) => `${urls.entrada}${id}/descarta-buida`;
+
+async function descartaSiBuida() {
+  const id = paginaDeBlanc;
+  if (!id || obert?.id !== id) return;
+  paginaDeBlanc = null;
+  if (pagines.some((p) => p.elements.length)) return;
+  const { esborrada } = await api(urlDescarta(id), "POST");
+  if (!esborrada) return;
+  [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
+  pintaLlista();
+  mostraEstat("La pàgina lliure buida s'ha desfet");
+}
+window.addEventListener("pagehide", () => {
+  if (paginaDeBlanc && obert?.id === paginaDeBlanc && !pagines.some((p) => p.elements.length)) {
+    fetch(urlDescarta(paginaDeBlanc), { method: "POST", keepalive: true });
+  }
+});
+
 /** Converteix una pàgina en blanc automàtica en una pàgina lliure, al mateix lloc del llibret: es posa
  *  davant de l'entrada que hi ha després (o al final, si no n'hi ha cap). */
 async function omplePaginaBlanca(numero) {
   await desa();
   const seguent = PLA.pagines.find((x) => x.numero > numero && x.entrada);
   const r = await api(urls.nova, "POST", { tipus: "pagina", abans_de: seguent?.entrada });
+  paginaDeBlanc = r.id;
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
   pintaLlista();
   await obre({ tipus: "canco", id: r.id });

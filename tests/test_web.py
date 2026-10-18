@@ -292,3 +292,30 @@ def test_desactivar_l_index_no_n_esborra_el_disseny():
     client.post(f"/canconer/{k}/opcions", data={"titol": "Cançoner d'exemple", "pagina_index": "on"})
     index = next(p for p in maquetacio.pla(bd.carrega_canconer(k))["pagines"] if p["tipus"] == "index")
     assert any(e.get("id") == "meu" for e in index["elements"])
+
+
+def test_descarta_nomes_pagines_lliures_buides():
+    from canconer import basedades as bd, exemple, plantilles
+    from canconer.web import crea_app
+
+    k = exemple.crea_exemple()
+    client = crea_app().test_client()
+    primera = bd.carrega_canconer(k)["cancons"][0]["id"]
+    buida = client.post(f"/api/canconer/{k}/canco", json={"tipus": "pagina", "abans_de": primera}).get_json()["id"]
+    plena = client.post(f"/api/canconer/{k}/canco", json={"tipus": "pagina"}).get_json()["id"]
+    contingut = {"format": 2, "pagines": [plantilles.pagina([{"id": "t", "tipus": "text", "text": "Hola", "x": 1, "y": 1,
+                                                               "w": 20, "h": 5, "rotacio": 0, "opacitat": 1}])]}
+    bd.desa_esborrany(plena, contingut=contingut)
+    descarta = lambda id_: client.post(f"/api/canconer/{k}/entrada/{id_}/descarta-buida").get_json()["esborrada"]
+    assert descarta(plena) is False and descarta(primera) is False  # té contingut / és una cançó
+    altre = bd.crea_canconer("Altre")
+    bd.afegeix_entrada(altre, buida)
+    assert descarta(buida) is False  # també és en un altre cançoner
+    bd.treu_entrada(altre, buida)
+    assert descarta(buida) is True
+    assert buida not in [c["id"] for c in bd.carrega_canconer(k)["cancons"]]
+    try:
+        bd.carrega_canco(buida)
+        raise AssertionError("no s'ha esborrat")
+    except KeyError:
+        pass
