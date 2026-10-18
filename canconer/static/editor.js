@@ -1492,9 +1492,16 @@ $("#fitxer-imatge").addEventListener("change", async (ev) => {
   const fitxer = ev.target.files[0];
   const desti = ev.target.dataset.desti;
   ev.target.value = "";
-  if (!fitxer) return;
+  if (fitxer) await pujaImatge(fitxer, desti);
+});
+
+/**
+ * Puja una imatge i la posa on toca: dins la lletra que s'edita, en lloc de la imatge seleccionada o
+ * com a element nou (a la pàgina activa, centrada al punt donat en mm o al centre de la pàgina).
+ */
+async function pujaImatge(fitxer, desti = "element", punt = null) {
   const formulari = new FormData();
-  formulari.append("imatge", fitxer);
+  formulari.append("imatge", fitxer, fitxer.name || "imatge.png");
   mostraEstat("Pujant la imatge…", "treballant");
   let r;
   try {
@@ -1514,8 +1521,13 @@ $("#fitxer-imatge").addEventListener("change", async (ev) => {
   const proporcio = img.naturalWidth ? img.naturalHeight / img.naturalWidth : 0.75;
   const w = 90;
   const h = Math.min(ALT - 20, arrodoneix(w * proporcio));
-  afegeix({ id: nouId(), tipus: "imatge", x: (AMPLE - w) / 2, y: (ALT - h) / 2, w, h, src: r.id, ajust: "cover", radi: 0, rotacio: 0, opacitat: 1 });
-});
+  const centre = punt || { x: AMPLE / 2, y: ALT / 2 };
+  afegeix({
+    id: nouId(), tipus: "imatge", w, h, src: r.id, ajust: "cover", radi: 0, rotacio: 0, opacitat: 1,
+    x: arrodoneix(Math.min(AMPLE - w, Math.max(0, centre.x - w / 2))),
+    y: arrodoneix(Math.min(ALT - h, Math.max(0, centre.y - h / 2))),
+  });
+}
 
 // ------------------------------------------------------------ Diagrames d'acords (panell per arrossegar)
 
@@ -1567,11 +1579,7 @@ llenc.addEventListener("drop", async (ev) => {
   if (!fitxer || !caixa || !editable) return;
   ev.preventDefault();
   seleccio = { p: Number(caixa.dataset.pagina), id: null };
-  const dt = new DataTransfer();
-  dt.items.add(fitxer);
-  $("#fitxer-imatge").files = dt.files;
-  $("#fitxer-imatge").dataset.desti = "element";
-  $("#fitxer-imatge").dispatchEvent(new Event("change"));
+  pujaImatge(fitxer, "element", puntMm(ev, caixa));
 });
 
 // ------------------------------------------------------------ Menú del botó dret (llenç)
@@ -1658,7 +1666,7 @@ function menuLlenc(p, punt) {
     { text: "Desfés", drecera: tecla("⌘Z"), desactivat: !editable || !pila.enrere.length, fes: EINES.desfes },
     { text: "Refés", drecera: tecla("⇧⌘Z"), desactivat: !editable || !pila.endavant.length, fes: EINES.refes },
     separador,
-    { text: punt ? "Enganxa aquí" : "Enganxa", drecera: tecla("⌘V"), desactivat: !portapapers || !editable, fes: () => enganxaA(p, lloc) },
+    { text: punt ? "Enganxa aquí" : "Enganxa", drecera: tecla("⌘V"), desactivat: !editable, fes: () => enganxaDelMenu(p, lloc) },
     { text: punt ? "Afegeix aquí" : "Afegeix", desactivat: !editable, submenu: afegir },
     { text: "Selecciona-ho tot", drecera: tecla("⌘A"), fes: () => seleccionaMolts(p, pagines[p].elements.filter((e) => !e.bloquejat).map((e) => e.id)) },
     ...(canco ? [{ text: "Pàgina", desactivat: !editable, submenu: [
@@ -1796,6 +1804,45 @@ function copiaElement() {
   mostraEstat(els.length > 1 ? `${els.length} elements copiats` : "Element copiat");
 }
 
+// Porta-retalls del sistema. En copiar elements, s'hi deixa una marca: així, en enganxar, guanya el que
+// s'hagi copiat més tard (els elements de l'editor o una imatge d'una altra aplicació).
+const MARCA_ELEMENTS = "application/x-canconer-elements";
+document.addEventListener("copy", (ev) => {
+  if (escrivintA(ev.target) || !idsSel().length) return;
+  ev.preventDefault();
+  ev.clipboardData.setData(MARCA_ELEMENTS, String(Date.now()));
+  ev.clipboardData.setData("text/plain", "");
+});
+const imatgeDe = (dades) => [...(dades?.files || [])].find((f) => f.type.startsWith("image/"));
+document.addEventListener("paste", (ev) => {
+  if (escrivintA(ev.target) || !editable || obert?.tipus === "llibre") return;
+  const imatge = imatgeDe(ev.clipboardData);
+  if (imatge && !ev.clipboardData.types.includes(MARCA_ELEMENTS)) {
+    ev.preventDefault();
+    seleccio = { p: paginaActual(), id: null };
+    return pujaImatge(imatge, "element");
+  }
+  if (portapapers) {
+    ev.preventDefault();
+    enganxaElements(portapapers);
+  }
+});
+
+/** «Enganxa» del menú: una imatge del porta-retalls del sistema, si n'hi ha, o els elements copiats. */
+async function enganxaDelMenu(p, punt) {
+  try {
+    for (const item of await navigator.clipboard.read()) {
+      if (item.types.includes(MARCA_ELEMENTS) || item.types.includes(`web ${MARCA_ELEMENTS}`)) break;
+      const tipus = item.types.find((t) => t.startsWith("image/"));
+      if (tipus) {
+        seleccio = { p, id: null };
+        return pujaImatge(new File([await item.getType(tipus)], "imatge.png", { type: tipus }), "element", punt);
+      }
+    }
+  } catch { /* sense permís per llegir el porta-retalls: només els elements copiats */ }
+  if (portapapers) enganxaA(p, punt);
+}
+
 function enganxaElements(elements, desplaça = 4) {
   if (!elements?.length || !editable || obert?.tipus === "llibre") return;
   const p = paginaActual();
@@ -1831,10 +1878,6 @@ document.addEventListener("keydown", (ev) => {
     return desfes(!ev.shiftKey);
   }
   if (mod && ev.key.toLowerCase() === "c" && idsSel().length) return copiaElement();
-  if (mod && ev.key.toLowerCase() === "v" && portapapers) {
-    ev.preventDefault();
-    return enganxaElements(portapapers);
-  }
   if (mod && ev.key.toLowerCase() === "a" && obert?.tipus !== "llibre" && pagines.length) {
     ev.preventDefault();
     const p = paginaActual();
