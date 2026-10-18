@@ -3,11 +3,12 @@
 Les pàgines de cada cançó les dissenya l'usuari (vegeu plantilles.py); aquí només es munta la
 seqüència i es resolen les dades que cada pàgina necessita per dibuixar-se:
   1            portada
-  2..          índex (tantes pàgines com calgui) i pàgina d'acords, si va al principi
+  2..          índex (tantes pàgines com calgui), pàgina d'acords i índex de QR dels vídeos, si van
+               al principi
   ...          cançons i pàgines lliures en ordre. Una cançó comença a l'esquerra (pàgina parella),
                amb una pàgina en blanc al davant si cal, tret que s'hagi marcat «on toqui».
   ...          pàgines en blanc fins arribar a un múltiple de 4
-  ...          pàgina d'acords, si va al final
+  ...          pàgina d'acords i índex de QR, si van al final
   N            contraportada
 """
 
@@ -16,7 +17,7 @@ from __future__ import annotations
 import copy
 import math
 
-from . import diagrames, document, plantilles
+from . import diagrames, document, plantilles, videos
 
 
 def _transporta_pagines(pagines: list[dict], semitons: int) -> list[dict]:
@@ -103,9 +104,26 @@ def pla(canconer: dict) -> dict:
             tros = svgs[i * plantilles.DIAGRAMES_PER_PAGINA:(i + 1) * plantilles.DIAGRAMES_PER_PAGINA]
             afegeix("acords", especials["acords"], diagrames=tros)
 
+    # Vídeos marcats per a l'índex de QR, de les cançons que surten.
+    videos_qr = []
+    for e in entrades:
+        contingut = e.get("contingut") or {}
+        for v in videos.normalitza(contingut.get("videos") if isinstance(contingut, dict) else None):
+            if v["inclou_qr"]:
+                videos_qr.append({"entrada": e["id"], "canco": e.get("titol") or "Sense títol",
+                                  "titol": v["titol"], "url": videos.url_curta(v)})
+    pagines_qr = math.ceil(len(videos_qr) / plantilles.QR_PER_PAGINA_INDEX) if canconer.get("pagina_qr") else 0
+
+    def afegeix_qr():
+        for i in range(pagines_qr):
+            afegeix("index_qr", especials["index_qr"], tros_qr=i)
+
     if canconer.get("posicio_acords") != "final":
         afegeix_acords()
+    if canconer.get("posicio_qr") == "inici":
+        afegeix_qr()
 
+    inici_entrada: dict[str, int] = {}
     for e in entrades:
         pagines = pagines_per_entrada[e["id"]]
         if not pagines:
@@ -113,20 +131,26 @@ def pla(canconer: dict) -> dict:
         if e.get("inici", "esquerra") == "esquerra" and (len(seq) + 1) % 2 == 1:
             afegeix("blanc", {"mestra": "estandard", "elements": []})
         acords = acords_pagines(pagines)
-        context = {"titol": e.get("titol") or "", "autor": e.get("autor") or "", "acords": " · ".join(acords)}
+        contingut = e.get("contingut") if isinstance(e.get("contingut"), dict) else {}
+        context = {"titol": e.get("titol") or "", "autor": e.get("autor") or "", "acords": " · ".join(acords),
+                   "videos": videos.per_al_dibuix(contingut.get("videos"))}
         inici = len(seq) + 1
         for i, model in enumerate(pagines):
             afegeix("canco" if e.get("tipus", "canco") == "canco" else "lliure", model, context,
                     entrada=e["id"], index_dins=i)
+        inici_entrada[e["id"]] = inici
         if e.get("tipus", "canco") == "canco":
             cancons.append({"id": e["id"], "titol": e.get("titol") or "Sense títol", "autor": e.get("autor", ""),
                             "pagina_inici": inici, "pagines": len(pagines), "acords": acords})
 
-    finals = 1 + (pagines_acords if canconer.get("posicio_acords") == "final" else 0)
+    finals = (1 + (pagines_acords if canconer.get("posicio_acords") == "final" else 0)
+              + (pagines_qr if canconer.get("posicio_qr") != "inici" else 0))
     while (len(seq) + finals) % 4:
         afegeix("blanc", {"mestra": "estandard", "elements": []})
     if canconer.get("posicio_acords") == "final":
         afegeix_acords()
+    if canconer.get("posicio_qr") != "inici":
+        afegeix_qr()
     afegeix("contraportada", especials["contraportada"])
 
     # Números de pàgina, mestres i contingut de l'índex (ja se sap on comença cada cançó).
@@ -139,6 +163,11 @@ def pla(canconer: dict) -> dict:
         if "tros_index" in p:
             t = p.pop("tros_index")
             p["index"] = index[t * plantilles.ENTRADES_PER_PAGINA_INDEX:(t + 1) * plantilles.ENTRADES_PER_PAGINA_INDEX]
+        if "tros_qr" in p:
+            t = p.pop("tros_qr")
+            tros = videos_qr[t * plantilles.QR_PER_PAGINA_INDEX:(t + 1) * plantilles.QR_PER_PAGINA_INDEX]
+            p["qrs"] = [{**{k: v for k, v in q.items() if k != "entrada"}, "pagina": inici_entrada.get(q["entrada"], "")}
+                        for q in tros]
 
     return {
         "pagines": seq,

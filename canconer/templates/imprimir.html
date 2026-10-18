@@ -81,6 +81,30 @@
       </p>
     </section>
 
+    {# Índex de QR dels vídeos vinculats a les cançons #}
+    <section class="targeta p-4">
+      <form method="post" action="{{ url_for('canconer_tria_qr', id_canconer=c.id) }}" class="flex flex-col gap-3">
+        <input type="hidden" name="instrument" value="{{ request.args.get('instrument', '') }}">
+        <label class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-semibold">Inclou l'índex de vídeos (QR)</span>
+          <span class="interruptor"><input class="peer sr-only" type="checkbox" name="pagina_qr" {{ "checked" if c.pagina_qr }} onchange="this.form.requestSubmit()"><span></span></span>
+        </label>
+        {% if c.pagina_qr %}
+        <div class="segmentat w-full" role="group" aria-label="On va l'índex de vídeos">
+          {% for valor, text in [("inici", "Al principi"), ("final", "Al final")] %}
+          <button class="flex-1" name="posicio_qr" value="{{ valor }}" aria-pressed="{{ 'true' if c.posicio_qr == valor else 'false' }}">{{ text }}</button>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <p class="text-[13px] leading-snug text-ink-500">
+          {% set n_qr = pla.pagines | selectattr("tipus", "equalto", "index_qr") | map(attribute="qrs") | map("length") | sum %}
+          {% if c.pagina_qr %}{{ n_qr }} vídeo{{ "s" if n_qr != 1 }} marcat{{ "s" if n_qr != 1 }} «a l'índex», de les cançons que surten al PDF.{% else %}Una pàgina amb el codi QR de cada vídeo marcat «a l'índex» i la pàgina de la cançó.{% endif %}
+          Els vídeos s'afegeixen a l'editor, a la pestanya Cançó.
+        </p>
+        <noscript><button class="btn btn-petit">Aplica</button></noscript>
+      </form>
+    </section>
+
     <p id="error-pdf" class="avis hidden"></p>
 
     <section class="flex flex-col gap-3">

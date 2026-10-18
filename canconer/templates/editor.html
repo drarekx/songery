@@ -35,7 +35,7 @@
   </div>
   <h2 class="titol-seccio-llista">Pàgines del llibret</h2>
   <div class="flex flex-col gap-0.5 px-2">
-    {% for nom, text in [("portada", "Portada"), ("index", "Índex"), ("acords", "Pàgina d'acords"), ("contraportada", "Contraportada")] %}
+    {% for nom, text in [("portada", "Portada"), ("index", "Índex"), ("acords", "Pàgina d'acords"), ("index_qr", "Índex de vídeos (QR)"), ("contraportada", "Contraportada")] %}
     <button type="button" data-obre="especial:{{ nom }}" class="item-llista">
       <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-300"></span><span class="flex-1 text-left">{{ text }}</span>
     </button>
@@ -77,6 +77,7 @@
     {{ eina("nou-forma", "Rectangle", '<rect x="3.5" y="5" width="13" height="10" rx="1"/>') }}
     {{ eina("nou-elipse", "El·lipse", '<ellipse cx="10" cy="10" rx="7" ry="5.5"/>') }}
     {{ eina("nou-numero", "Número de pàgina", '<path d="M6 4 4.5 16M11.5 4 10 16M3.5 8h11M3 12h11"/>') }}
+    {{ eina("nou-qr", "Codi QR d'un vídeo de la cançó", '<path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3z"/><path d="M12 12h2v2h-2zM15 15h2v2h-2zM12 16h1M16 12h1" stroke-width="1.8"/>', "", "QR") }}
     {{ eina("importa-text", "Importa text amb acords (de webs de tabs) al marc de lletra", '<path d="M7 4H5v13h10V4h-2M7 3h6v3H7z"/><path d="M8 10h4M8 13h4"/>', "", "Importa text") }}
     <span class="separador"></span>
     <span class="hidden px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400 xl:inline">Pàgina</span>
@@ -309,6 +310,14 @@
           <button type="button" id="canvia-imatge" class="btn btn-petit">Canvia la imatge…</button>
         </div>
 
+        <div data-per="qr" class="flex flex-col gap-3">
+          <label><span class="etiqueta">Vídeo</span><select data-prop="video" id="video-qr" class="camp py-1.5 text-[14px]"></select></label>
+          <label class="flex items-center justify-between gap-3 text-[14px]">Títol del vídeo a sota
+            <span class="interruptor"><input class="peer sr-only" type="checkbox" data-prop="peu"><span></span></span></label>
+          <label class="flex items-center justify-between gap-2 text-[14px]">Color <input data-prop="color" type="color" class="h-8 w-10 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
+          <p id="avis-qr" class="hidden rounded-md bg-amber-50 px-3 py-2 text-[13px] leading-snug text-amber-900"></p>
+        </div>
+
         <div data-per="forma" class="grid grid-cols-2 gap-3">
           <label class="flex items-center justify-between gap-2 text-[14px]">Fons <input data-prop="fons" type="color" class="h-8 w-10 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
           <label class="flex items-center justify-between gap-2 text-[14px]">Vora <input data-prop="vora" type="color" class="h-8 w-10 cursor-pointer rounded border border-paper-300 bg-white p-0.5"></label>
@@ -368,6 +377,16 @@
         <label class="flex items-center justify-between gap-3 text-[14px]">Comença sempre a l'esquerra
           <span class="interruptor"><input class="peer sr-only" type="checkbox" id="inici-ev"><span></span></span></label>
         <p class="-mt-2 text-[12px] leading-snug text-ink-500">Desactiva-ho per posar-la just després de l'anterior (per exemple, dues cançons curtes a la mateixa doble pàgina).</p>
+        <div class="flex flex-col gap-2 border-t border-paper-300 pt-4">
+          <h4 class="text-[13px] font-semibold text-ink-700">Vídeos de YouTube</h4>
+          <form id="nou-video" class="flex gap-1.5">
+            <input id="url-video" class="camp min-w-0 py-1.5 text-[13px]" placeholder="Enganxa un enllaç de YouTube" autocomplete="off">
+            <button class="btn btn-petit shrink-0">Afegeix</button>
+          </form>
+          <p id="error-video" class="hidden text-[12px] leading-snug text-vermello-700"></p>
+          <ul id="llista-videos" class="flex flex-col gap-2"></ul>
+          <p class="text-[12px] leading-snug text-ink-500">Afegeix un element <strong>QR</strong> a la pàgina per posar-ne el codi. Els marcats «a l'índex» surten a l'índex de vídeos, si l'actives a Imprimir.</p>
+        </div>
         <button type="button" id="obre-historial" class="btn btn-petit">
           <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5M8 5v3l2 1.5"/></svg>
           Versions i historial <span id="etiqueta-versio" class="font-mono text-[11px] text-ink-400"></span>
@@ -444,6 +463,14 @@
   <div id="suggeriments-acord" class="mt-2.5 flex flex-wrap gap-1"></div>
   <button type="button" id="elimina-acord" class="btn btn-perill btn-petit -mb-1 -ml-2 mt-2 hidden">Elimina l'acord</button>
 </div>
+
+<dialog id="dialeg-video" class="w-[min(56rem,94vw)] rounded-xl border border-paper-300 bg-ink-900 p-0 text-white shadow-full backdrop:bg-ink-900/60">
+  <div class="flex items-center justify-between gap-3 px-4 py-2">
+    <h2 id="titol-dialeg-video" class="truncate text-[14px] font-medium"></h2>
+    <span class="text-white"><button type="button" class="btn btn-fantasma btn-icona" data-tanca-dialeg aria-label="Tanca"><svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button></span>
+  </div>
+  <div class="aspect-video w-full bg-black"><iframe id="reproductor-video" class="h-full w-full" title="Vídeo de YouTube" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+</dialog>
 
 <dialog id="dialeg-plantilla" class="w-[min(52rem,94vw)] rounded-xl border border-paper-300 bg-paper-50 p-0 text-ink shadow-full backdrop:bg-ink-900/30">
   <div class="flex items-center justify-between gap-3 border-b border-paper-300 px-5 py-3">
@@ -558,6 +585,7 @@
     "canco": "/api/canco/",
     "versio": "/api/versio/",
     "biblioteca": url_for('api_biblioteca'),
+    "video": url_for('api_video'),
     "elements": url_for('api_elements'),
     "converteix": url_for('api_converteix'),
     "transporta": url_for('api_transporta'),

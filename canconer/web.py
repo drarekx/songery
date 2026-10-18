@@ -9,7 +9,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies
+from . import actualitzacions, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -189,6 +189,16 @@ def crea_app() -> Flask:
         """Només s'accepten rutes internes per tornar enrere."""
         return url if url and url.startswith("/") and not url.startswith("//") else None
 
+    @app.post("/canconer/<id_canconer>/qr")
+    def canconer_tria_qr(id_canconer):
+        """Índex de QR dels vídeos al PDF (sí o no, i on)."""
+        c = meta_o_404(id_canconer)
+        posicio = request.form.get("posicio_qr", c.get("posicio_qr"))
+        bd.desa_meta(id_canconer, {"pagina_qr": bool(request.form.get("pagina_qr")),
+                                   "posicio_qr": "inici" if posicio == "inici" else "final"})
+        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
+                                instrument=request.form.get("instrument") or None))
+
     @app.get("/marges")
     def marges_llista():
         return render_template("marges.html", marges=bd.llista_marges(), torna=_torna_segura(request.args.get("torna")),
@@ -302,7 +312,7 @@ def crea_app() -> Flask:
             canvis["mestres"] = mestres
         if "especials" in d:
             canvis["especials"] = {**c["especials"], **disseny.especials(d["especials"])}
-        if d.get("restableix") in ("portada", "index", "acords", "contraportada"):
+        if d.get("restableix") in plantilles.ESPECIALS:
             canvis["especials"] = {**c["especials"], d["restableix"]: plantilles.especials()[d["restableix"]]}
         meta = bd.desa_meta(id_canconer, canvis)
         return jsonify({k: meta[k] for k in ("estils", "mestres", "especials")})
@@ -423,6 +433,16 @@ def crea_app() -> Flask:
     def api_restaura(id_canco):
         o_404(bd.restaura_versio, id_canco, (request.get_json(silent=True) or {}).get("versio_id", ""))
         return jsonify({"canco": bd.carrega_canco(id_canco)})
+
+    @app.post("/api/video")
+    def api_video():
+        """Analitza una adreça de YouTube i en busca el títol (si hi ha connexió)."""
+        try:
+            v = videos.analitza((request.get_json(silent=True) or {}).get("url", ""))
+        except videos.UrlInvalida as e:
+            return jsonify({"error": str(e)}), 400
+        v = videos.normalitza([{**v, **videos.informacio(v), "inclou_qr": True}])[0]
+        return jsonify({"video": v, "url": videos.url_curta(v), "miniatura": videos.miniatura(v)})
 
     @app.get("/api/biblioteca")
     def api_biblioteca():

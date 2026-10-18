@@ -39,6 +39,8 @@ VALORS_PER_DEFECTE = {
     "contraportada": "",
     "pagina_acords": False,
     "posicio_acords": "inici",  # inici (després de l'índex) o final (abans de la contraportada)
+    "pagina_qr": False,  # índex de QR dels vídeos marcats
+    "posicio_qr": "final",  # inici o final, com la d'acords
     "instrument": "guitarra",  # guitarra o ukulele
     # estils, mestres i especials: vegeu plantilles.amb_valors_per_defecte
 }

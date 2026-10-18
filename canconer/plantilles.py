@@ -8,6 +8,8 @@ Cada pàgina és un llenç A5 (148 × 210 mm) amb elements col·locats en mil·l
   numero     número de pàgina (sobretot a les pàgines mestres)
   index      llista de cançons amb el número de pàgina (pàgina d'índex)
   diagrames  diagrames d'acords (pàgina d'acords)
+  qr         codi QR d'un dels vídeos de la cançó (camp "video": id del vídeo dins de la cançó)
+  index_qr   llista de vídeos amb el seu QR i el número de pàgina (pàgina d'índex de QR)
 Els elements de text fan servir un estil amb nom (Títol, Lletra, Acord...) i en poden canviar propietats.
 """
 
@@ -50,6 +52,8 @@ FONTS = ("display", "sans", "mono")
 # Línies d'índex i diagrames que caben en una pàgina (per saber quantes pàgines calen).
 ENTRADES_PER_PAGINA_INDEX = 24
 DIAGRAMES_PER_PAGINA = 20
+QR_PER_PAGINA_INDEX = 6
+ESPECIALS = ("portada", "index", "acords", "index_qr", "contraportada")
 
 
 def nou_id() -> str:
@@ -75,7 +79,7 @@ def pagina(elements: list[dict], mestra: str | None = "estandard", fons: str = "
 
 
 def especials() -> dict:
-    """Portada, índex, acords i contraportada per defecte."""
+    """Portada, índex, acords, índex de QR i contraportada per defecte."""
     return {
         "portada": pagina([
             _el("forma", 0, 0, 6, ALT, fons="#b3261e", radi=0, forma="rectangle"),
@@ -92,6 +96,10 @@ def especials() -> dict:
         "acords": pagina([
             _el("text", 13, 14, 122, 12, text="Acords", estil="titol", alineacio="left"),
             _el("diagrames", 13, 32, 122, 160),
+        ]),
+        "index_qr": pagina([
+            _el("text", 13, 14, 122, 12, text="Vídeos", estil="titol", alineacio="left"),
+            _el("index_qr", 13, 32, 122, 162, estil="index"),
         ]),
         "contraportada": pagina([
             _el("text", 20, 150, 108, 30, text="{contraportada}", estil="text", alineacio="center"),
@@ -177,7 +185,7 @@ def amb_valors_per_defecte(meta: dict) -> dict:
     antic = meta.get("disseny") or {}
     actuals = meta.get("especials") or {}
     meta["especials"] = {}
-    for nom in ("portada", "index", "acords", "contraportada"):
+    for nom in ESPECIALS:
         if actuals.get(nom):
             meta["especials"][nom] = actuals[nom]
         elif nom in ("portada", "contraportada") and antic.get(nom):

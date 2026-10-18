@@ -191,6 +191,8 @@
   .mode-editor .capa-elements > .el { cursor: move; }
   .mode-editor .capa-elements > .el:hover { outline: 1px solid rgb(56 189 248 / 0.9); }
   .mode-editor .marc-lletra.desborda { outline: 2px dashed #c4321f; outline-offset: -1px; }
+  .mode-editor .qr-buit { @apply flex h-full w-full items-center justify-center border border-dashed border-ink-300 p-1 text-center font-sans text-[9px] text-ink-500; }
+  .mode-editor .el-qr[data-petit] { outline: 2px dashed #d97706; outline-offset: 1px; }
   .mode-editor .marc-lletra.editant, .mode-editor .el-text.editant { @apply cursor-text; outline: none; }
   .mode-editor .marc-lletra.editant .acord-nom { @apply cursor-pointer rounded-sm hover:bg-vermello-100; }
   .mode-editor .marc-lletra.editant .acord.seleccionat .acord-nom { @apply bg-vermello-500 text-white; }

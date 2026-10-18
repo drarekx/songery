@@ -1,7 +1,7 @@
 // Editor de pàgines del cançoner. Les pàgines es dibuixen amb el mateix motor que la pàgina
 // d'impressió que Gotenberg converteix en PDF: el que es veu aquí és exactament el que s'imprimeix.
 import {
-  ALT, AMPLE, FONTS, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
+  ALT, AMPLE, FONTS, QR_MINIM, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, dibuixaElement,
   dibuixaPagina, esAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 
@@ -90,7 +90,7 @@ async function desa() {
   mostraEstat("Desant…", "treballant");
   try {
     if (obert.tipus === "canco" && canco) {
-      await api(urls.canco + canco.id, "PUT", { titol: canco.titol, autor: canco.autor, contingut: { format: 2, pagines } });
+      await api(urls.canco + canco.id, "PUT", { titol: canco.titol, autor: canco.autor, contingut: { format: 2, pagines, videos: videosCanco() } });
     } else if (obert.tipus === "especial") {
       await api(urls.disseny, "PUT", { especials: { [obert.id]: pagines[0] } });
     } else if (obert.tipus === "mestra") {
@@ -206,7 +206,7 @@ function contextDe(numero) {
   const base = { titol: K.titol, subtitol: K.subtitol, any: K.any, contraportada: K.contraportada, pagina: numero };
   if (obert.tipus === "canco" && canco) {
     const acords = acordsDePagines(transportaPagines(pagines, transport()));
-    return { ...base, titol: canco.titol, autor: canco.autor, acords: acords.join(" · ") };
+    return { ...base, titol: canco.titol, autor: canco.autor, acords: acords.join(" · "), videos: videosPerDibuixar() };
   }
   if (obert.tipus === "mestra") return { ...base, titol: "Títol de la cançó", autor: "Autor", acords: "C · G · Am · F" };
   return base;
@@ -223,6 +223,7 @@ function dadesPagina(i, numero) {
     context: contextDe(numero),
     index: deLlibre?.index,
     diagrames: deLlibre?.diagrames,
+    qrs: deLlibre?.qrs,
   };
 }
 
@@ -340,7 +341,7 @@ async function pintaLlibre() {
         caixa.title = `Pàgina ${p.numero}`;
         caixa.addEventListener("click", () => {
           if (p.entrada) obre({ tipus: "canco", id: p.entrada });
-          else if (["portada", "index", "acords", "contraportada"].includes(p.tipus)) obre({ tipus: "especial", id: p.tipus });
+          else if (["portada", "index", "acords", "index_qr", "contraportada"].includes(p.tipus)) obre({ tipus: "especial", id: p.tipus });
         });
       }
       const columna = el("div", { classe: "flex flex-col items-center gap-1" });
@@ -1181,6 +1182,7 @@ const NOUS = {
   "nou-forma": () => ({ tipus: "forma", forma: "rectangle", x: 34, y: 80, w: 80, h: 50, fons: "#c4321f", radi: 0, vora: "", gruix: 0 }),
   "nou-elipse": () => ({ tipus: "forma", forma: "elipse", x: 44, y: 75, w: 60, h: 60, fons: "#c4321f", radi: 0, vora: "", gruix: 0 }),
   "nou-numero": () => ({ tipus: "numero", x: 59, y: 197, w: 30, h: 6, estil: "numero", alineacio: "center" }),
+  "nou-qr": () => ({ tipus: "qr", x: 105, y: 160, w: 28, h: 33, video: videosCanco()[0]?.id || "", peu: true, color: "#1b1a17" }),
 };
 
 const EINES = {
@@ -1468,7 +1470,7 @@ document.addEventListener("keydown", (ev) => {
 
 // ------------------------------------------------------------ Panell de propietats
 
-const NOMS_TIPUS = { text: "Text", lletra: "Marc de lletra", imatge: "Imatge", forma: "Forma", numero: "Número de pàgina", index: "Índex", diagrames: "Diagrames d'acords" };
+const NOMS_TIPUS = { text: "Text", lletra: "Marc de lletra", imatge: "Imatge", forma: "Forma", numero: "Número de pàgina", index: "Índex", diagrames: "Diagrames d'acords", qr: "Codi QR", index_qr: "Índex de vídeos" };
 
 function omplenaEstils(select) {
   const valor = select.value;
@@ -1511,6 +1513,7 @@ function pintaPropietatsElement() {
   $("#titol-props").textContent = NOMS_TIPUS[e.tipus] || "Element";
   $$("[data-per]").forEach((b) => b.classList.toggle("hidden", !b.dataset.per.split(" ").includes(e.tipus)));
   omplenaEstils($('[data-prop="estil"]'));
+  if (e.tipus === "qr") omplenaVideosQR(e);
   $$("[data-prop]").forEach((camp) => {
     const valor = e[camp.dataset.prop];
     if (camp.type === "checkbox") camp.checked = camp.dataset.prop === "ajusta" ? valor !== false : !!valor;
@@ -2108,7 +2111,7 @@ async function obre(desti, { forca = false } = {}) {
       // Versió fixada en aquest cançoner: es mostra tal com és, en només lectura.
       editable = false;
       pagines = copia(entrada.contingut.pagines);
-      canco = { id: entrada.id, titol: entrada.titol, autor: entrada.autor };
+      canco = { id: entrada.id, titol: entrada.titol, autor: entrada.autor, contingut: entrada.contingut };
     } else {
       const c = await api(urls.canco + desti.id);
       if (obert !== desti) return;
@@ -2151,8 +2154,115 @@ function pintaCanco() {
   $("#aplica-transport").disabled = !n || !editable;
   $("#inclosa-ev").checked = entrada.inclosa;
   $("#inici-ev").checked = entrada.inici !== "qualsevol";
+  pintaVideos();
   $("#etiqueta-versio").textContent = entrada.versio_id ? `v${entrada.versio_numero} fixada` : entrada.versio_ultima ? `${entrada.versio_ultima} versions` : "";
 }
+
+// Vídeos de YouTube de la cançó (es desen amb el contingut i es versionen amb ella)
+
+function videosCanco() {
+  return canco?.contingut?.videos || [];
+}
+
+const urlCurta = (v) => `https://youtu.be/${v.video}${v.inici ? `?t=${v.inici}` : ""}`;
+
+function videosPerDibuixar() {
+  return videosCanco().map((v) => ({ id: v.id, titol: v.titol, url: urlCurta(v) }));
+}
+
+function canviaVideos(llista) {
+  if (!canco || !editable) return;
+  canco.contingut = { ...(canco.contingut || {}), videos: llista };
+  canviat();
+  pintaVideos();
+  pintaLlenc();
+}
+
+function omplenaVideosQR(e) {
+  const llista = videosCanco();
+  $("#video-qr").replaceChildren(...(llista.length
+    ? llista.map((v, i) => el("option", { text: v.titol || `Vídeo ${i + 1}`, atributs: { value: v.id } }))
+    : [el("option", { text: "La cançó no té cap vídeo", atributs: { value: "" } })]));
+  const costat = Math.min(e.w, e.h - (e.peu ? 4.5 : 0));
+  const avis = $("#avis-qr");
+  avis.classList.toggle("hidden", costat >= QR_MINIM && llista.length > 0);
+  avis.textContent = !llista.length
+    ? "Afegeix un vídeo a la pestanya Cançó."
+    : `El codi fa ${costat.toFixed(1)} mm. Per escanejar-lo bé, fes-lo de ${QR_MINIM} mm o més.`;
+}
+
+function pintaVideos() {
+  const llista = videosCanco();
+  $("#nou-video").classList.toggle("hidden", !editable);
+  $("#llista-videos").replaceChildren(...llista.map((v, i) => {
+    const li = el("li", { classe: "flex gap-2 rounded-md border border-paper-300 bg-white p-1.5" });
+    const mini = el("button", { classe: "relative h-12 w-20 shrink-0 overflow-hidden rounded bg-ink-900", atributs: { type: "button", title: "Mira el vídeo" } });
+    const img = el("img", { classe: "h-full w-full object-cover", atributs: { src: `https://i.ytimg.com/vi/${v.video}/mqdefault.jpg`, alt: "", loading: "lazy" } });
+    img.addEventListener("error", () => img.remove()); // sense connexió
+    mini.append(img, el("span", { text: "▶", classe: "absolute inset-0 flex items-center justify-center text-white drop-shadow" }));
+    mini.addEventListener("click", () => mostraVideo(v));
+    const cos = el("div", { classe: "flex min-w-0 flex-1 flex-col gap-1" });
+    const titol = el("input", { classe: "camp px-2 py-1 text-[13px]", atributs: { value: v.titol, placeholder: "Títol del vídeo", "aria-label": "Títol del vídeo" } });
+    titol.readOnly = !editable;
+    titol.addEventListener("change", () => canviaVideos(videosCanco().map((x) => (x.id === v.id ? { ...x, titol: titol.value } : x))));
+    const fila = el("div", { classe: "flex items-center gap-1 text-[12px] text-ink-500" });
+    const qr = el("input", { classe: "h-3.5 w-3.5 accent-vermello-500", atributs: { type: "checkbox", title: "Surt a l'índex de vídeos" } });
+    qr.checked = v.inclou_qr;
+    qr.disabled = !editable;
+    qr.addEventListener("change", () => canviaVideos(videosCanco().map((x) => (x.id === v.id ? { ...x, inclou_qr: qr.checked } : x))));
+    const etiqueta = el("label", { classe: "flex flex-1 items-center gap-1" });
+    etiqueta.append(qr, el("span", { text: v.inici ? `A l'índex · des de ${Math.floor(v.inici / 60)}:${String(v.inici % 60).padStart(2, "0")}` : "A l'índex" }));
+    fila.append(etiqueta);
+    if (editable) {
+      for (const [text, desp, titolBoto] of [["↑", -1, "Puja"], ["↓", 1, "Baixa"]]) {
+        const b = el("button", { text, classe: "btn btn-fantasma h-6 min-h-0 w-6 px-0 text-[12px]", atributs: { type: "button", title: titolBoto } });
+        b.disabled = !llista[i + desp];
+        b.addEventListener("click", () => {
+          const nova = [...videosCanco()];
+          [nova[i], nova[i + desp]] = [nova[i + desp], nova[i]];
+          canviaVideos(nova);
+        });
+        fila.append(b);
+      }
+      const treu = el("button", { text: "✕", classe: "btn btn-perill h-6 min-h-0 w-6 px-0 text-[12px]", atributs: { type: "button", title: "Treu el vídeo" } });
+      treu.addEventListener("click", () => {
+        if (confirm(`Vols treure «${v.titol || urlCurta(v)}»? Els QR que hi apunten quedaran buits.`)) canviaVideos(videosCanco().filter((x) => x.id !== v.id));
+      });
+      fila.append(treu);
+    }
+    cos.append(titol, fila);
+    li.append(mini, cos);
+    return li;
+  }));
+}
+
+function mostraVideo(v) {
+  $("#titol-dialeg-video").textContent = v.titol || urlCurta(v);
+  $("#reproductor-video").src = `https://www.youtube-nocookie.com/embed/${v.video}?autoplay=1${v.inici ? `&start=${v.inici}` : ""}`;
+  $("#dialeg-video").showModal();
+}
+$("#dialeg-video").addEventListener("close", () => { $("#reproductor-video").src = "about:blank"; });
+
+$("#nou-video").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const error = $("#error-video");
+  error.classList.add("hidden");
+  const boto = ev.target.querySelector("button");
+  boto.disabled = true;
+  try {
+    const r = await fetch(urls.video, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: $("#url-video").value }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "No s'ha pogut afegir el vídeo.");
+    if (videosCanco().some((x) => x.video === d.video.video && x.inici === d.video.inici)) throw new Error("Aquest vídeo ja hi és.");
+    canviaVideos([...videosCanco(), d.video]);
+    $("#url-video").value = "";
+  } catch (e) {
+    error.textContent = e.message;
+    error.classList.remove("hidden");
+  } finally {
+    boto.disabled = false;
+  }
+});
 
 for (const [camp, prop] of [["#titol-ev", "titol"], ["#autor-ev", "autor"]]) {
   $(camp).addEventListener("input", (ev) => {
@@ -2175,7 +2285,7 @@ $$("[data-transport]").forEach((b) => b.addEventListener("click", () => {
 $("#aplica-transport").addEventListener("click", async () => {
   const entrada = entradaActual();
   if (!entrada?.transport || !editable) return;
-  const { contingut } = await api(urls.transporta, "POST", { contingut: { format: 2, pagines }, semitons: entrada.transport });
+  const { contingut } = await api(urls.transporta, "POST", { contingut: { format: 2, pagines, videos: videosCanco() }, semitons: entrada.transport });
   foto(true);
   substitueixPagines(contingut.pagines);
   await api(urls.canco + canco.id, "PUT", { contingut });

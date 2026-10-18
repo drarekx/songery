@@ -1,6 +1,7 @@
 // Motor de dibuix de pàgines: el mateix codi pinta les pàgines a l'editor i a la pàgina que
 // Gotenberg (Chromium) converteix en PDF. Així el que es veu a l'editor és el que s'imprimeix.
 // Totes les mides són en mil·límetres sobre un A5 (148 × 210 mm).
+import qrcode from "qrcode-generator";
 import { creaEditorCanco } from "./editor-canco.js";
 
 export const AMPLE = 148;
@@ -78,6 +79,30 @@ export function substitueix(text, context) {
 }
 
 const mm = (v) => `${v}mm`;
+
+/** Mida mínima (mm) perquè un QR es pugui escanejar amb comoditat. */
+export const QR_MINIM = 15;
+
+/** Codi QR en SVG (generat aquí, sense connexió), amb un marge blanc de 2 mòduls. */
+export function svgQR(text, color = "#1b1a17") {
+  const qr = qrcode(0, "M");
+  qr.addData(text);
+  qr.make();
+  const n = qr.getModuleCount();
+  const marge = 2;
+  let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c + marge} ${r + marge}h1v1h-1z`;
+  const costat = n + 2 * marge;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${costat} ${costat}" shape-rendering="crispEdges">`
+    + `<rect width="${costat}" height="${costat}" fill="#fff"/><path d="${d}" fill="${color}"/></svg>`;
+}
+
+function textNode(classe, text) {
+  const node = document.createElement("span");
+  node.className = classe;
+  node.textContent = text;
+  return node;
+}
 
 function posiciona(node, e) {
   Object.assign(node.style, {
@@ -163,6 +188,45 @@ export function dibuixaElement(e, opcions) {
       formatPropi(node, e.format);
       break;
     }
+    case "qr": {
+      // Si no s'ha triat cap vídeo, el primer de la cançó.
+      const llista = context.videos || [];
+      const video = llista.find((v) => v.id === e.video) || (!e.video ? llista[0] : null);
+      node = document.createElement("div");
+      node.className = "el el-qr";
+      if (!video) {
+        node.append(textNode("qr-buit", llista.length ? "El vídeo d'aquest QR ja no hi és" : "Afegeix un vídeo a la cançó"));
+        break;
+      }
+      const peu = e.peu && video.titol ? 4.5 : 0;
+      const costat = Math.max(1, Math.min(e.w, e.h - peu));
+      const codi = document.createElement("div");
+      codi.className = "codi-qr";
+      codi.style.width = codi.style.height = mm(costat);
+      codi.innerHTML = svgQR(video.url, e.color || "#1b1a17");
+      node.append(codi);
+      if (peu) node.append(textNode("peu-qr estil-nota", video.titol));
+      if (costat < QR_MINIM) node.dataset.petit = "";
+      break;
+    }
+    case "index_qr": {
+      node = document.createElement("div");
+      node.className = `el el-index-qr estil-${e.estil || "index"}`;
+      for (const fila of opcions.qrs || []) {
+        const f = document.createElement("div");
+        f.className = "fila-qr";
+        const codi = document.createElement("div");
+        codi.className = "codi-qr";
+        codi.innerHTML = svgQR(fila.url);
+        const textos = document.createElement("div");
+        textos.className = "textos-qr";
+        textos.append(textNode("titol-index", fila.canco), textNode("video-qr", fila.titol || fila.url));
+        f.append(codi, textos, textNode("pagina-index", fila.pagina));
+        node.append(f);
+      }
+      formatPropi(node, e.format);
+      break;
+    }
     case "diagrames": {
       node = document.createElement("div");
       node.className = "el el-diagrames";
@@ -195,7 +259,7 @@ export function dibuixaPagina(pagina, opcions = {}) {
   const node = document.createElement("section");
   node.className = "pagina";
   node.style.background = pagina.fons || "#fff";
-  const comunes = { ...opcions, context: pagina.context, index: pagina.index, diagrames: pagina.diagrames,
+  const comunes = { ...opcions, context: pagina.context, index: pagina.index, diagrames: pagina.diagrames, qrs: pagina.qrs,
     grup: opcions.grup ?? pagina.entrada };
   if (pagina.mestra?.elements?.length) {
     const capa = document.createElement("div");

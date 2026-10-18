@@ -9,11 +9,11 @@ from __future__ import annotations
 import re
 import uuid
 
-from . import plantilles
+from . import plantilles, videos
 
 AMPLE = plantilles.AMPLE
 ALT = plantilles.ALT
-TIPUS = ("text", "lletra", "imatge", "forma", "numero", "index", "diagrames")
+TIPUS = ("text", "lletra", "imatge", "forma", "numero", "index", "diagrames", "qr", "index_qr")
 _COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 _CLAU = re.compile(r"^[a-z0-9_]{1,32}$")
 _FONT = re.compile(r"^[a-z0-9-]{1,48}$")
@@ -87,7 +87,7 @@ def element(e: dict) -> dict | None:
         net["estil"] = e["estil"]
     if e.get("format"):
         net["format"] = _format(e["format"])
-    if e["tipus"] in ("text", "numero", "index"):
+    if e["tipus"] in ("text", "numero", "index", "index_qr"):
         net["alineacio"] = e.get("alineacio") if e.get("alineacio") in ("left", "center", "right", "justify") else "left"
     if e["tipus"] == "text":
         net["text"] = str(e.get("text", ""))[:4000]
@@ -106,6 +106,10 @@ def element(e: dict) -> dict | None:
         net["radi"] = _num(e.get("radi"), 0, 0, 200)
         net["vora"] = _color(e.get("vora"))
         net["gruix"] = _num(e.get("gruix"), 0, 0, 30)
+    elif e["tipus"] == "qr":
+        net["video"] = str(e.get("video") or "")[:16]
+        net["peu"] = bool(e.get("peu", True))
+        net["color"] = _color(e.get("color"), "#1b1a17")
     return net
 
 
@@ -137,7 +141,10 @@ def contingut(c: dict) -> dict:
     pagines = c.get("pagines") if isinstance(c, dict) else None
     if not isinstance(pagines, list) or not pagines:
         raise ValueError("La cançó ha de tenir com a mínim una pàgina.")
-    return {"format": 2, "pagines": [pagina(p) for p in pagines[:40]]}
+    net = {"format": 2, "pagines": [pagina(p) for p in pagines[:40]]}
+    if c.get("videos"):
+        net["videos"] = videos.normalitza(c["videos"])
+    return net
 
 
 def estils(valor) -> dict:
@@ -171,4 +178,4 @@ def mestres(valor) -> list[dict]:
 def especials(valor) -> dict:
     if not isinstance(valor, dict):
         return {}
-    return {nom: pagina(valor[nom]) for nom in ("portada", "index", "acords", "contraportada") if nom in valor}
+    return {nom: pagina(valor[nom]) for nom in plantilles.ESPECIALS if nom in valor}

@@ -115,5 +115,5 @@ def test_pagines_lliures_i_elements_de_biblioteca():
 
 def test_disseny_per_defecte_del_canconer():
     meta = bd.meta_canconer(bd.crea_canconer("K"))
-    assert set(meta["especials"]) == {"portada", "index", "acords", "contraportada"}
+    assert set(meta["especials"]) == {"portada", "index", "acords", "index_qr", "contraportada"}
     assert meta["mestres"][0]["id"] == "estandard" and "lletra" in meta["estils"]
