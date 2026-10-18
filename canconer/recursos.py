@@ -1,288 +1,519 @@
 """Cançoners base: reculls de cançons de domini públic que es poden crear des de la pàgina d'inici.
 
-Només hi van cançons tradicionals o d'autors morts fa més de 80 anys. Els acords són una
-harmonització senzilla per a guitarra.
+Només hi van cançons tradicionals o d'autors morts fa més de 80 anys. Les lletres i els acords
+(per a guitarra) estan contrastats amb fonts: vegeu el comentari de cada recull.
 """
 
 from __future__ import annotations
 
 from . import basedades, document
 
+# Lletres i acords contrastats sobretot amb «Cançons populars i tradicionals a l'escola» (Generalitat),
+# que porta els acords sobre la partitura, i amb Viquitexts, la Viquipèdia i reculls d'acords.
+# Caga tió és una cantarella: els acords de la versió curta només tenen una font.
 NADALES = [
     {"titol": "El cant dels ocells", "autor": "Popular catalana", "cos": """\
-[Intro]
-Am  E  Am
-
-Am          E
-Al veure despuntar
-            Am
-el major lluminar
-Dm         Am      E
-en la nit més ditxosa,
-Am           E
-els ocellets cantant
-           Am
+   Em
+En veure despuntar
+   B7         Em
+el major lluminar,
+   F#           B7
+en la nit més joiosa,
+E                Am
+els ocellets, cantant,
+  D7          G
 a festejar-lo van
-Dm        E        Am
-amb sa veu melindrosa.
+       F#       B7 Em
+amb sa veu melindrosa. (bis)
 
-Am          E
+   Em
 L'àliga imperial
-            Am
-pels aires va volant
-Dm        Am       E
+     B7         Em
+pels aires va volant,
+   F#           B7
 cantant amb melodia,
-Am          E
+E               Am
 dient: Jesús és nat
-           Am
-per treure'ns del pecat
-Dm       E        Am
-i dar-nos alegria."""},
+    D7             G
+per treure'ns de pecat
+      F#     B7 Em
+i dar-nos alegria. (bis)
+
+   Em
+Respon-li lo pardal:
+ B7            Em
+Avui, nit de Nadal,
+   F#             B7 Em
+és nit de gran contento!
+E                 Am
+El verdum i el lluer
+   D7             G
+diuen cantant, també:
+       F#         B7 Em
+Oh, quina alegria sento! (bis)"""},
     {"titol": "Fum, fum, fum", "autor": "Popular catalana", "cos": """\
-Dm                 A
+Am            E
 A vint-i-cinc de desembre,
-Dm      A   Dm
+Am   E7   Am
+fum, fum, fum;
+Am            E
+a vint-i-cinc de desembre,
+Am   E7   Am
 fum, fum, fum.
-Dm                 A
-A vint-i-cinc de desembre,
-Dm      A   Dm
-fum, fum, fum.
-F               C
+G     C      G7   C
 Ha nascut un minyonet
-          F      C       F
-ros i blanquet, ros i blanquet;
-Dm              A
+    G7    C         G7    C
+ros i blanquet, ros i blanquet,
+        Dm         E
 fill de la Verge Maria,
-Dm               A
+Am       Dm         E
 n'és nat en una establia,
-Dm      A   Dm
+Am   E7   Am
 fum, fum, fum.
 
-Dm                 A
+Am           E
 Allà dalt de la muntanya,
-Dm      A   Dm
+Am   E7   Am
+fum, fum, fum;
+Am           E
+allà dalt de la muntanya,
+Am   E7   Am
 fum, fum, fum.
-Dm                 A
-Allà dalt de la muntanya,
-Dm      A   Dm
-fum, fum, fum.
-F               C
+G       C      G7   C
 Si n'hi ha dos pastorets
-           F       C        F
+ G7   C      G7   C
 abrigadets, abrigadets,
-Dm              A
-amb la pell i la samarra,
-Dm               A
-menjant ous i botifarra,
-Dm      A   Dm
+       Dm          E
+amb la pell i la samarra
+Am     Dm        E
+mengen ous i botifarra,
+Am   E7   Am
+fum, fum, fum.
+
+Am              E
+Qui en dirà més gran mentida?,
+Am   E7   Am
+fum, fum, fum;
+Am              E
+qui en dirà més gran mentida?,
+Am   E7   Am
+fum, fum, fum.
+G        C      G7  C
+Ja en respon el majoral,
+    G7     C        G7     C
+amb gran cabal, amb gran cabal:
+        Dm           E
+Jo en faré deu mil camades
+Am     Dm            E
+amb un salt totes plegades,
+Am   E7   Am
 fum, fum, fum."""},
     {"titol": "El noi de la mare", "autor": "Popular catalana", "cos": """\
-D                    A
+D                   G
 Què li darem a n'el Noi de la Mare?
-A                    D
+D                   G      D
 Què li darem que li sàpiga bo?
-D            G       D
+                  A7      D
 Panses i figues i nous i olives,
-G           D    A      D
-panses i figues i mel i mató."""},
+                  A7      D
+panses i figues i mel i mató.
+
+D                 G
+Què li darem al Fillet de Maria?
+D                  G        D
+Què li darem al formós Infantó?
+                    A7     D
+Li darem panses amb unes balances,
+                    A7     D
+li darem figues amb un paneró.
+
+D                      G
+Tam, patantam, que les figues són verdes;
+D                     G     D
+tam, patantam, que ja maduraran.
+                 A7     D
+Si no maduren el dia de Pasqua,
+                A7      D
+maduraran en el dia del Ram."""},
     {"titol": "El desembre congelat", "autor": "Popular catalana", "cos": """\
-G              D
+     D
 El desembre congelat
-G         D
-confús es retira;
-G            C
-abril, de flors coronat,
-G       D     G
+       G    A7 D
+confús es retira.
+                    D
+Abril, de flors coronat,
+       G     A7 D
 tot el món admira.
-C               G
+        G           D
 Quan en un jardí d'amor
-D               G
+      G         D
 neix una divina flor,
-G
 d'una ro, ro, ro,
-D
 d'una sa, sa, sa,
-G             D
 d'una ro, d'una sa,
-G          C
 d'una rosa bella,
-G       D      G
+D7   G       A7 D
 fecunda i poncella.
 
-G              D
+      D
 El primer pare causà
-G         D
+       G   A7 D
 la nit tenebrosa
-G            C
+                     D
 que a tot el món ofuscà
-G       D     G
+      G    A7 D
 la vista penosa;
-C               G
-mes en una mitjanit
-D               G
+        G        D
+mes, en una mitjanit,
+          G              D
 brilla el sol que n'és eixit
-G
 d'una be, be, be,
-D
 d'una lla, lla, lla,
-G             D
 d'una be, d'una lla,
-G          C
 d'una bella aurora
-G       D      G
-que el cel enamora."""},
+D7         G  A7 D
+que el cel enamora.
+
+    D
+Arribaren els tres Reis
+       G     A7 D
+amb molta alegria,
+                   D
+adorant el Rei del Cel
+    G      A7 D
+en una establia.
+   G               D
+Oferint-li tres presents,
+        G             D
+com són or, mirra i encens.
+A la Ma, Ma, Ma,
+a la re, re, re,
+a la Ma, a la re,
+a la Mare pia,
+D7    G    A7 D
+la Verge Maria."""},
     {"titol": "Caga tió", "autor": "Popular catalana", "cos": """\
-C                 G
+D    G    D            G
 Caga tió, ametlles i torró,
-C                    G
+   G          C          D           G
 no caguis arengades, que són massa salades,
-C          G       C
-caga torrons, que són més bons."""},
-    {"titol": "Adeste fideles", "autor": "Tradicional (llatí)", "cos": """\
-G       D    G     C   G   D
+G      C          D       G
+caga torrons, que són més bons.
+
+G
+Caga tió, tió de Nadal;
+posarem el porc en sal,
+la gallina a la pastera
+i el pollí a dalt del pi.
+Toca, toca, Valentí.
+Passen bous i vaques,
+gallines amb sabates
+i galls amb sabatons.
+Correu, correu, minyons,
+que la teta fa torrons,
+el vicari els ha tastats,
+diu que són un poc salats.
+Ai, el brut; ai, el porc;
+ai, el cara, cara, cara;
+ai, el brut; ai, el porc;
+ai, el cara de pebrot."""},
+    {"titol": "Adeste fideles", "autor": "Tradicional (llatí) · atribuït a John Francis Wade", "cos": """\
+G        Am D   G  D  G  C G   D
 Adeste fideles, laeti triumphantes,
-Em  D   A7    D    G   A   D
+Em  D   A D    G  D   A7 D
 venite, venite in Bethlehem.
-G         C     G    D
-Natum videte regem angelorum.
+G       D7 G  D G   Em Am D
+Natum videte, Regem angelorum.
 
 [Tornada]
-G                 D
+G       D7 G
 Venite adoremus,
-G                 D
+G       D7 G D
 venite adoremus,
-Em    D  C    G  C  G  D  G
-venite adoremus Dominum."""},
+G   D   A7 D G
+venite adoremus
+G D7 G
+Dominum.
+
+Cantet nunc io chorus angelorum,
+cantet nunc aula caelestium:
+Gloria, gloria in excelsis Deo!
+
+[Tornada]"""},
 ]
 
+# Lletres contrastades amb Viquitexts i la Viquipèdia (Els segadors: text oficial; La Balanguera: l'estrofa
+# 1a, 2a i última, com es canten). Acords contrastats amb reculls d'acords i partitures antigues; La
+# Santa Espina només té una font d'acords (pendent de revisar tocant-la).
 POPULARS = [
     {"titol": "Els segadors", "autor": "Popular · lletra d'Emili Guanyavents", "cos": """\
-Dm                 A7
+Em        B7   Em
 Catalunya triomfant
-                   Dm
-tornarà a ser rica i plena.
-Dm                 A7
-Endarrere aquesta gent
-                   Dm
-tan ufana i tan superba.
+Em   G               D  Em
+tornarà a ser rica i plena!
+Em  G             B7
+Endarrera aquesta gent
+            Am    B7 Em
+tan ufana i tan superba!
 
 [Tornada]
-F            C
+Em
 Bon cop de falç!
-A7                            Dm
-Bon cop de falç, defensors de la terra!
-F            C   A7  Dm
+G          Am
+Bon cop de falç,
+          B7    D Em
+defensors de la terra!
+Am         Em
 Bon cop de falç!
 
-Dm                 A7
-Ara és hora, segadors,
-                   Dm
-ara és hora d'estar alerta.
-Dm                 A7
+Em           B7  Em
+Ara és hora, segadors!
+Em     G             D  Em
+Ara és hora d'estar alerta!
+Em       G               B7
 Per quan vingui un altre juny
-                   Dm
-esmolem ben bé les eines.
+            Am     B7 Em
+esmolem ben bé les eines!
 
 [Tornada]
 
-Dm                 A7
+Em          B7   Em
 Que tremoli l'enemic
-                   Dm
+Em    G               D Em
 en veient la nostra ensenya:
-Dm                 A7
+Em      G              B7
 com fem caure espigues d'or,
-                   Dm
-quan convé seguem cadenes.
+             Am     B7 Em
+quan convé seguem cadenes!
 
 [Tornada]"""},
     {"titol": "La Balanguera", "autor": "Joan Alcover · Amadeu Vives", "cos": """\
-Am              E
+        F     Gm   Bb
 La Balanguera misteriosa,
-E7              Am
+         F     Bb       C
 com una aranya d'art subtil,
-Am              Dm
-buida que buida la filosa,
-E               Am
-de nostra vida treu lo fil.
-C               G
-Com una parca, bé cavil·la
-G7              C
+          Bb         F
+buida que buida sa filosa,
+          F            C
+de nostra vida treu el fil.
+        F     Gm   Bb
+Com una parca bé cavil·la
+           F    Bb    C
 teixint la tela per demà.
-F            C       E      Am
+        Bb          F
 La Balanguera fila, fila,
-Dm         E     Am
+        Bb    C   F
+la Balanguera filarà.
+
+        Gm       Bb    C
+Com una parca bé cavil·la
+           Gm   Bb    C
+teixint la tela per demà.
+        Bb          F
+La Balanguera fila, fila,
+        Bb    C   F
+la Balanguera filarà.
+
+Girant l'ullada cap enrere
+guaita les ombres de l'avior,
+i de la nova primavera
+sap on s'amaga la llavor.
+Sap que la soca més s'enfila
+com més endins pot arrelar.
+La Balanguera fila, fila,
+la Balanguera filarà.
+
+Sap que la soca més s'enfila
+com més endins pot arrelar.
+La Balanguera fila, fila,
+la Balanguera filarà.
+
+De tradicions i d'esperances
+tix la senyera pel jovent,
+com qui fa un vel de noviances
+amb cabelleres d'or i argent.
+De la infantesa qui s'enfila,
+de la vellura qui se'n va.
+La Balanguera fila, fila,
+la Balanguera filarà.
+
+De la infantesa qui s'enfila,
+de la vellura qui se'n va.
+La Balanguera fila, fila,
 la Balanguera filarà."""},
     {"titol": "La Santa Espina", "autor": "Àngel Guimerà · Enric Morera", "cos": """\
-C                 G
+A
 Som i serem gent catalana
-G7                C
 tant si es vol com si no es vol,
-C               F
+D                       C#7
 que no hi ha terra més ufana
-C       G         C
+E                A
 sota la capa del sol.
-F                 C
+
+Am                       Dm
 Déu va passar-hi en primavera,
-G                 C
+         E           Am
 i tot cantava al seu pas.
-F                 C
+Am                      Dm
 Canta la terra encara entera,
-G                 C
-i canta que cantaràs."""},
+     E           Am
+i canta que cantaràs.
+
+Am                            C
+Canta l'ocell, el riu, la planta,
+                     E7
+canten la lluna i el sol.
+Am                     Dm
+Tot treballant la dona canta
+           E7         Am
+i canta al peu del bressol.
+
+A                      D
+I canta a dintre de la terra
+     E            A
+lo passat jamai passat,
+A                           D
+i jorns i nits, de serra en serra,
+         E              A
+com tot, canta el Montserrat.
+
+A
+Som i serem gent catalana
+tant si es vol com si no es vol,
+D                       C#7
+que no hi ha terra més ufana
+E                A
+sota la capa del sol."""},
     {"titol": "El rossinyol", "autor": "Popular catalana", "cos": """\
-G                D
+G
 Rossinyol, que vas a França,
-       G
 rossinyol,
-               D
+Em
 encomana'm a la mare,
-       G
+     D
 rossinyol,
-C           G
+D
 d'un bell bocatge,
-D        G
-rossinyol d'un vol.
+     C          G
+rossinyol, d'un vol.
 
-G                D
+G
 Encomana'm a la mare,
-       G
 rossinyol,
-               D
-i a mon pare no,
-       G
+Em
+i a mon pare no pas gaire,
+     D
 rossinyol,
-C           G
+D
 d'un bell bocatge,
-D        G
-rossinyol d'un vol."""},
-    {"titol": "El gegant del Pi", "autor": "Popular catalana", "cos": """\
-D                 A
-El gegant del Pi ara balla, ara balla,
-A                 D
-el gegant del Pi ara balla pel camí.
+     C          G
+rossinyol, d'un vol.
 
-D                       A
-El gegant de la ciutat ara balla, ara balla,
-A                       D
-el gegant de la ciutat ara balla pel terrat."""},
+G
+I a mon pare no pas gaire,
+rossinyol,
+Em
+perquè m'ha mal maridada,
+     D
+rossinyol,
+D
+d'un bell bocatge,
+     C          G
+rossinyol, d'un vol.
+
+G
+Perquè m'ha mal maridada,
+rossinyol,
+Em
+a un pastor me n'ha dada,
+     D
+rossinyol,
+D
+d'un bell bocatge,
+     C          G
+rossinyol, d'un vol.
+
+G
+A un pastor me n'ha dada,
+rossinyol,
+Em
+que em fa guardar la ramada,
+     D
+rossinyol,
+D
+d'un bell bocatge,
+     C          G
+rossinyol, d'un vol.
+
+G
+Que em fa guardar la ramada,
+rossinyol,
+Em
+he perduda l'esquellada,
+     D
+rossinyol,
+D
+d'un bell bocatge,
+     C          G
+rossinyol, d'un vol."""},
+    {"titol": "El gegant del Pi", "autor": "Popular catalana", "cos": """\
+     G
+El gegant del Pi
+    D          G
+ara balla, ara balla,
+el gegant del Pi
+    D           G
+ara balla pel camí.
+
+     G
+El gegant de la Ciutat
+    D          G
+ara balla, ara balla,
+el gegant de la Ciutat
+    D           G
+ara balla pel terrat.
+
+     G
+La tintina del gegant
+    D          G
+ara passa, ara passa,
+la tintina del gegant
+    D           G
+ara passa pel davant."""},
     {"titol": "Plou i fa sol", "autor": "Popular catalana", "cos": """\
-C          G
+C
 Plou i fa sol,
-G                 C
+    G             C
 les bruixes es pentinen,
-C          G
+C
 plou i fa sol,
-G               C
+    G              C
+les bruixes porten dol.
+
+C
+Plou i fa sol,
+    G             C
+les bruixes es pentinen,
+C
+plou i fa sol,
+    G            C
 les bruixes fan un ou."""},
     {"titol": "Cargol treu banya", "autor": "Popular catalana", "cos": """\
-D                A
+   G
 Cargol, treu banya,
-A                 D
-puja a la muntanya,
-D             A
+puja a la muntanya;
+   D         G
+cargol, treu vi,
+D            G
+puja al muntanyí.
+
+   G
+Cargol, treu banya,
+puja a la muntanya;
+   D     G
 cargol bover,
-A              D
-puja al teu paper."""},
+D           G
+jo també vindré."""},
 ]
 
 BASES = {
