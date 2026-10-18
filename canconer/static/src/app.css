@@ -44,6 +44,7 @@
 @keyframes dialeg-entra { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
 @keyframes dialeg-surt { to { opacity: 0; transform: translateY(4px) scale(0.98); } }
 @keyframes fons-entra { from { opacity: 0; } }
+@keyframes menu-entra { from { opacity: 0; transform: scale(0.97); } }
 @keyframes fons-surt { to { opacity: 0; } }
 
 @layer components {
@@ -123,6 +124,22 @@
   .dialeg-app-camp { @apply mt-2; }
   .dialeg-app-botons { @apply col-span-2 flex justify-end gap-2; }
   .btn-perill-ple { @apply border-vermello-600 bg-vermello-600 text-white hover:border-vermello-700 hover:bg-vermello-700; }
+
+  /* Menú del botó dret */
+  .menu-context {
+    @apply fixed z-[70] flex min-w-[14rem] max-w-[20rem] flex-col rounded-xl border border-paper-300 bg-paper-50/95 p-1 shadow-full outline-none backdrop-blur;
+    animation: menu-entra 0.12s ease-out;
+  }
+  .menu-context-item {
+    @apply flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13.5px] text-ink-900 outline-none transition-colors
+      hover:bg-vermello-500 hover:text-white focus-visible:bg-vermello-500 focus-visible:text-white disabled:pointer-events-none disabled:opacity-40;
+  }
+  .menu-context-item.perill { @apply text-vermello-700 hover:bg-vermello-600 hover:text-white; }
+  .menu-context-item:hover .menu-context-drecera, .menu-context-item:focus-visible .menu-context-drecera { @apply text-white/80; }
+  .menu-context-marca { @apply w-3 shrink-0 text-center text-[12px]; }
+  .menu-context-drecera { @apply font-sans text-[12px] text-ink-400; }
+  .menu-context-separador { @apply mx-2 my-1 h-px bg-paper-300; }
+  .menu-context-seccio { @apply px-2 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink-400; }
 
   /* Passos de l'actualització */
   .pas-actualitzacio { @apply flex items-start gap-4 px-5 py-4 transition; }

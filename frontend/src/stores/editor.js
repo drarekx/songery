@@ -54,6 +54,9 @@ export const useEditorStore = defineStore("editor", {
     edicio: null,
     /** Avís sobre el llenç: {text, accions: [{text, primari, fes()}]}; null si no n'hi ha. */
     avis: null,
+    /** Menú del botó dret: {x, y, items: [{text, fes(), drecera, perill, desactivat, marcat} |
+     *  {seccio: "títol"} | {separador: true}]}; null si no n'hi ha cap d'obert. */
+    menu: null,
     urls: {},
     /** Accions que encara fa editor.js. */
     ponts: markRaw({}),
@@ -63,6 +66,12 @@ export const useEditorStore = defineStore("editor", {
     transport: (estat) => Number(estat.entrada?.transport || 0),
   },
   actions: {
+    obreMenu(x, y, items) {
+      this.menu = { x, y, items: markRaw(items) };
+    },
+    tancaMenu() {
+      this.menu = null;
+    },
     sincronitza(canvis) {
       this.$patch((estat) => Object.assign(estat, canvis));
     },

@@ -26,6 +26,37 @@ const actiu = (clau) => store.llista.obert === clau;
 const pagines = (c) => (c.pagines.length > 1 ? `pàg. ${c.pagines[0]}–${c.pagines.at(-1)}` : `pàg. ${c.pagines[0]}`);
 const obre = (tipus, id) => store.crida("obre", tipus === "llibre" ? { tipus } : { tipus, id });
 
+/** Menú del botó dret d'una cançó o pàgina lliure. */
+function menuCanco(ev, c, i) {
+  const n = store.llista.cancons.length;
+  const obreIFes = async (accio) => { await obre("canco", c.id); store.crida(accio); };
+  store.obreMenu(ev.clientX, ev.clientY, [
+    { seccio: c.titol || "Sense títol" },
+    { text: "Obre", fes: () => obre("canco", c.id) },
+    { separador: true },
+    { text: "Surt al PDF", marcat: c.inclosa, fes: () => store.crida("canviaEntrada", c.id, { inclosa: !c.inclosa }) },
+    ...(c.tipus === "pagina" ? [] : [{ text: "Comença sempre a l'esquerra", marcat: c.inici !== "qualsevol",
+      fes: () => store.crida("canviaEntrada", c.id, { inici: c.inici === "qualsevol" ? "esquerra" : "qualsevol" }) }]),
+    { separador: true },
+    { text: "Mou amunt", desactivat: i === 0, fes: () => store.crida("mouEntrada", c.id, -1) },
+    { text: "Mou avall", desactivat: i === n - 1, fes: () => store.crida("mouEntrada", c.id, 1) },
+    { text: "Versions i historial…", fes: () => obreIFes("obreHistorial") },
+    { separador: true },
+    { text: "Treu del cançoner…", perill: true, fes: () => obreIFes("treuCanco") },
+  ]);
+}
+
+/** Menú del botó dret d'una pàgina mestra. */
+function menuMestra(ev, m) {
+  const obreIFes = async (accio) => { await obre("mestra", m.id); store.crida(accio); };
+  store.obreMenu(ev.clientX, ev.clientY, [
+    { seccio: m.nom },
+    { text: "Obre", fes: () => obre("mestra", m.id) },
+    { text: "Duplica", fes: () => obreIFes("duplicaMestra") },
+    ...(m.id === "estandard" ? [] : [{ separador: true }, { text: "Esborra…", perill: true, fes: () => obreIFes("esborraMestra") }]),
+  ]);
+}
+
 function comencaArrossegar(ev, c) {
   arrossegada.value = c.id;
   ordreProvisional.value = store.llista.cancons.map((x) => x.id);
@@ -71,7 +102,7 @@ function deixa() {
       <h2 class="titol-seccio-llista p-0">Cançons i pàgines <span class="ml-1 font-mono normal-case tracking-normal text-ink-300">{{ compte }}</span></h2>
     </div>
     <ol ref="llistaEl" class="llista-ev flex flex-col gap-0.5 px-2 pt-1" @pointermove="arrossega" @pointerup="deixa" @pointercancel="deixa">
-      <li v-for="(c, i) in cancons" :key="c.id" :data-id="c.id"
+      <li v-for="(c, i) in cancons" :key="c.id" :data-id="c.id" @contextmenu.prevent="menuCanco($event, c, i)"
           class="group relative flex items-center rounded-md transition"
           :class="[actiu(`canco:${c.id}`) ? 'bg-white shadow-suau ring-1 ring-paper-300' : 'hover:bg-paper-200/70', { 'opacity-60': !c.inclosa, arrossegant: arrossegada === c.id }]">
         <span v-if="actiu(`canco:${c.id}`)" class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-vermello-500" aria-hidden="true"></span>
@@ -118,7 +149,7 @@ function deixa() {
       </div>
     </div>
     <ul class="flex flex-col gap-0.5 px-2 pb-4 pt-1">
-      <li v-for="m in store.mestres" :key="m.id">
+      <li v-for="m in store.mestres" :key="m.id" @contextmenu.prevent="menuMestra($event, m)">
         <button type="button" class="item-llista w-full" :aria-current="String(actiu(`mestra:${m.id}`))" @click="obre('mestra', m.id)">
           <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-paper-300 font-mono text-[9px] font-bold text-ink-700" aria-hidden="true">M</span>
           <span class="flex-1 truncate text-left">{{ m.nom }}</span>

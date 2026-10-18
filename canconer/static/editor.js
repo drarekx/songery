@@ -7,7 +7,7 @@ import {
   reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
+  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
@@ -343,6 +343,7 @@ muntaPanellLlista("#panell-llista");
 muntaBarraEines("#barra-llenc");
 muntaBarraText("#barra-text");
 muntaAvisLlenc("#avis-llenc");
+muntaMenuContext("#menu-context");
 muntaPanellAcords("#llista-acords");
 muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
@@ -1426,6 +1427,106 @@ llenc.addEventListener("drop", async (ev) => {
   $("#fitxer-imatge").files = dt.files;
   $("#fitxer-imatge").dataset.desti = "element";
   $("#fitxer-imatge").dispatchEvent(new Event("change"));
+});
+
+// ------------------------------------------------------------ Menú del botó dret (llenç)
+
+const separador = { separador: true };
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+const tecla = (d) => (MAC ? d : d.replace("⌘", "Ctrl+").replace("⇧", "Maj+").replace("⌥", "Alt+"));
+
+/** Afegeix un element nou centrat en un punt de la pàgina (des del menú «Afegeix aquí»). */
+function afegeixA(tipus, p, punt) {
+  if (tipus === "nou-imatge") return EINES["nou-imatge"]();
+  const element = { id: nouId(), rotacio: 0, opacitat: 1, ...NOUS[tipus]() };
+  element.x = arrodoneix(Math.min(AMPLE - element.w, Math.max(0, punt.x - element.w / 2)));
+  element.y = arrodoneix(Math.min(ALT - element.h, Math.max(0, punt.y - element.h / 2)));
+  seleccio = { p, id: null };
+  afegeix(element);
+}
+
+/** Opcions per a la selecció (un element o diversos). */
+function menuSeleccio() {
+  const els = elementsSel();
+  const e = els.length === 1 ? els[0] : null;
+  const grup = els.length > 1 && !!els[0].grup && els.every((x) => x.grup === els[0].grup);
+  const propies = [];
+  if (e?.tipus === "lletra") propies.push({ text: "Edita la lletra", drecera: "doble clic", fes: () => editaLletra(seleccio.p, e.id) });
+  if (e?.tipus === "text") propies.push({ text: "Edita el text", drecera: "doble clic", fes: () => editaText(seleccio.p, e.id, nodeElement(seleccio.p, e.id)) });
+  if (e?.tipus === "imatge") propies.push({ text: "Canvia la imatge…", fes: () => { $("#fitxer-imatge").dataset.desti = "substitueix"; $("#fitxer-imatge").click(); } });
+  if (e?.grup) propies.push({ text: "Selecciona tot el grup", fes: () => selecciona(seleccio.p, e.id) });
+  return [
+    ...(els.length > 1 ? [{ seccio: grup ? `Grup de ${els.length}` : `${els.length} elements` }] : []),
+    ...propies, ...(propies.length ? [separador] : []),
+    { text: "Copia", drecera: tecla("⌘C"), fes: copiaElement },
+    { text: "Enganxa", drecera: tecla("⌘V"), desactivat: !portapapers || !editable, fes: () => enganxaElements(portapapers) },
+    { text: "Duplica", drecera: tecla("⌘D"), desactivat: !editable, fes: () => accio("duplica") },
+    separador,
+    { text: "Porta al davant", desactivat: !editable, fes: () => accio("davant") },
+    { text: "Envia al fons", desactivat: !editable, fes: () => accio("darrere") },
+    ...(els.length > 1 && !grup ? [{ text: "Agrupa", drecera: tecla("⌘G"), desactivat: !editable, fes: () => accio("agrupa") }] : []),
+    ...(els.some((x) => x.grup) ? [{ text: "Desagrupa", drecera: tecla("⇧⌘G"), desactivat: !editable, fes: () => accio("desagrupa") }] : []),
+    { text: els.every((x) => x.bloquejat) ? "Desbloqueja" : "Bloqueja", marcat: els.every((x) => x.bloquejat), desactivat: !editable, fes: () => accio("bloqueja") },
+    ...(pagines.length > 1 ? [
+      { text: "Passa a la pàgina anterior", desactivat: !editable || seleccio.p === 0, fes: () => accio("a-pagina-anterior") },
+      { text: "Passa a la pàgina següent", desactivat: !editable || seleccio.p >= pagines.length - 1, fes: () => accio("a-pagina-seguent") },
+    ] : []),
+    { text: "Desa a la biblioteca d'elements…", fes: () => desaSeleccioABiblioteca(els.length > 1 ? "multi" : "element") },
+    separador,
+    { text: "Esborra", drecera: "Supr", perill: true, desactivat: !editable, fes: () => accio("esborra") },
+  ];
+}
+
+/** Enganxa el que s'ha copiat amb el centre on s'ha clicat. */
+function enganxaA(p, punt) {
+  const r = requadre(portapapers);
+  const dx = punt.x - (r.x + r.w / 2);
+  const dy = punt.y - (r.y + r.h / 2);
+  seleccio = { p, id: null };
+  enganxaElements(portapapers.map((e) => ({ ...e, x: e.x + dx, y: e.y + dy })), 0);
+}
+
+/** Opcions per a un lloc buit d'una pàgina. */
+function menuPagina(p, punt) {
+  const canco = obert?.tipus === "canco";
+  const afegir = [
+    ["nou-text", "Text"], ["nou-lletra", "Marc de lletra"], ["nou-imatge", "Imatge…"], ["nou-forma", "Rectangle"],
+    ["nou-elipse", "El·lipse"], ["nou-numero", "Número de pàgina"], ...(canco ? [["nou-qr", "Codi QR d'un vídeo"]] : []),
+  ].map(([tipus, text]) => ({ text, desactivat: !editable, fes: () => afegeixA(tipus, p, punt) }));
+  return [
+    { text: "Enganxa aquí", drecera: tecla("⌘V"), desactivat: !portapapers || !editable, fes: () => enganxaA(p, punt) },
+    { seccio: "Afegeix aquí" }, ...afegir,
+    ...(canco ? [{ text: "Diagrames d'acords…", desactivat: !editable, fes: () => { if ($("#panell-acords").classList.contains("hidden")) EINES.acords(); } }] : []),
+    separador,
+    { text: "Selecciona-ho tot", drecera: tecla("⌘A"), fes: () => seleccionaMolts(p, pagines[p].elements.filter((e) => !e.bloquejat).map((e) => e.id)) },
+    ...(canco ? [
+      { seccio: "Pàgina" },
+      { text: "Afegeix una pàgina després", desactivat: !editable, fes: () => { seleccio = { p, id: null }; EINES["pagina-nova"](); } },
+      { text: "Duplica la pàgina", desactivat: !editable, fes: () => { seleccio = { p, id: null }; EINES["pagina-duplica"](); } },
+      { text: "Esborra la pàgina…", perill: true, desactivat: !editable || pagines.length < 2, fes: () => { seleccio = { p, id: null }; EINES["pagina-esborra"](); } },
+    ] : []),
+    separador,
+    { text: "Ajusta el zoom a la finestra", fes: () => posaZoom(1) },
+  ];
+}
+
+llenc.addEventListener("contextmenu", (ev) => {
+  // Mentre s'escriu, el menú del navegador (corrector, copiar i enganxar).
+  if (ev.target.closest(".editant, [contenteditable='true'], [contenteditable='plaintext-only']")) return;
+  const caixa = ev.target.closest(".pagina-editor");
+  if (!caixa || obert?.tipus === "llibre") return;
+  ev.preventDefault();
+  const p = Number(caixa.dataset.pagina);
+  const node = ev.target.closest(".capa-elements [data-id]") || ev.target.closest(".capa-seleccio") && seleccio?.p === p && nodeElement(p, idsSel()[0]);
+  const id = node?.dataset?.id;
+  if (id) {
+    // Si l'element no és a la selecció, se selecciona (amb el seu grup); si hi és, es manté tota la selecció.
+    if (!(seleccio?.p === p && idsSel().includes(id))) selecciona(p, id);
+    store.obreMenu(ev.clientX, ev.clientY, menuSeleccio());
+  } else {
+    selecciona(p, null);
+    store.obreMenu(ev.clientX, ev.clientY, menuPagina(p, puntMm(ev, caixa)));
+  }
 });
 
 // ------------------------------------------------------------ Accions sobre l'element
