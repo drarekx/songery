@@ -205,6 +205,7 @@ codi font (`eines/ghostscript/LICENSE` i `CODI_FONT`) i es fa servir sense modif
 
 ```bash
 python -m pytest                   # tests del servidor (la prova amb Gotenberg s'omet si no està en marxa)
+python -m pytest -m "not e2e"     # sense els tests de punta a punta (navegador real, tests/e2e)
 ./eines/css.sh [--watch]           # compila el CSS de Tailwind (sense Node)
 cd frontend && npm install
 npm run build                      # Vite: motor de pàgines, Tiptap i components Vue → canconer/static/dist/

@@ -38,7 +38,8 @@ export const usePreferencies = defineStore("preferencies", {
       pendents = {};
       if (!Object.keys(canvis).length) return;
       try {
-        const r = await fetch(URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(canvis) });
+        // keepalive: la petició s'acaba encara que es tanqui o es recarregui la pàgina.
+        const r = await fetch(URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(canvis), keepalive: true });
         if (!r.ok) throw new Error(r.statusText);
         this.valors = { ...this.valors, ...(await r.json()) };
       } catch {
@@ -47,4 +48,9 @@ export const usePreferencies = defineStore("preferencies", {
       }
     },
   },
+});
+
+// En sortir de la pàgina, es desa el que encara no s'hagi desat.
+window.addEventListener("pagehide", () => {
+  if (Object.keys(pendents).length) usePreferencies().desa();
 });

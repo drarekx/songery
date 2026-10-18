@@ -35,6 +35,7 @@ function aplica(v) {
 
 function desa() {
   preferencies.posa(props.clau, ample.value);
+  preferencies.desa(); // ara mateix: és el final d'un gest
   props.alAcabar?.();
 }
 
