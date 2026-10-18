@@ -14,16 +14,35 @@ Obre el Terminal i enganxa:
 curl -fsSL https://raw.githubusercontent.com/drarekx/songery/main/install.sh | bash
 ```
 
-Instal·la l'última versió a Aplicacions i l'obre. Per actualitzar-la, torna a executar la mateixa ordre o
-fes servir «Actualitza a l'última versió» a la icona de la barra de menú. Les dades no es toquen.
+Instal·la l'última versió a Aplicacions i l'obre. L'app avisa quan n'hi ha una de nova (vegeu
+[Actualitzacions i còpies de seguretat](#actualitzacions-i-còpies-de-seguretat)); també es pot
+actualitzar tornant a executar la mateixa ordre. Les dades no es toquen.
 Cal un Mac amb Apple Silicon (M1 o posterior) i macOS 12 o posterior.
 
 ## App per a Mac
 
 `Cançoners.app` porta tot el que cal a dins (no cal Python ni Docker). En obrir-la, arrenca el servidor,
 obre el navegador (Chrome si hi és) i deixa una icona a la barra de menú amb «Obre Cançoners», «Obre la
-carpeta de dades», «Actualitza a l'última versió» i «Surt». Les dades es desen a
-`~/Library/Application Support/Cançoners`, fora de l'app: actualitzar-la no les toca.
+carpeta de dades», la versió instal·lada, «Cerca actualitzacions…», «Fes una còpia de seguretat ara»,
+«Restaura una còpia…» i «Surt». Les dades es desen a `~/Library/Application Support/Cançoners`, fora
+de l'app: actualitzar-la no les toca.
+
+### Actualitzacions i còpies de seguretat
+
+- En obrir l'app i un cop al dia, es mira a GitHub Releases si hi ha una versió més nova que la
+  d'`eines/app/VERSIO`. Si n'hi ha, avisa (un sol cop per versió) i pregunta si es vol instal·lar.
+  «Cerca actualitzacions…» ho comprova a l'acte.
+- Abans d'actualitzar es fa **sempre** una còpia de seguretat; si falla, no s'actualitza. Mentre es
+  genera un PDF tampoc.
+- L'instal·lador comprova que l'app baixada estigui signada amb el nostre Developer ID. Si la versió
+  nova no arrenca en un minut, torna a posar l'anterior. El registre queda a `actualitzacio.log`.
+- Les còpies són a `copies/AAAA-MM-DD_HHMMSS_vX.Y.Z_motiu.zip` dins de la carpeta de dades: la base de
+  dades (copiada amb l'API de còpia de SQLite, consistent encara que l'app estigui oberta), les
+  imatges i les tipografies. Es conserven les 5 últimes.
+- «Restaura una còpia…» deixa les dades com a la còpia triada i, abans, en desa una de l'estat actual.
+- L'esquema de la base de dades té versió (`PRAGMA user_version`) i migracions ordenades
+  (`MIGRACIONS` a `canconer/basedades.py`; les noves s'afegeixen al final). Abans de migrar se'n fa
+  una còpia, i si una migració falla es desfà tota i no es toca res.
 
 Per generar el PDF fa servir el Chrome, Edge o Brave del Mac en mode invisible. Si no n'hi ha cap, la
 primera vegada baixa el «Chrome headless shell» oficial de Google (uns 90 MB).
@@ -46,8 +65,9 @@ Cada versió és una *release* de GitHub amb l'app comprimida (`Canconers.zip`, 
    El script construeix l'app amb PyInstaller, la signa, la comprimeix i crea la release `v1.1.0`.
    Tarda un parell de minuts.
 
-A partir d'aquí, qui tingui l'app la pot actualitzar amb «Actualitza a l'última versió» de la barra de
-menú, o tornant a executar l'ordre d'instal·lació.
+A partir d'aquí, les apps instal·lades avisen que hi ha la versió nova (en obrir-se o en un dia com a
+molt) i s'actualitzen si s'accepta. També es pot fer amb «Cerca actualitzacions…» o tornant a
+executar l'ordre d'instal·lació.
 
 Altres opcions:
 
@@ -154,7 +174,9 @@ davanteres i del darrere, i un **full d'instruccions** imprimible.
 ## Dades
 
 - `data/canconers.sqlite3`: cançoners, cançons, versions i biblioteca d'elements.
-- `data/imatges/`: imatges pujades. `data/cau/`: PDF generats (es poden esborrar sense perill).
+- `data/imatges/`, `data/tipografies/`: imatges i tipografies pujades. `data/cau/`: PDF generats (es
+  poden esborrar sense perill). `data/copies/`: còpies de seguretat.
+- Les mestres de marges d'enquadernació (`/marges`) són comunes a tots els cançoners.
 - Les dades de versions anteriors (JSON o cançons d'un sol document) es migren soles en arrencar.
 
 ## Desenvolupament

@@ -132,6 +132,7 @@ def connexio():
     """Connexió amb transacció: es confirma en sortir o es desfà si hi ha un error."""
     DIRECTORI.mkdir(parents=True, exist_ok=True)
     cami = DIRECTORI / "canconers.sqlite3"
+    existia = cami.exists()
     con = sqlite3.connect(cami, timeout=10)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
@@ -139,11 +140,10 @@ def connexio():
         if cami not in _inicialitzades:
             con.execute("PRAGMA journal_mode = WAL")
             con.executescript(_ESQUEMA)
-            _inicialitzades.add(cami)
-            _afegeix_columnes(con)
+            _aplica_migracions(con, existia)
             _migra_json(con)
             _migra_a_pagines(con)
-            _sembra_marges(con)
+            _inicialitzades.add(cami)
         yield con
         con.commit()
     except Exception:
@@ -612,6 +612,33 @@ def imatge(id_imatge: str) -> tuple[Path, str]:
 # ---------------------------------------------------------------- Migracions
 
 
+def _aplica_migracions(con, existia: bool) -> None:
+    """Aplica en ordre les migracions que falten (la versió de l'esquema és PRAGMA user_version).
+
+    Abans de migrar una base de dades que ja existia se'n fa una còpia de seguretat; si la còpia
+    falla, no es toca res. Si una migració falla, es desfà tota la transacció (les dades queden
+    com estaven) i l'error diu on és la còpia.
+    """
+    actual = con.execute("PRAGMA user_version").fetchone()[0]
+    pendents = MIGRACIONS[actual:]
+    if not pendents:
+        return
+    copia = None
+    if existia and con.execute("SELECT 1 FROM canco UNION ALL SELECT 1 FROM canconer LIMIT 1").fetchone():
+        from . import actualitzacions, copies  # aquí per evitar una importació circular
+        copia = copies.fes_copia(actualitzacions.versio_actual(), f"abans-de-migrar-{actual}")
+    try:
+        con.execute("BEGIN")
+        for numero, migracio in enumerate(pendents, start=actual + 1):
+            migracio(con)
+            con.execute(f"PRAGMA user_version = {numero}")
+        con.execute("COMMIT")
+    except Exception as e:
+        con.execute("ROLLBACK")
+        on = f" Hi ha una còpia de les dades a {copia}." if copia else ""
+        raise RuntimeError(f"No s'han pogut actualitzar les dades ({e}). No s'ha canviat res.{on}") from e
+
+
 def _afegeix_columnes(con) -> None:
     """Columnes noves en bases de dades creades amb versions anteriors."""
     columnes_canco = {f[1] for f in con.execute("PRAGMA table_info(canco)")}
@@ -722,3 +749,11 @@ def esborra_marge(id_marge: str) -> None:
         raise ValueError("La mestra «Sense marges» no es pot esborrar.")
     with connexio() as con:
         con.execute("DELETE FROM marge WHERE id = ?", (_valida(id_marge),))
+
+
+# Migracions de l'esquema, en ordre. No se'n treu ni se'n canvia mai cap de publicada: les noves
+# s'afegeixen al final. La primera també posa al dia les bases de dades d'abans d'haver-n'hi.
+MIGRACIONS = [
+    _afegeix_columnes,  # 1: canco.tipus i entrada.inici
+    _sembra_marges,  # 2: mestres de marges predefinides
+]

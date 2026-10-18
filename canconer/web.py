@@ -9,7 +9,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies
+from . import actualitzacions, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -71,7 +71,8 @@ def crea_app() -> Flask:
     @app.context_processor
     def fonts_per_a_les_plantilles():
         """Llista de tipografies per al motor de dibuix (editor i pàgina d'impressió)."""
-        return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts())}
+        return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts()),
+                "versio_app": actualitzacions.versio_actual()}
 
     def canconer_impressio(id_canconer: str) -> dict:
         """Cançoner per imprimir. L'instrument dels diagrames es pot triar a l'hora d'imprimir

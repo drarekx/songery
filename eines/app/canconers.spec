@@ -12,6 +12,7 @@ a = Analysis(
         (str(ARREL / "canconer" / "templates"), "canconer/templates"),
         (str(ARREL / "canconer" / "static"), "canconer/static"),
         (str(ARREL / "eines" / "app" / "icona-menu.png"), "eines/app"),
+        (str(ARREL / "eines" / "app" / "VERSIO"), "eines/app"),
     ],
     hiddenimports=["canconer.web", "canconer.motor_pdf", "rumps"],
     excludes=["tkinter", "pytest", "weasyprint", "PIL", "IPython", "numpy"],

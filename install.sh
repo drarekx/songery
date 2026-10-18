@@ -6,6 +6,8 @@ set -euo pipefail
 REPO="drarekx/songery"
 URL="https://github.com/$REPO/releases/latest/download/Canconers.zip"
 APP="Cançoners.app"
+EQUIP="3HWTS4AVPU"  # Team ID de la signatura (Developer ID) de les versions publicades
+DADES="$HOME/Library/Application Support/Cançoners"
 
 negreta() { printf "\033[1m%s\033[0m\n" "$*"; }
 error() { printf "\033[31mError:\033[0m %s\n" "$*" >&2; exit 1; }
@@ -22,6 +24,10 @@ curl -fL --progress-bar "$URL" -o "$tmp/Canconers.zip" || error "No s'ha pogut d
 ditto -x -k "$tmp/Canconers.zip" "$tmp"
 [[ -d "$tmp/$APP" ]] || error "El fitxer descarregat no conté $APP"
 
+# Només s'instal·la si la signatura és vàlida i és la nostra.
+codesign --verify --deep --strict "$tmp/$APP" 2>/dev/null || error "La signatura de l'app descarregada no és vàlida. No s'ha instal·lat res."
+codesign -dv "$tmp/$APP" 2>&1 | grep -q "TeamIdentifier=$EQUIP" || error "L'app descarregada no està signada per l'equip esperat. No s'ha instal·lat res."
+
 # Tanca la còpia oberta perquè es pugui substituir (les dades no es toquen).
 if pgrep -f "$APP/Contents/MacOS/" >/dev/null; then
     negreta "Tancant Cançoners…"
@@ -34,7 +40,12 @@ if [[ ! -w "$desti" ]]; then
     desti="$HOME/Applications"
     mkdir -p "$desti"
 fi
-rm -rf "$desti/$APP"
+# La versió anterior es guarda fins que la nova arrenca bé.
+anterior=""
+if [[ -d "$desti/$APP" ]]; then
+    anterior="$tmp/anterior.app"
+    mv "$desti/$APP" "$anterior"
+fi
 mv "$tmp/$APP" "$desti/"
 xattr -dr com.apple.quarantine "$desti/$APP" 2>/dev/null || true
 negreta "Instal·lat a $desti/$APP"
@@ -49,7 +60,25 @@ if (( ! navegador )); then
     echo "la primera vegada baixarà el motor de PDF de Google (uns 90 MB)."
 fi
 
+# Obre la versió nova i espera que el servidor respongui. Si no arrenca, torna a l'anterior.
+inici=$(date +%s)
 open "$desti/$APP"
+arrencada=0
+for _ in $(seq 60); do
+    sleep 1
+    if [[ -f "$DADES/servidor.json" ]] && (( $(stat -f %m "$DADES/servidor.json") >= inici )); then
+        url=$(sed -E 's/.*"url": *"([^"]+)".*/\1/' "$DADES/servidor.json")
+        if curl -fs -o /dev/null --max-time 2 "$url"; then arrencada=1; break; fi
+    fi
+done
+if (( ! arrencada )) && [[ -n "$anterior" ]]; then
+    pkill -f "$APP/Contents/MacOS/" 2>/dev/null || true
+    sleep 1
+    rm -rf "$desti/$APP"
+    mv "$anterior" "$desti/$APP"
+    open "$desti/$APP"
+    error "La versió nova no ha arrencat i s'ha tornat a l'anterior. Les còpies de seguretat de les dades són a $DADES/copies."
+fi
 negreta "Fet! Cançoners s'obre al navegador i té una icona a la barra de menú."
 echo "Les teves dades són a ~/Library/Application Support/Cançoners."
 echo "Per actualitzar-lo, torna a executar aquesta mateixa ordre."
