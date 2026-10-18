@@ -6,6 +6,7 @@ import PanellAcords from "./components/PanellAcords.vue";
 import PanellCanco from "./components/PanellCanco.vue";
 import PanellCapes from "./components/PanellCapes.vue";
 import PanellEstils from "./components/PanellEstils.vue";
+import PanellLlista from "./components/PanellLlista.vue";
 import PanellPropietats from "./components/PanellPropietats.vue";
 import SelectorColor from "./components/SelectorColor.vue";
 import { TIPUS_ACORD, useEditorStore } from "./stores/editor.js";
@@ -23,6 +24,7 @@ export const muntaPanellAcords = (desti) => munta(PanellAcords, desti);
 export const muntaPanellCanco = (desti) => munta(PanellCanco, desti);
 export const muntaPanellCapes = (desti) => munta(PanellCapes, desti);
 export const muntaPanellEstils = (desti) => munta(PanellEstils, desti);
+export const muntaPanellLlista = (desti) => munta(PanellLlista, desti);
 export const muntaPanellPropietats = (desti) => munta(PanellPropietats, desti);
 
 /**

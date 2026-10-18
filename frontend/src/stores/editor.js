@@ -31,6 +31,10 @@ export const useEditorStore = defineStore("editor", {
     capes: null,
     /** Pàgines mestres del cançoner: [{id, nom}]. */
     mestres: [],
+    /** Columna de l'esquerra. obert: el que hi ha obert ("llibre", "canco:id", "especial:portada",
+     *  "mestra:id"); cancons: [{id, titol, tipus, inclosa, inici, versio_numero (si està fixada),
+     *  desfasada, usos, pagines: [números]}]; total: pàgines del llibret. */
+    llista: { obert: null, cancons: [], total: null },
     /** Panell de propietats. mode: "pagina" (no hi ha res seleccionat), "element" o "multi".
      *  pagina: {tipus (el que hi ha obert: canco, especial, mestra o llibre), mestra, costat, fons,
      *           nomMestra, mestraEsborrable}
@@ -68,6 +72,10 @@ export const useEditorStore = defineStore("editor", {
     canviaDadesCanco(prop, valor) {
       if (!this.canco || !this.editable) return;
       this.canco[prop] = valor;
+      if (prop === "titol") {
+        const fila = this.llista.cancons.find((c) => c.id === this.canco.id);
+        if (fila) fila.titol = valor;
+      }
       this.crida("canviaDadesCanco", prop, valor);
     },
     /** Transport, «surt al PDF» o on comença, en aquest cançoner. */

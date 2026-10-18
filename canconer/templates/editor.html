@@ -22,41 +22,7 @@
 {% block contingut %}
 {# ================================================================ Llista #}
 <aside id="panell-llista" data-panell
-       class="flex min-h-0 w-full flex-col overflow-y-auto border-r border-paper-300 bg-paper-100 max-lg:hidden max-lg:data-[visible=true]:flex">
-  <div class="px-2 pt-3">
-    <button type="button" data-obre="llibre" class="item-llista w-full">
-      <svg class="h-4 w-4 shrink-0 text-ink-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3h5v10H2zM9 3h5v10H9z"/></svg>
-      <span class="flex-1 text-left">Tot el llibret</span><span id="total-pagines" class="font-mono text-[11px] text-ink-400"></span>
-    </button>
-  </div>
-  <h2 class="titol-seccio-llista">Pàgines del llibret</h2>
-  <div class="flex flex-col gap-0.5 px-2">
-    {% for nom, text in [("portada", "Portada"), ("index", "Índex"), ("acords", "Pàgina d'acords"), ("index_qr", "Índex de vídeos (QR)"), ("contraportada", "Contraportada")] %}
-    <button type="button" data-obre="especial:{{ nom }}" class="item-llista">
-      <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-300"></span><span class="flex-1 text-left">{{ text }}</span>
-    </button>
-    {% endfor %}
-  </div>
-
-  <div class="flex items-center justify-between px-4 pt-5">
-    <h2 class="titol-seccio-llista p-0">Cançons i pàgines <span id="compte-cancons" class="ml-1 font-mono normal-case tracking-normal text-ink-300"></span></h2>
-  </div>
-  <ol id="llista-ev" class="llista-ev flex flex-col gap-0.5 px-2 pt-1"></ol>
-  <div class="grid grid-cols-3 gap-1.5 px-3 pb-2 pt-2">
-    <button type="button" id="nova-canco" class="btn btn-primari btn-petit px-1" title="Cançó nova">+ Cançó</button>
-    <button type="button" id="nova-pagina" class="btn btn-petit px-1" title="Pàgina lliure: dedicatòria, il·lustració…">+ Pàgina</button>
-    <button type="button" id="obre-importa" class="btn btn-petit px-1" title="Enganxa una cançó amb acords o afegeix-ne de la biblioteca">Importa</button>
-  </div>
-
-  <div class="flex items-center justify-between px-4 pt-4">
-    <h2 class="titol-seccio-llista p-0">Pàgines mestres</h2>
-    <div class="flex gap-0.5">
-      <button type="button" id="copia-mestres" class="btn btn-fantasma btn-icona h-6 min-h-0 w-6" title="Copia mestres d'un altre cançoner" aria-label="Copia mestres d'un altre cançoner"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5"/></svg></button>
-      <button type="button" id="nova-mestra" class="btn btn-fantasma btn-icona h-6 min-h-0 w-6" title="Nova pàgina mestra" aria-label="Nova pàgina mestra">+</button>
-    </div>
-  </div>
-  <ul id="llista-mestres" class="flex flex-col gap-0.5 px-2 pb-4 pt-1"></ul>
-</aside>
+       class="flex min-h-0 w-full flex-col overflow-y-auto border-r border-paper-300 bg-paper-100 max-lg:hidden max-lg:data-[visible=true]:flex">{# El contingut el pinta el component Vue PanellLlista #}</aside>
 
 {# ================================================================ Llenç #}
 <section id="panell-llenc" data-panell data-visible="true"

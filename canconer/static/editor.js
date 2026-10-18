@@ -5,7 +5,7 @@ import {
   colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellPropietats, pinia, useEditorStore,
+  TIPUS_ACORD, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
 } from "./dist/vue.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
@@ -115,7 +115,6 @@ function refrescaPla() {
     [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
     pintaLlista();
     if (obert?.tipus === "llibre") pintaLlenc();
-    $("#total-pagines").textContent = `${PLA.total} pàg.`;
   }, 400);
 }
 
@@ -252,10 +251,7 @@ store.connecta({
     canco[prop] = valor;
     canviat();
     actualitzaVariables();
-    const fila = $(`#llista-ev li[data-id="${canco.id}"] .truncate`);
-    if (fila && prop === "titol") fila.textContent = valor || "Sense títol";
   },
-  canviaEntrada: (canvis) => obert?.tipus === "canco" && canviaEntrada(obert.id, canvis),
   aplicaTransport,
   treuCanco,
   obreHistorial: () => obreHistorial(),
@@ -272,6 +268,15 @@ store.connecta({
   triaFont(boto, clau) {
     obreSelectorFont(boto, { actual: K.estils[clau]?.font, tria: (font) => store.canviaEstil(clau, "font", font) });
   },
+  // Llista
+  obre: (desti) => obre(desti),
+  canviaEntrada: (id, canvis) => (typeof id === "string" ? canviaEntrada(id, canvis) : obert?.tipus === "canco" && canviaEntrada(obert.id, id)),
+  mouEntrada: (id, d) => mouEntrada(id, d),
+  desaOrdre: (ordre) => desaOrdre(ordre),
+  creaEntrada: (tipus) => creaEntrada(tipus),
+  obreImporta: () => obreImporta(),
+  novaMestra: () => novaMestra(),
+  copiaMestres: () => obreCopiaMestres(),
   // Propietats
   canviaPropietats: (propietats) => canviaPropietats(propietats),
   canviaPosicio,
@@ -327,6 +332,7 @@ store.connecta({
     repintaPagina(p).then(pintaPropietats);
   },
 });
+muntaPanellLlista("#panell-llista");
 muntaPanellAcords("#llista-acords");
 muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
@@ -1979,70 +1985,22 @@ function pintaAvisLlenc() {
 
 // ------------------------------------------------------------ Llista (llibret, cançons, mestres)
 
+/** Estat de la columna de l'esquerra (el component PanellLlista). */
 function pintaLlista() {
-  $("#compte-cancons").textContent = K.cancons.length ? `${K.cancons.filter((c) => c.inclosa).length}/${K.cancons.length}` : "";
-  $$("[data-obre]").forEach((b) => b.setAttribute("aria-current", String(b.dataset.obre === `${obert?.tipus === "llibre" ? "llibre" : `${obert?.tipus}:${obert?.id}`}`)));
-  const llista = $("#llista-ev");
-  llista.replaceChildren(...K.cancons.map((c, i) => {
-    const p = PLA?.cancons.find((x) => x.id === c.id);
-    const numeros = PLA?.pagines.filter((x) => x.entrada === c.id).map((x) => x.numero) || [];
-    const actiu = obert?.tipus === "canco" && obert.id === c.id;
-    const li = el("li", {
-      classe: "group relative flex items-center rounded-md transition " + (actiu ? "bg-white shadow-suau ring-1 ring-paper-300" : "hover:bg-paper-200/70") + (c.inclosa ? "" : " opacity-60"),
-      atributs: { "data-id": c.id },
-    });
-    if (actiu) li.append(el("span", { classe: "absolute inset-y-2 left-0 w-0.5 rounded-full bg-vermello-500" }));
-    li.append(el("span", { text: "⠿", classe: "nansa flex w-4 shrink-0 cursor-grab touch-none select-none items-center justify-center self-stretch text-ink-300 opacity-0 transition group-hover:opacity-100 max-lg:opacity-100", atributs: { title: "Arrossega per reordenar" } }));
-    const casella = el("input", { classe: "h-3.5 w-3.5 shrink-0 cursor-pointer accent-vermello-500", atributs: { type: "checkbox", title: "Surt al PDF" } });
-    casella.checked = c.inclosa;
-    casella.addEventListener("change", () => canviaEntrada(c.id, { inclosa: casella.checked }));
-    const boto = el("button", { classe: "flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-2 pr-1 text-left", atributs: { type: "button" } });
-    const textos = el("span", { classe: "flex min-w-0 flex-1 flex-col" });
-    const lliure = c.tipus === "pagina";
-    textos.append(el("span", { text: `${lliure ? "▫ " : ""}${c.titol || "Sense títol"}`, classe: "truncate text-[13.5px] " + (actiu ? "font-semibold text-ink-900" : "font-medium text-ink-700") + (lliure ? " italic" : "") }));
-    const meta = el("span", { classe: "flex items-center gap-1.5 text-[11px] text-ink-400" });
-    if (numeros.length) meta.append(el("span", { text: numeros.length > 1 ? `pàg. ${numeros[0]}–${numeros.at(-1)}` : `pàg. ${numeros[0]}` }));
-    else if (!c.inclosa) meta.append(el("span", { text: "fora del PDF" }));
-    if (c.inici === "qualsevol" && !lliure) meta.append(el("span", { text: "↦", atributs: { title: "Comença on toqui" } }));
-    if (c.versio_id) {
-      const desfasada = c.versio_numero < c.versio_ultima || c.esborrany_modificat;
-      meta.append(el("span", { text: `v${c.versio_numero}${desfasada ? " ↑" : ""}`, classe: "rounded bg-sky-100 px-1 font-mono text-[10px] text-sky-900", atributs: { title: "Versió fixada" } }));
-    }
-    if (c.usos > 1) meta.append(el("span", { text: `${c.usos}×`, atributs: { title: "És en més d'un cançoner" } }));
-    textos.append(meta);
-    boto.append(textos);
-    void p;
-    boto.addEventListener("click", () => obre({ tipus: "canco", id: c.id }));
-    const moure = el("span", { classe: "flex shrink-0 flex-col opacity-0 transition focus-within:opacity-100 group-hover:opacity-100 max-lg:opacity-100" });
-    for (const [d, cami, t] of [[-1, "M4 10l4-4 4 4", "Mou amunt"], [1, "M4 6l4 4 4-4", "Mou avall"]]) {
-      const b = el("button", { classe: "flex h-4 w-5 items-center justify-center rounded text-ink-400 hover:bg-paper-300 hover:text-ink-900 disabled:invisible", atributs: { type: "button", "aria-label": t, title: t } });
-      b.innerHTML = `<svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="${cami}"/></svg>`;
-      b.disabled = (d < 0 && i === 0) || (d > 0 && i === K.cancons.length - 1);
-      b.addEventListener("click", () => mouEntrada(c.id, d));
-      moure.append(b);
-    }
-    li.append(casella, boto, moure);
-    return li;
-  }));
-
-  const mestres = $("#llista-mestres");
-  mestres.replaceChildren(...K.mestres.map((m) => {
-    const actiu = obert?.tipus === "mestra" && obert.id === m.id;
-    const b = el("button", { classe: "item-llista w-full", atributs: { type: "button", "aria-current": String(actiu) } });
-    b.append(el("span", { text: "M", classe: "flex h-4 w-4 shrink-0 items-center justify-center rounded bg-paper-300 font-mono text-[9px] font-bold text-ink-700" }),
-      el("span", { text: m.nom, classe: "flex-1 truncate text-left" }));
-    b.addEventListener("click", () => obre({ tipus: "mestra", id: m.id }));
-    const li = el("li");
-    li.append(b);
-    return li;
-  }));
-  $("#total-pagines").textContent = PLA ? `${PLA.total} pàg.` : "";
+  store.sincronitza({
+    mestres: K.mestres.map(({ id, nom }) => ({ id, nom })),
+    llista: {
+      obert: obert?.tipus === "llibre" ? "llibre" : obert ? `${obert.tipus}:${obert.id}` : null,
+      total: PLA?.total ?? null,
+      cancons: K.cancons.map((c) => ({
+        id: c.id, titol: c.titol, tipus: c.tipus, inclosa: c.inclosa, inici: c.inici, usos: c.usos,
+        versio_numero: c.versio_id ? c.versio_numero : null,
+        desfasada: !!c.versio_id && (c.versio_numero < c.versio_ultima || c.esborrany_modificat),
+        pagines: PLA?.pagines.filter((x) => x.entrada === c.id).map((x) => x.numero) || [],
+      })),
+    },
+  });
 }
-
-$$("[data-obre]").forEach((b) => b.addEventListener("click", () => {
-  const [tipus, id] = b.dataset.obre.split(":");
-  obre(tipus === "llibre" ? { tipus: "llibre" } : { tipus, id });
-}));
 
 async function canviaEntrada(id, canvis) {
   try {
@@ -2078,31 +2036,6 @@ function mouEntrada(id, d) {
   desaOrdre(ordre);
 }
 
-(function arrossegarLlista() {
-  const llista = $("#llista-ev");
-  let arrossegat = null;
-  llista.addEventListener("pointerdown", (ev) => {
-    const nansa = ev.target.closest(".nansa");
-    if (!nansa) return;
-    arrossegat = nansa.closest("li");
-    arrossegat.classList.add("arrossegant");
-    nansa.setPointerCapture(ev.pointerId);
-    ev.preventDefault();
-  });
-  llista.addEventListener("pointermove", (ev) => {
-    if (!arrossegat) return;
-    const seguent = [...llista.children].filter((li) => li !== arrossegat).find((li) => ev.clientY < li.getBoundingClientRect().top + li.offsetHeight / 2);
-    llista.insertBefore(arrossegat, seguent || null);
-  });
-  const deixa = () => {
-    if (!arrossegat) return;
-    arrossegat.classList.remove("arrossegant");
-    arrossegat = null;
-    desaOrdre([...llista.children].map((li) => li.dataset.id));
-  };
-  llista.addEventListener("pointerup", deixa);
-  llista.addEventListener("pointercancel", deixa);
-})();
 
 // ------------------------------------------------------------ Obrir una cançó, una pàgina especial o una mestra
 
@@ -2221,7 +2154,6 @@ async function creaEntrada(tipus, mestra) {
   mostraPestanya("canco");
   requestAnimationFrame(() => $("#titol-ev")?.select()); // el camp el pinta PanellCanco
 }
-$("#nova-canco").addEventListener("click", () => creaEntrada("canco"));
 
 /** Miniatura d'una pàgina mestra (un costat), per triar-la d'un cop d'ull. */
 function miniaturaMestra(costat, numero, mida = 0.22) {
@@ -2255,7 +2187,6 @@ function triaPlantilla(tipus) {
   }));
   dialegPlantilla.showModal();
 }
-$("#nova-pagina").addEventListener("click", () => creaEntrada("pagina"));
 
 const dialegImporta = $("#dialeg-importa");
 const seleccionades = new Set();
@@ -2305,14 +2236,14 @@ $("#importa-text").addEventListener("submit", async (ev) => {
   await obre({ tipus: "canco", id: r.id });
 });
 
-$("#obre-importa").addEventListener("click", () => {
+function obreImporta() {
   seleccionades.clear();
   $("#compte-seleccio").textContent = "";
   $("#confirma-importa").disabled = true;
   $("#cerca-biblioteca").value = "";
   dialegImporta.showModal();
   mostraPestanyaImporta("text");
-});
+}
 $("#confirma-importa").addEventListener("click", async () => {
   const ids = [...seleccionades];
   await desa();
@@ -2325,7 +2256,7 @@ $$("[data-tanca-dialeg]").forEach((b) => b.addEventListener("click", () => b.clo
 
 // ------------------------------------------------------------ Pàgines mestres
 
-$("#nova-mestra").addEventListener("click", async () => {
+async function novaMestra() {
   const nom = prompt("Nom de la pàgina mestra nova:", "Mestra nova");
   if (!nom) return;
   await desa();
@@ -2334,7 +2265,7 @@ $("#nova-mestra").addEventListener("click", async () => {
   K.mestres.push({ id, nom, parell: base.parell, senar: base.senar });
   await api(urls.disseny, "PUT", { mestres: K.mestres });
   await obre({ tipus: "mestra", id });
-});
+}
 function canviaNomMestra(nom) {
   const m = K.mestres.find((x) => x.id === obert?.id);
   if (!m) return;
@@ -2373,7 +2304,7 @@ function pintaMestresOrigen() {
     return li;
   }));
 }
-$("#copia-mestres").addEventListener("click", async () => {
+async function obreCopiaMestres() {
   ({ canconers: altresCanconers } = await api(urls.mestresAltres));
   const select = $("#origen-mestres");
   select.replaceChildren(...(altresCanconers.length
@@ -2381,7 +2312,7 @@ $("#copia-mestres").addEventListener("click", async () => {
     : [el("option", { text: "No hi ha cap altre cançoner", atributs: { value: "" } })]));
   pintaMestresOrigen();
   dialegCopia.showModal();
-});
+}
 $("#origen-mestres").addEventListener("change", pintaMestresOrigen);
 $("#confirma-copia-mestres").addEventListener("click", async () => {
   const ids = [...$("#mestres-origen").querySelectorAll("input:checked")].map((c) => c.value);
