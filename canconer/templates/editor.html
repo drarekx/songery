@@ -4,13 +4,6 @@
 {% block classe_capcalera %}{% endblock %}
 {% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)_20rem]{% endblock %}
 
-{# Botó d'eina: només la icona; el nom surt en una etiqueta en passar-hi el ratolí (data-tooltip). #}
-{% macro eina(accio, titol, cami, tecla="", text="") %}
-<button type="button" class="eina" data-eina="{{ accio }}" data-tooltip="{{ titol }}{% if tecla %} ({{ tecla }}){% endif %}" aria-label="{{ titol }}">
-  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ cami | safe }}</svg>
-</button>
-{% endmacro %}
-
 {% block accions %}
 <span id="estat" role="status" data-tipus="ok"
       class="group inline-flex items-center gap-2 rounded-full border border-paper-300 bg-white px-3 py-1 text-[13px] text-ink-500">
@@ -28,34 +21,7 @@
 <section id="panell-llenc" data-panell data-visible="true"
          class="relative flex min-h-0 w-full min-w-0 flex-col bg-taula max-lg:hidden max-lg:data-[visible=true]:flex">
   {# Barra d'eines general #}
-  <div id="barra-llenc" class="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-paper-300 bg-paper-50 px-3 py-1.5" role="toolbar" aria-label="Eines">
-    {{ eina("desfes", "Desfés", '<path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-1"/>', "⌘Z") }}
-    {{ eina("refes", "Refés", '<path d="m13 5 4 4-4 4M17 9H8a4 4 0 0 0 0 8h1"/>', "⇧⌘Z") }}
-    <span class="separador"></span>
-    <span class="hidden px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400 xl:inline">Afegeix</span>
-    {{ eina("nou-lletra", "Marc de lletra amb acords", '<rect x="3" y="3" width="14" height="14" rx="1"/><path d="M6 8h8M6 11h8M6 14h5"/><path d="M6 5.5h1.5" stroke="#c4321f" stroke-width="2"/>', "", "Lletra") }}
-    {{ eina("nou-text", "Text", '<path d="M4 5h12M10 5v11M8 16h4"/>', "", "Text") }}
-    {{ eina("nou-imatge", "Imatge", '<rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8.5" r="1.5"/><path d="m3 14 4-4 3 3 2-2 5 5"/>', "", "Imatge") }}
-    {{ eina("nou-forma", "Rectangle", '<rect x="3.5" y="5" width="13" height="10" rx="1"/>') }}
-    {{ eina("nou-elipse", "El·lipse", '<ellipse cx="10" cy="10" rx="7" ry="5.5"/>') }}
-    {{ eina("nou-numero", "Número de pàgina", '<path d="M6 4 4.5 16M11.5 4 10 16M3.5 8h11M3 12h11"/>') }}
-    {{ eina("acords", "Diagrames d'acords: arrossega'ls a la pàgina", '<rect x="4" y="3" width="12" height="14" rx="1"/><path d="M7 3v14M10 3v14M13 3v14M4 7h12M4 11h12"/><circle cx="10" cy="9" r="1.3" fill="currentColor"/><circle cx="13" cy="13" r="1.3" fill="currentColor"/>') }}
-    {{ eina("nou-qr", "Codi QR d'un vídeo de la cançó", '<path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3z"/><path d="M12 12h2v2h-2zM15 15h2v2h-2zM12 16h1M16 12h1" stroke-width="1.8"/>', "", "QR") }}
-    {{ eina("importa-text", "Importa text amb acords (de webs de tabs) al marc de lletra", '<path d="M7 4H5v13h10V4h-2M7 3h6v3H7z"/><path d="M8 10h4M8 13h4"/>', "", "Importa text") }}
-    <span class="separador"></span>
-    <span class="hidden px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400 xl:inline">Pàgina</span>
-    {{ eina("pagina-nova", "Afegeix una pàgina a la cançó", '<path d="M5 3h7l3 3v11H5z"/><path d="M10 9v5M7.5 11.5h5"/>') }}
-    {{ eina("pagina-duplica", "Duplica la pàgina", '<rect x="6" y="6" width="10" height="11" rx="1"/><path d="M4 13V3h8"/>') }}
-    {{ eina("pagina-esquerra", "Mou la pàgina enrere", '<path d="m12 5-5 5 5 5"/>') }}
-    {{ eina("pagina-dreta", "Mou la pàgina endavant", '<path d="m8 5 5 5-5 5"/>') }}
-    {{ eina("pagina-esborra", "Esborra la pàgina", '<path d="M4 6h12M8 6V4h4v2M6 6l.8 11h6.4L14 6"/>') }}
-    <div class="zoom ml-auto" role="group" aria-label="Zoom">
-      <button type="button" data-zoom="-1" aria-label="Allunya" title="Allunya (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 8h9"/></svg></button>
-      <span data-zoom-valor aria-live="polite">100 %</span>
-      <button type="button" data-zoom="1" aria-label="Apropa" title="Apropa (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
-      <button type="button" data-zoom="ajusta" title="Ajusta a la finestra">Ajusta</button>
-    </div>
-  </div>
+  <div id="barra-llenc"></div>
 
   {# Diagrames dels acords de la cançó, per arrossegar-los a la pàgina #}
   <div id="panell-acords" class="panell-acords hidden" role="dialog" aria-labelledby="titol-panell-acords">
@@ -70,47 +36,9 @@
   </div>
 
   {# Barra de format de la lletra: només mentre s'edita un marc de lletra #}
-  <div id="barra-text" class="hidden flex-wrap items-center gap-x-1 gap-y-1 border-b border-vermello-200 bg-vermello-50 px-3 py-1.5" role="toolbar" aria-label="Format de la lletra">
-    <span class="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-vermello-700">Lletra</span>
-    <button type="button" class="eina" data-format="acord" data-tooltip="Acord sobre la paraula seleccionada o al cursor (⌘K, o escriu [G])" aria-label="Afegeix un acord">
-      <span class="font-mono text-[13px] font-bold text-vermello-600">G</span>
-    </button>
-    {{ eina("tonica", "Síl·laba tònica", '<path d="M6 4v6a4 4 0 0 0 8 0V4M4 17h12" stroke-width="1.8"/>', "⌘U") | replace('data-eina', 'data-format') }}
-    {{ eina("bold", "Negreta", '<path d="M6 4h5a3 3 0 0 1 0 6H6zm0 6h6a3 3 0 0 1 0 6H6z" stroke-width="1.9"/>', "⌘B") | replace('data-eina', 'data-format') }}
-    {{ eina("italic", "Cursiva", '<path d="M12 4H8m4 12H8m3-12-2 12"/>', "⌘I") | replace('data-eina', 'data-format') }}
-    {{ eina("cor", "Veus del cor", '<circle cx="7" cy="7" r="2.5"/><circle cx="13" cy="7" r="2.5"/><path d="M3 16a4 4 0 0 1 8 0m-2 0a4 4 0 0 1 8 0"/>', "⇧⌘K") | replace('data-eina', 'data-format') }}
-    <span class="separador"></span>
-    {{ eina("seccio", "Secció (Intro, Chorus…)", '<path d="M4 5h12M4 10h7M4 15h9"/><path d="M14 10h3" stroke-width="2.4"/>', "⌥⌘1") | replace('data-eina', 'data-format') }}
-    {{ eina("nota", "Nota (x2, només veus…)", '<path d="M5 3h7l3 3v11H5z"/><path d="M8 9h4M8 12h4"/>', "⌥⌘2") | replace('data-eina', 'data-format') }}
-    {{ eina("imatge", "Imatge dins la lletra (amb el text al voltant)", '<rect x="3" y="4" width="14" height="12" rx="1.5"/><circle cx="7.5" cy="8.5" r="1.5"/><path d="m3 14 4-4 3 3 2-2 5 5"/>') | replace('data-eina', 'data-format') }}
-    {{ eina("enganxa", "Importa text amb acords (de webs de tabs)", '<path d="M7 4H5v13h10V4h-2M7 3h6v3H7z"/><path d="M8 10h4M8 13h4"/>') | replace('data-eina', 'data-format') }}
-    <span class="separador"></span>
-    <button type="button" class="eina" data-format="talla" data-tooltip="Talla aquí: passa la lletra que hi ha després del cursor a la pàgina següent" aria-label="Talla aquí">
-      <svg class="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="5" cy="6" r="2.2"/><circle cx="5" cy="14" r="2.2"/><path d="m7 7 10 7M7 13l10-7"/></svg>
-    </button>
-    <span class="separador"></span>
-    <div class="flex items-center gap-1.5" title="Mida de la lletra de tot el marc">
-      <span class="text-[12px] font-medium text-vermello-700">Mida</span>
-      <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
-        <button type="button" data-mida-marc="-0.5" class="w-7 rounded-l-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més petita">−</button>
-        <input id="mida-marc" type="number" step="0.5" min="5" max="40" class="w-14 border-x border-paper-300 bg-transparent text-center font-mono text-[12px] font-semibold tabular-nums outline-none" aria-label="Mida de la lletra (pt)">
-        <button type="button" data-mida-marc="0.5" class="w-7 rounded-r-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més gran">+</button>
-      </div>
-      <span class="text-[11px] text-ink-500">pt</span>
-      <label class="ml-1 flex items-center gap-1.5 text-[12px] text-ink-700" title="Si no hi cap, la lletra es fa més petita automàticament">
-        <input type="checkbox" id="ajusta-marc" class="h-3.5 w-3.5 accent-vermello-500"> Ajusta</label>
-      <span id="mida-efectiva" class="text-[11px] text-ink-500"></span>
-    </div>
-    <button type="button" class="eina eina-text ml-auto" data-format="surt" title="Acaba d'editar (Esc)"><span class="text-[12px]">Fet</span></button>
-  </div>
+  <div id="barra-text"></div>
 
-  <div id="avis-llenc" class="mx-4 mt-3 hidden items-start gap-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2.5 text-[13px] text-sky-950">
-    <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v6H4z"/></svg>
-    <div class="min-w-0 flex-1">
-      <p id="text-avis-llenc" class="leading-snug"></p>
-      <div id="accions-avis-llenc" class="mt-2 flex flex-wrap gap-2"></div>
-    </div>
-  </div>
+  <div id="avis-llenc"></div>
 
   <div id="llenc" class="mode-editor relative min-h-0 flex-1 overflow-auto overscroll-contain" tabindex="-1"></div>
 

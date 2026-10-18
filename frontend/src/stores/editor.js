@@ -43,6 +43,16 @@ export const useEditorStore = defineStore("editor", {
      *  multi: {n, grup (la selecció és un grup sencer), algunGrup}
      *  moure: {visible, anterior, seguent} (botons per passar-ho a la pàgina del costat) */
     propietats: { mode: "pagina", pagina: null, element: null, multi: null, moure: { visible: false, anterior: false, seguent: false } },
+    /** Barra d'eines: inactives (no es pot afegir res: versió fixada o tot el llibret), pagina (es
+     *  poden afegir, moure i esborrar pàgines: una cançó editable) i el panell d'acords obert. */
+    eines: { inactives: false, pagina: false, acordsObert: false },
+    /** Zoom del llenç (1 = la pàgina sencera hi cap). */
+    zoom: 1,
+    /** Marc de lletra que s'edita: {actius: {tonica, bold, italic, cor, seccio, nota}, mida, ajusta,
+     *  efectiva: {text, alerta}}; null si no se n'edita cap. */
+    edicio: null,
+    /** Avís sobre el llenç: {text, accions: [{text, primari, fes()}]}; null si no n'hi ha. */
+    avis: null,
     urls: {},
     /** Accions que encara fa editor.js. */
     ponts: markRaw({}),

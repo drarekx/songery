@@ -5,7 +5,7 @@ import {
   colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
+  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
 } from "./dist/vue.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
@@ -268,6 +268,12 @@ store.connecta({
   triaFont(boto, clau) {
     obreSelectorFont(boto, { actual: K.estils[clau]?.font, tria: (font) => store.canviaEstil(clau, "font", font) });
   },
+  // Barres del llenç
+  eina: (nom) => EINES[nom]?.(),
+  zoom: (factor) => posaZoom(factor === null ? 1 : zoom * factor),
+  format: (nom) => edicio?.editor && FORMATS[nom]?.(edicio.editor),
+  midaMarc: (mida) => canviaMidaMarc(mida),
+  ajustaMarc: (ajusta) => canviaMidaMarc(undefined, ajusta),
   // Llista
   obre: (desti) => obre(desti),
   canviaEntrada: (id, canvis) => (typeof id === "string" ? canviaEntrada(id, canvis) : obert?.tipus === "canco" && canviaEntrada(obert.id, id)),
@@ -333,6 +339,9 @@ store.connecta({
   },
 });
 muntaPanellLlista("#panell-llista");
+muntaBarraEines("#barra-llenc");
+muntaBarraText("#barra-text");
+muntaAvisLlenc("#avis-llenc");
 muntaPanellAcords("#llista-acords");
 muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
@@ -381,7 +390,7 @@ function calculaEscala() {
   const doble = obert?.tipus !== "especial" || false;
   const ajust = Math.min(amplada / ((doble ? 2 : 1) * AMPLE * PX_MM), alcada / (ALT * PX_MM));
   escala = Math.max(0.25, ajust * zoom);
-  $("[data-zoom-valor]").textContent = `${Math.round(zoom * 100)} %`;
+  store.sincronitza({ zoom });
 }
 
 function opcionsDibuix() {
@@ -992,10 +1001,6 @@ function posaZoom(z) {
   clearTimeout(posaZoom.t);
   posaZoom.t = setTimeout(pintaLlenc, 60);
 }
-$$("[data-zoom]").forEach((b) => b.addEventListener("click", () => {
-  if (b.dataset.zoom === "ajusta") posaZoom(1);
-  else posaZoom(zoom * (b.dataset.zoom === "1" ? 1.25 : 0.8));
-}));
 new ResizeObserver(() => { if (!gest && !edicio) pintaLlenc(); }).observe(llenc);
 
 // ------------------------------------------------------------ Edició de text i lletra
@@ -1032,7 +1037,6 @@ function editaLletra(p, id) {
   };
   editor.on("update", actualitza);
   editor.on("transaction", actualitzaBarraText);
-  $("#barra-text").classList.replace("hidden", "flex");
   pintaSeleccio();
   actualitzaBarraText();
   pintaMidaMarc();
@@ -1052,8 +1056,7 @@ function editaText(p, id, node) {
   node.addEventListener("input", () => {
     e.text = node.innerText.replace(/\n$/, "");
     canviat();
-    const camp = $('[data-prop="text"]');
-    if (camp) camp.value = e.text;
+    if (store.propietats.element?.id === e.id) store.propietats.element.text = e.text;
   });
   pintaSeleccio();
 }
@@ -1066,7 +1069,7 @@ function sortEdicio() {
   if (tipus === "lletra") {
     editor.setEditable(false);
     node.classList.remove("editant");
-    $("#barra-text").classList.replace("flex", "hidden");
+    store.sincronitza({ edicio: null });
     amagaBombolla();
     tancaPopover();
   } else {
@@ -1108,18 +1111,14 @@ const FORMATS = {
   talla: () => tallaAqui(),
   surt: () => sortEdicio(),
 };
-$$("[data-format]").forEach((b) => {
-  b.addEventListener("mousedown", (ev) => ev.preventDefault());
-  b.addEventListener("click", () => edicio?.editor && FORMATS[b.dataset.format]?.(edicio.editor));
-});
 
 function actualitzaBarraText() {
   const ed = edicio?.editor;
   if (!ed) return;
   for (const nom of ["tonica", "bold", "italic", "cor", "seccio", "nota"]) {
-    $(`[data-format="${nom}"]`)?.setAttribute("aria-pressed", String(ed.isActive(nom)));
     $(`[data-bombolla="${nom}"]`)?.setAttribute("aria-pressed", String(ed.isActive(nom)));
   }
+  pintaMidaMarc();
   pintaBombolla();
 }
 
@@ -1160,16 +1159,21 @@ function midaMarc(e) {
   return Number(e.format?.mida ?? K.estils[e.estil || "lletra"]?.mida ?? 11);
 }
 
+/** Estat de la barra de format (el component BarraText): marques actives i mida del marc. */
 function pintaMidaMarc() {
   if (edicio?.tipus !== "lletra") return;
   const e = elementDe(edicio.p, edicio.id);
   const mida = midaMarc(e);
-  if (document.activeElement !== $("#mida-marc")) $("#mida-marc").value = mida;
-  $("#ajusta-marc").checked = e.ajusta !== false;
   const escala = Number(edicio.node.dataset.escala || 1);
   const desborda = edicio.node.classList.contains("desborda");
-  $("#mida-efectiva").textContent = desborda ? "no hi cap!" : escala < 0.999 ? `→ ${(mida * escala).toFixed(1)} pt perquè hi càpiga` : "";
-  $("#mida-efectiva").classList.toggle("text-vermello-600", desborda);
+  const ed = edicio.editor;
+  store.sincronitza({
+    edicio: {
+      actius: Object.fromEntries(["tonica", "bold", "italic", "cor", "seccio", "nota"].map((nom) => [nom, ed.isActive(nom)])),
+      mida, ajusta: e.ajusta !== false,
+      efectiva: { alerta: desborda, text: desborda ? "no hi cap!" : escala < 0.999 ? `→ ${(mida * escala).toFixed(1)} pt perquè hi càpiga` : "" },
+    },
+  });
 }
 
 function canviaMidaMarc(mida, ajusta) {
@@ -1187,15 +1191,6 @@ function canviaMidaMarc(mida, ajusta) {
   canviat();
 }
 
-$$("[data-mida-marc]").forEach((b) => {
-  b.addEventListener("mousedown", (ev) => ev.preventDefault());
-  b.addEventListener("click", () => {
-    const e = edicio && elementDe(edicio.p, edicio.id);
-    if (e) canviaMidaMarc(midaMarc(e) + Number(b.dataset.midaMarc));
-  });
-});
-$("#mida-marc").addEventListener("change", (ev) => canviaMidaMarc(Number(ev.target.value)));
-$("#ajusta-marc").addEventListener("change", (ev) => canviaMidaMarc(undefined, ev.target.checked));
 
 /** Mou la lletra que hi ha després del cursor al primer marc de lletra de la pàgina següent. */
 function tallaAqui() {
@@ -1384,10 +1379,6 @@ function mouPagina(d) {
   canviat({ refesLlenc: true });
 }
 
-$$("[data-eina]").forEach((b) => {
-  b.addEventListener("mousedown", (ev) => ev.preventDefault());
-  b.addEventListener("click", () => EINES[b.dataset.eina]?.());
-});
 
 $("#fitxer-imatge").addEventListener("change", async (ev) => {
   const fitxer = ev.target.files[0];
@@ -1442,7 +1433,7 @@ EINES.acords = () => {
   const panell = $("#panell-acords");
   const obrir = panell.classList.contains("hidden");
   panell.classList.toggle("hidden", !obrir);
-  $('[data-eina="acords"]').setAttribute("aria-pressed", String(obrir));
+  store.sincronitza({ eines: { ...store.eines, acordsObert: obrir } });
   if (obrir) sincronitzaStore();
 };
 $("[data-tanca-acords]").addEventListener("click", () => EINES.acords());
@@ -1954,22 +1945,21 @@ async function recarregaFonts() {
 
 // ------------------------------------------------------------ Avisos del llenç
 
-function avisa(text, accions = []) {
-  const caixa = $("#avis-llenc");
-  $("#text-avis-llenc").textContent = text;
-  $("#accions-avis-llenc").replaceChildren(...accions.map(([t, f, primari]) => {
-    const b = el("button", { text: t, classe: `btn btn-petit${primari ? " btn-primari" : ""}`, atributs: { type: "button" } });
-    b.addEventListener("click", f);
-    return b;
-  }));
-  caixa.classList.replace("hidden", "flex");
+/**
+ * Avís a sobre del llenç (el component AvisLlenc). accions: [[text, funció, primària]].
+ * origen "versio": el de la versió fixada, que es posa al dia cada cop que es dibuixa el llenç; la
+ * resta es mantenen fins que s'obre una altra cosa (dibuixar-los encongeix el llenç i el redibuixa).
+ */
+function avisa(text, accions = [], origen = "temporal") {
+  store.sincronitza({ avis: { text, origen, accions: accions.map(([t, fes, primari]) => ({ text: t, fes, primari: !!primari })) } });
 }
 
 function pintaAvisLlenc() {
-  const caixa = $("#avis-llenc");
-  caixa.classList.replace("flex", "hidden");
   const entrada = entradaActual();
-  if (!entrada || !entrada.versio_id) return;
+  if (!entrada || !entrada.versio_id) {
+    if (store.avis?.origen === "versio") store.sincronitza({ avis: null });
+    return;
+  }
   const mesNova = entrada.versio_numero < entrada.versio_ultima || entrada.esborrany_modificat;
   avisa(`Aquest cançoner fa servir la versió ${entrada.versio_numero} d'aquesta cançó, fixada.` +
     (mesNova ? " N'hi ha una de més nova." : "") + " Si l'edites, aquest cançoner passarà a fer servir sempre l'última versió.", [
@@ -1980,7 +1970,7 @@ function pintaAvisLlenc() {
       await canviaEntrada(entrada.id, { versio_id: versions[0].id });
       await obre(obert, { forca: true });
     }]] : []),
-  ]);
+  ], "versio");
 }
 
 // ------------------------------------------------------------ Llista (llibret, cançons, mestres)
@@ -2041,6 +2031,7 @@ function mouEntrada(id, d) {
 
 async function obre(desti, { forca = false } = {}) {
   if (!forca && obert && desti.tipus === obert.tipus && desti.id === obert.id) return;
+  store.sincronitza({ avis: null });
   sortEdicio();
   await desa();
   obert = desti;
@@ -2073,8 +2064,7 @@ async function obre(desti, { forca = false } = {}) {
     pagines = [];
   }
   history.replaceState(null, "", params.size ? `?${params}` : location.pathname);
-  $("#barra-llenc").classList.toggle("eines-inactives", !editable || desti.tipus === "llibre");
-  $$('[data-eina^="pagina-"]').forEach((b) => (b.disabled = desti.tipus !== "canco" || !editable));
+  store.sincronitza({ eines: { ...store.eines, inactives: !editable || desti.tipus === "llibre", pagina: desti.tipus === "canco" && editable } });
   pintaLlista();
   pintaCanco();
   if (desti.tipus === "canco" && esMobil()) mostraPanell("panell-llenc");

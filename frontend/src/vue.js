@@ -2,6 +2,9 @@
 // funcions munta…, que comparteixen una sola instància de Pinia.
 import { createPinia } from "pinia";
 import { createApp, h, reactive } from "vue";
+import AvisLlenc from "./components/AvisLlenc.vue";
+import BarraEines from "./components/BarraEines.vue";
+import BarraText from "./components/BarraText.vue";
 import PanellAcords from "./components/PanellAcords.vue";
 import PanellCanco from "./components/PanellCanco.vue";
 import PanellCapes from "./components/PanellCapes.vue";
@@ -21,6 +24,9 @@ function munta(component, desti, props = {}) {
 }
 
 export const muntaPanellAcords = (desti) => munta(PanellAcords, desti);
+export const muntaBarraEines = (desti) => munta(BarraEines, desti);
+export const muntaBarraText = (desti) => munta(BarraText, desti);
+export const muntaAvisLlenc = (desti) => munta(AvisLlenc, desti);
 export const muntaPanellCanco = (desti) => munta(PanellCanco, desti);
 export const muntaPanellCapes = (desti) => munta(PanellCapes, desti);
 export const muntaPanellEstils = (desti) => munta(PanellEstils, desti);

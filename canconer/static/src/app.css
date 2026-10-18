@@ -206,7 +206,7 @@
   }
   .eina[data-tooltip]:hover::after, .eina[data-tooltip]:focus-visible::after { @apply visible opacity-100; }
   /* Les de les vores no surten de la pantalla */
-  #barra-llenc > .eina:first-child[data-tooltip]::after, #barra-text > .eina:first-of-type[data-tooltip]::after { @apply left-0 translate-x-0; }
+  #barra-llenc [role="toolbar"] > .eina:first-child[data-tooltip]::after, #barra-text [role="toolbar"] > .eina:first-of-type[data-tooltip]::after { @apply left-0 translate-x-0; }
 
   /* Panell dels diagrames d'acords */
   .panell-acords { @apply absolute left-3 top-[3.25rem] z-40 flex w-[22rem] flex-col gap-3 rounded-xl border border-paper-300 bg-paper-50 p-4 shadow-full; }
