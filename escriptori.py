@@ -26,7 +26,6 @@ DADES = Path.home() / "Library" / "Application Support" / NOM
 os.environ.setdefault("CANCONER_DADES", str(DADES))  # abans d'importar l'aplicació
 
 FITXER_SERVIDOR = DADES / "servidor.json"
-INSTAL_LADOR = "https://raw.githubusercontent.com/drarekx/songery/main/install.sh"
 CHROME = "/Applications/Google Chrome.app"
 CONFIGURACIO = DADES / "configuracio.json"
 CADA_QUANT = 24 * 3600  # comprovació de versions noves (segons)
@@ -74,7 +73,9 @@ def engega_servidor() -> str:
     from canconer import motor_pdf
     from canconer.web import crea_app
 
-    port = port_lliure()
+    # El mateix port que l'última vegada: així, després d'actualitzar, la pàgina s'hi reconnecta.
+    port = port_lliure(configuracio().get("port", 5050))
+    desa_configuracio(port=port)
     servidor = make_server("127.0.0.1", port, crea_app(), threaded=True)
     threading.Thread(target=servidor.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{port}/"
@@ -127,11 +128,14 @@ def main() -> None:
         return
 
     url = engega_servidor()
-    obre_navegador(url)
+    # Després d'una actualització feta des de la web, la pàgina d'actualització s'hi reconnecta
+    # sola: no cal obrir cap finestra nova (ho diu l'avís de la barra de menú).
+    if not (DADES / "actualitzada.json").exists():
+        obre_navegador(url)
 
     import rumps
 
-    from canconer import actualitzacions, copies, pdf
+    from canconer import actualitzacions, actualitzador, copies
 
     versio = actualitzacions.versio_actual()
 
@@ -146,7 +150,7 @@ def main() -> None:
                 rumps.MenuItem("Obre la carpeta de dades", callback=lambda _: subprocess.Popen(["open", str(DADES)])),
                 None,
                 self.item_versio,
-                rumps.MenuItem("Cerca actualitzacions…", callback=lambda _: self.cerca(manual=True)),
+                rumps.MenuItem("Cerca actualitzacions…", callback=lambda _: obre_navegador(url + "actualitzacio")),
                 rumps.MenuItem("Fes una còpia de seguretat ara", callback=self.copia_ara),
                 rumps.MenuItem("Restaura una còpia…", callback=self.restaura),
                 None,
@@ -166,6 +170,12 @@ def main() -> None:
                 anterior = None
             marca.unlink(missing_ok=True)
             self.actualitzada = anterior if anterior and anterior != versio else None
+            fallida = DADES / "actualitzacio-fallida.json"
+            try:
+                self.fallida = json.loads(fallida.read_text()).get("error")
+            except (OSError, ValueError):
+                self.fallida = None
+            fallida.unlink(missing_ok=True)
             primera = threading.Timer(8, lambda: self.cerca(manual=False))
             primera.daemon = True
             primera.start()
@@ -187,12 +197,23 @@ def main() -> None:
             threading.Thread(target=fes, daemon=True).start()
 
         def mostra_resultat(self, _) -> None:
+            # L'actualització es fa des de la web; quan acaba de preparar-ho tot, l'app es tanca.
+            if actualitzador.estat["sortir"]:
+                actualitzador.estat["sortir"] = False
+                FITXER_SERVIDOR.unlink(missing_ok=True)
+                rumps.quit_application()
+                return
+            if self.fallida:
+                missatge, self.fallida = self.fallida, None
+                rumps.alert("No s'ha pogut actualitzar", f"{missatge}\n\nEl detall és a {DADES / 'actualitzacio.log'}.")
             if self.actualitzada:
                 abans, self.actualitzada = self.actualitzada, None
                 copies_fetes = copies.llista()
-                rumps.alert(f"Cançoners s'ha actualitzat a la {versio}",
-                            f"Tenies la {abans}. Les teves dades hi són totes."
-                            + (f"\n\nÚltima còpia de seguretat: {copies_fetes[0].name}" if copies_fetes else ""))
+                if not rumps.alert(f"Cançoners s'ha actualitzat a la {versio}",
+                                   f"Tenies la {abans}. Les teves dades hi són totes."
+                                   + (f"\n\nÚltima còpia de seguretat: {copies_fetes[0].name}" if copies_fetes else ""),
+                                   ok="D'acord", cancel="Obre Cançoners"):
+                    obre_navegador(url)
             if not self.resultat:
                 return
             tipus, dades, manual = self.resultat
@@ -218,41 +239,9 @@ def main() -> None:
                 self.actualitza()
 
         def actualitza(self) -> None:
-            """Còpia de seguretat i, si ha anat bé, l'instal·lador: baixa l'última versió, en
-            comprova la signatura, tanca aquesta i obre la nova (si la nova no arrenca, torna a l'anterior)."""
-            if pdf._bloqueig.locked():
-                rumps.alert("Ara no", "S'està generant un PDF. Torna-ho a provar d'aquí a un moment.")
-                return
-            try:
-                copia = copies.fes_copia(versio, "abans-d-actualitzar")
-            except Exception as e:  # noqa: BLE001 - qualsevol error atura l'actualització
-                rumps.alert("No s'ha actualitzat", f"No s'ha pogut fer la còpia de seguretat, així que no s'ha tocat res.\n\n{e}")
-                return
-            try:
-                rumps.notification(NOM, "Actualitzant…", f"Còpia de seguretat feta: {copia.name}. Segueix el progrés a la finestra del Terminal.")
-            except Exception:  # noqa: BLE001 - la notificació és només informativa
-                pass
-            # L'instal·lador s'executa en una finestra del Terminal perquè es vegi què fa (baixada,
-            # comprovació de la signatura, substitució i arrencada). Tanca aquesta app i obre la nova.
-            registre = DADES / "actualitzacio.log"
-            ordre = DADES / "actualitza.command"
-            ordre.write_text(f"""#!/bin/bash
-clear
-echo "Actualitzant Cançoners {versio}…"
-echo "Còpia de seguretat de les dades: {copia}"
-echo
-set -o pipefail
-if curl -fsSL {INSTAL_LADOR} | bash 2>&1 | tee -a "{registre}"; then
-    echo
-    echo "Ja pots tancar aquesta finestra."
-else
-    echo
-    echo "L'actualització no s'ha completat. Cançoners continua com estava."
-    echo "Registre: {registre}"
-fi
-""")
-            ordre.chmod(0o755)
-            subprocess.Popen(["open", "-a", "Terminal", str(ordre)])
+            """L'actualització es fa a la pàgina /actualitzacio, que en mostra cada pas: còpia de
+            seguretat, baixada, verificació de la signatura, instal·lació i reinici."""
+            obre_navegador(url + "actualitzacio?inicia=1")
 
         # -------------------------------------------------------- Còpies de seguretat
 

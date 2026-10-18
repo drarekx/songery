@@ -34,8 +34,11 @@ de l'app: actualitzar-la no les toca.
   «Cerca actualitzacions…» ho comprova a l'acte.
 - Abans d'actualitzar es fa **sempre** una còpia de seguretat; si falla, no s'actualitza. Mentre es
   genera un PDF tampoc.
-- L'instal·lador comprova que l'app baixada estigui signada amb el nostre Developer ID. Si la versió
-  nova no arrenca en un minut, torna a posar l'anterior. El registre queda a `actualitzacio.log`.
+- L'actualització es fa a la pàgina `/actualitzacio` (també des del peu de qualsevol pàgina), que
+  en mostra cada pas en directe: còpia de seguretat, baixada (amb el progrés), verificació de la
+  signatura (Developer ID), instal·lació i reinici. Quan la versió nova respon, la pàgina s'hi
+  reconnecta sola. Si la nova no arrenca en un minut, es torna a posar l'anterior. El registre
+  queda a `actualitzacio.log` i els errors del servidor a `errors.log`.
 - Les còpies són a `copies/AAAA-MM-DD_HHMMSS_vX.Y.Z_motiu.zip` dins de la carpeta de dades: la base de
   dades (copiada amb l'API de còpia de SQLite, consistent encara que l'app estigui oberta), les
   imatges i les tipografies. Es conserven les 5 últimes.

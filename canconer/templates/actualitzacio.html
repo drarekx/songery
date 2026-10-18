@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block titol %}Actualització · Cançoners{% endblock %}
+
+{% macro pas(clau, titol, detall) %}
+<li data-pas="{{ clau }}" data-estat="pendent" class="pas-actualitzacio">
+  <span class="icona-pas" aria-hidden="true"></span>
+  <span class="flex min-w-0 flex-1 flex-col">
+    <span class="font-medium">{{ titol }}</span>
+    <span class="text-[13px] text-ink-500" data-detall>{{ detall }}</span>
+    {% if clau == "baixada" %}
+    <span class="mt-2 hidden h-1.5 overflow-hidden rounded-full bg-paper-300" data-barra><span class="block h-full w-0 rounded-full bg-vermello-500 transition-[width]"></span></span>
+    {% endif %}
+  </span>
+</li>
+{% endmacro %}
+
+{% block contingut %}
+<div class="mx-auto flex max-w-2xl flex-col gap-6">
+  <div>
+    <h1 class="font-display text-4xl font-medium tracking-tight">Actualització</h1>
+    <p class="mt-1 text-ink-500">Tens instal·lada la versió <strong id="versio-installada" class="font-mono text-ink-900">{{ versio }}</strong>.</p>
+  </div>
+
+  <section id="resum" class="targeta flex flex-wrap items-center justify-between gap-4 p-5">
+    <p id="text-resum" class="text-[15px]">Comprovant si hi ha una versió nova…</p>
+    <button type="button" id="actualitza" class="btn btn-primari hidden" {{ "disabled" if not pot }}>Actualitza ara</button>
+  </section>
+  {% if not pot %}<p class="avis">{{ motiu }}</p>{% endif %}
+
+  <ol id="passos" class="targeta hidden flex-col divide-y divide-paper-200">
+    {{ pas("copia", "Còpia de seguretat", "Totes les dades: cançoners, cançons, imatges i tipografies.") }}
+    {{ pas("baixada", "Baixada", "L'última versió publicada a GitHub.") }}
+    {{ pas("verificacio", "Verificació", "Es comprova que l'app estigui signada amb el nostre Developer ID.") }}
+    {{ pas("installacio", "Instal·lació", "Es substitueix l'app. Si la nova no arrenca, torna a l'anterior.") }}
+    {{ pas("reinici", "Reinici", "L'app es tanca i s'obre la versió nova. Aquesta pàgina s'hi reconnecta sola.") }}
+  </ol>
+
+  <p id="error" class="avis hidden"></p>
+  <section id="fet" class="hidden rounded-xl border border-emerald-300 bg-emerald-50 p-5 text-emerald-950">
+    <p class="font-display text-2xl font-medium">Actualitzat a la versió <span id="versio-feta" class="font-mono"></span> ✓</p>
+    <p class="mt-1 text-[14px]">Les teves dades hi són totes. Abans s'ha fet la còpia <span id="copia-feta" class="font-mono"></span>.</p>
+    <a href="{{ url_for('inici') }}" class="btn btn-primari mt-4">Continua</a>
+  </section>
+
+  <details class="text-[13px] text-ink-500">
+    <summary class="cursor-pointer">Registre</summary>
+    <ol id="registre" class="mt-2 flex flex-col gap-0.5 font-mono text-[12px]"></ol>
+  </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const ORDRE = ["copia", "baixada", "verificacio", "installacio", "reinici"];
+  const inicial = {{ versio | tojson }};
+  let nova = null;
+  let copia = null;
+  let reconnectant = false;
+  let caigut = false; // el servidor vell ja s'ha tancat
+
+  async function json(url, opcions) {
+    const r = await fetch(url, { cache: "no-store", ...opcions });
+    return { ok: r.ok, dades: await r.json() };
+  }
+
+  function pinta(estat) {
+    $("#passos").classList.replace("hidden", "flex");
+    $("#actualitza").classList.add("hidden");
+    const actual = ORDRE.indexOf(estat.fase);
+    ORDRE.forEach((fase, i) => {
+      const li = document.querySelector(`[data-pas="${fase}"]`);
+      li.dataset.estat = i < actual ? "fet" : i > actual ? "pendent" : estat.error ? "error" : "actiu";
+      const darrer = [...(estat.registre || [])].reverse().find((r) => r.fase === fase);
+      if (darrer) li.querySelector("[data-detall]").textContent = darrer.missatge;
+    });
+    if (actual >= ORDRE.indexOf("baixada") && estat.total) {
+      const barra = $("[data-barra]");
+      barra.classList.remove("hidden");
+      const fet = actual > ORDRE.indexOf("baixada") ? 1 : estat.baixat / estat.total;
+      barra.firstElementChild.style.width = `${Math.min(100, fet * 100)}%`;
+      if (!estat.error && estat.baixat < estat.total) {
+        document.querySelector('[data-pas="baixada"] [data-detall]').textContent =
+          `Baixant Cançoners ${estat.versio_nova}… ${(estat.baixat / 1e6).toFixed(1)} de ${(estat.total / 1e6).toFixed(1)} MB`;
+      }
+    }
+    $("#registre").replaceChildren(...(estat.registre || []).map((r) => {
+      const li = document.createElement("li");
+      li.textContent = `${r.hora}  ${r.missatge}`;
+      return li;
+    }));
+    if (estat.error) {
+      $("#error").textContent = estat.error;
+      $("#error").classList.remove("hidden");
+      $("#actualitza").textContent = "Torna-ho a provar";
+      $("#actualitza").classList.remove("hidden");
+    }
+    nova = estat.versio_nova || nova;
+    copia = estat.copia || copia;
+  }
+
+  function acaba(versio) {
+    ORDRE.forEach((fase) => (document.querySelector(`[data-pas="${fase}"]`).dataset.estat = "fet"));
+    document.querySelector('[data-pas="reinici"] [data-detall]').textContent = `Cançoners ${versio} ja està en marxa.`;
+    $("#versio-feta").textContent = versio;
+    $("#copia-feta").textContent = copia || "";
+    $("#fet").classList.remove("hidden");
+    $("#text-resum").textContent = "Estàs al dia.";
+    $("#versio-installada").textContent = versio;
+    document.querySelector('[data-pas="installacio"] [data-detall]').textContent = "App substituïda.";
+  }
+
+  /** Versió del servidor que respon ara (també si és una versió sense l'API d'estat). */
+  async function versioServidor() {
+    const r = await fetch("/api/actualitzacio/estat", { cache: "no-store" });
+    if (r.ok) return { versio: (await r.json()).versio, fase: null };
+    const html = await (await fetch("/", { cache: "no-store" })).text();
+    const trobada = html.match(/versió instal·lada <span[^>]*>([^<]+)</);
+    if (!trobada) throw new Error("encara no");
+    return { versio: trobada[1].trim(), fase: null };
+  }
+
+  async function segueix() {
+    try {
+      const dades = reconnectant ? await versioServidor() : (await json("/api/actualitzacio/estat")).dades;
+      if (reconnectant) {
+        // Respon el servidor de la versió nova (o l'anterior, si no ha arrencat).
+        if (dades.versio !== inicial) return acaba(dades.versio);
+        // La mateixa versió després d'haver caigut: la nova no ha arrencat i ha tornat l'anterior.
+        if (caigut) {
+          $("#error").textContent = "La versió nova no ha arrencat i s'ha tornat a l'anterior. Les teves dades no s'han tocat.";
+          $("#error").classList.remove("hidden");
+          return;
+        }
+      } else {
+        pinta(dades);
+        if (dades.error) return;
+        if (dades.fase === "reinici") reconnectant = true;
+      }
+    } catch {
+      // El servidor s'està reiniciant: es continua provant.
+      reconnectant = reconnectant || nova !== null;
+      caigut = reconnectant;
+    }
+    setTimeout(segueix, reconnectant ? 1000 : 400);
+  }
+
+  async function comenca() {
+    $("#error").classList.add("hidden");
+    $("#actualitza").disabled = true;
+    const { ok, dades } = await json("/api/actualitzacio/inicia", { method: "POST" });
+    $("#actualitza").disabled = false;
+    if (!ok) {
+      $("#error").textContent = dades.error;
+      $("#error").classList.remove("hidden");
+      return;
+    }
+    segueix();
+  }
+
+  $("#actualitza").addEventListener("click", comenca);
+
+  (async () => {
+    // Si ja n'hi ha una en marxa (p. ex. s'ha recarregat la pàgina), se'n mostra el progrés.
+    const estat = (await json("/api/actualitzacio/estat")).dades;
+    if (estat.fase && !estat.error && !estat.fet) return segueix();
+    try {
+      const { ok, dades } = await json("/api/actualitzacio/comprova");
+      if (!ok) throw new Error(dades.error);
+      if (dades.nova) {
+        $("#text-resum").innerHTML = "";
+        $("#text-resum").append("Hi ha la versió ", Object.assign(document.createElement("strong"), { textContent: dades.nova.versio, className: "font-mono" }), ".");
+        $("#actualitza").classList.remove("hidden");
+        if ({{ inicia | tojson }}) comenca();
+      } else {
+        $("#text-resum").textContent = "Estàs al dia: no hi ha cap versió més nova.";
+      }
+    } catch (e) {
+      $("#text-resum").textContent = `No s'ha pogut comprovar: ${e.message}`;
+    }
+  })();
+})();
+</script>
+{% endblock %}

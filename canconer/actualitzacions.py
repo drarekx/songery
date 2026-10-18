@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -16,6 +17,8 @@ API_ULTIMA = f"https://api.github.com/repos/{REPOSITORI}/releases/latest"
 @cache
 def versio_actual() -> str:
     """Versió d'eines/app/VERSIO (dins de l'app, PyInstaller la desa al mateix camí relatiu)."""
+    if os.environ.get("CANCONER_VERSIO"):  # per provar l'actualització amb una versió «antiga»
+        return os.environ["CANCONER_VERSIO"]
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
     try:
         return (base / "eines" / "app" / "VERSIO").read_text().strip() or "0"

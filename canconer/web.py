@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
+from . import actualitzacions, actualitzador, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -239,6 +239,35 @@ def crea_app() -> Flask:
                                    "posicio_qr": "inici" if posicio == "inici" else "final"})
         return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
                                 instrument=request.form.get("instrument") or None))
+
+    @app.get("/actualitzacio")
+    def actualitzacio():
+        pot, motiu = actualitzador.pot_actualitzar()
+        return render_template("actualitzacio.html", versio=actualitzacions.versio_actual(), pot=pot, motiu=motiu,
+                               inicia=bool(request.args.get("inicia")) and pot)
+
+    @app.get("/api/actualitzacio/comprova")
+    def api_actualitzacio_comprova():
+        try:
+            nova = actualitzacions.comprova()
+        except OSError as e:
+            return jsonify({"error": f"No es pot connectar amb GitHub ({e})."}), 503
+        return jsonify({"actual": actualitzacions.versio_actual(), "nova": nova})
+
+    @app.post("/api/actualitzacio/inicia")
+    def api_actualitzacio_inicia():
+        pot, motiu = actualitzador.pot_actualitzar()
+        if not pot:
+            return jsonify({"error": motiu}), 400
+        if pdf._bloqueig.locked():
+            return jsonify({"error": "S'està generant un PDF. Torna-ho a provar d'aquí a un moment."}), 409
+        actualitzador.inicia()
+        return jsonify({"ok": True})
+
+    @app.get("/api/actualitzacio/estat")
+    def api_actualitzacio_estat():
+        return jsonify({k: v for k, v in actualitzador.estat.items() if k != "sortir"}
+                       | {"versio": actualitzacions.versio_actual()})
 
     @app.get("/marges")
     def marges_llista():

@@ -62,6 +62,17 @@
   .miniatura-mestra { @apply relative shrink-0 overflow-hidden bg-white shadow-[0_0_0_1px] shadow-paper-300; }
   .miniatura-mestra .pagina { @apply pointer-events-none; }
 
+  /* Passos de l'actualització */
+  .pas-actualitzacio { @apply flex items-start gap-4 px-5 py-4 transition; }
+  .pas-actualitzacio[data-estat="pendent"] { @apply opacity-50; }
+  .pas-actualitzacio[data-estat="actiu"] { @apply bg-paper-100; }
+  .icona-pas { @apply mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-paper-300 text-[13px] font-bold; }
+  .pas-actualitzacio[data-estat="actiu"] .icona-pas { @apply animate-spin border-vermello-500 border-t-transparent; }
+  .pas-actualitzacio[data-estat="fet"] .icona-pas { @apply border-emerald-600 bg-emerald-600 text-white; }
+  .pas-actualitzacio[data-estat="fet"] .icona-pas::after { content: "✓"; }
+  .pas-actualitzacio[data-estat="error"] .icona-pas { @apply border-vermello-600 bg-vermello-600 text-white; }
+  .pas-actualitzacio[data-estat="error"] .icona-pas::after { content: "!"; }
+
   /* Fila de l'historial de versions (biblioteca) */
   .fila-versio {
     @apply flex w-full items-start gap-3 border-b border-paper-200 px-4 py-3 text-left transition hover:bg-paper-100
