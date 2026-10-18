@@ -4,6 +4,7 @@
 -->
 <script setup>
 import { ref } from "vue";
+import { confirma } from "@/dialegs.js";
 import { useEditorStore } from "@/stores/editor.js";
 
 const store = useEditorStore();
@@ -26,8 +27,8 @@ function mou(i, desplacament) {
   store.canviaVideos(nova);
 }
 
-function treu(v) {
-  if (confirm(`Vols treure «${v.titol || urlCurta(v)}»? Els QR que hi apunten quedaran buits.`)) {
+async function treu(v) {
+  if (await confirma({ titol: `Treure «${v.titol || urlCurta(v)}»?`, text: "Els QR que hi apunten quedaran buits.", accepta: "Treu-lo", perill: true })) {
     store.canviaVideos(store.videos.filter((x) => x.id !== v.id));
   }
 }

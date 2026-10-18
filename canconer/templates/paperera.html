@@ -11,7 +11,8 @@
     </div>
     {% if canconers %}
     <form method="post" action="{{ url_for('paperera_buida') }}"
-          data-confirma="Vols buidar la paperera? {{ canconers | length }} cançoner{{ 's' if canconers | length != 1 }} s'esborrarà per sempre i no es podrà desfer. Les cançons es queden a la biblioteca.">
+          data-confirma-titol="Buidar la paperera?" data-confirma-accepta="Buida-la"
+          data-confirma="{{ canconers | length }} cançoner{{ 's' if canconers | length != 1 }} s'esborrar{{ 'an' if canconers | length != 1 else 'à' }} per sempre i no es podrà desfer. Les cançons es queden a la biblioteca.">
       <button class="btn btn-perill">Buida la paperera</button>
     </form>
     {% endif %}
@@ -30,7 +31,8 @@
         <button class="btn btn-petit">Recupera'l</button>
       </form>
       <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
-            data-confirma="Vols esborrar per sempre «{{ c.titol }}»? No es podrà desfer. Les cançons es queden a la biblioteca.">
+            data-confirma-titol="Esborrar «{{ c.titol }}» per sempre?" data-confirma-accepta="Esborra'l per sempre"
+            data-confirma="No es podrà desfer. Les cançons es queden a la biblioteca.">
         <button class="btn btn-perill btn-petit">Esborra per sempre</button>
       </form>
     </li>

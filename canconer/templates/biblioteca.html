@@ -54,7 +54,8 @@
             <div class="flex items-center justify-end gap-1">
               <a href="{{ url_for('biblioteca_canco', id_canco=s.id) }}" class="btn btn-fantasma btn-petit">Historial</a>
               {% if not s.canconers %}
-              <form method="post" action="{{ url_for('biblioteca_esborra', id_canco=s.id) }}" data-confirma="Vols esborrar «{{ s.titol }}» de la biblioteca, amb totes les seves versions? No es pot desfer.">
+              <form method="post" action="{{ url_for('biblioteca_esborra', id_canco=s.id) }}" data-confirma-titol="Esborrar «{{ s.titol }}»?" data-confirma-accepta="Esborra-la per sempre"
+                    data-confirma="S'esborra de la biblioteca amb totes les seves versions. No es pot desfer.">
                 <button class="btn btn-perill btn-petit">Esborra</button>
               </form>
               {% endif %}

@@ -1,5 +1,6 @@
 // Fitxa d'una cançó a la biblioteca: vista prèvia de l'esborrany i de cada versió (amb el mateix
 // motor de dibuix que l'editor i el PDF), notes de les versions i restauració.
+import { avisa, confirma } from "./dist/dialegs.js";
 import { acordsDePagines, ajustaMarcs, aplicaEstils, dibuixaPagina, esperaFonts, registraFonts } from "./dist/canconer.js";
 
 const dades = JSON.parse(document.getElementById("dades-historial").textContent);
@@ -82,14 +83,14 @@ $("#restaura").addEventListener("click", async () => {
   const numero = document.querySelector(`[data-versio="${seleccionada}"]`).dataset.numero;
   const segueixen = dades.usos.filter((u) => !u.versio_id).map((u) => u.titol);
   const avis = segueixen.length ? `\n\nCanviarà a: ${segueixen.join(", ")} (segueixen l'esborrany).` : "";
-  if (!confirm(`L'esborrany tornarà a ser com la v${numero}. L'estat actual es desarà abans com una versió nova.${avis}`)) return;
+  if (!await confirma({ titol: `Tornar a la versió ${numero}?`, text: `L'esborrany tornarà a ser com aquesta versió. L'estat actual es desarà abans com una versió nova.${avis}`, accepta: "Restaura-la" })) return;
   await api(urls.restaura, "POST", { versio_id: seleccionada });
   location.reload();
 });
 
 $("#desa-versio").addEventListener("click", async () => {
   const r = await api(urls.versions, "POST", { nota: $("#nota-nova").value });
-  if (!r.versio) alert("L'esborrany és igual que l'última versió: no s'ha creat cap versió nova.");
+  if (!r.versio) await avisa({ titol: "No hi ha res de nou", text: "L'esborrany és igual que l'última versió: no s'ha creat cap versió nova." });
   location.reload();
 });
 

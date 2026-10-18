@@ -63,7 +63,8 @@
         <div class="flex gap-2">
           <button class="btn btn-primari btn-petit" name="accio" value="desa">Desa</button>
           <button class="btn btn-perill btn-petit" name="accio" value="esborra" formnovalidate
-                  data-confirma="Vols esborrar la mestra de marges «{{ m.nom }}»? Els cançoners que la facin servir passaran a «Sense marges».">Esborra</button>
+                  data-confirma-titol="Esborrar «{{ m.nom }}»?" data-confirma-accepta="Esborra-la"
+                  data-confirma="Els cançoners que la facin servir passaran a «Sense marges».">Esborra</button>
         </div>
         {% else %}
         <p class="text-[13px] text-ink-500">El PDF surt exactament com el dissenyes. No es pot modificar.</p>

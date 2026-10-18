@@ -6,6 +6,8 @@ import PanellAcords from "@/components/PanellAcords.vue";
 import PanellVideos from "@/components/PanellVideos.vue";
 import { TIPUS_ACORD, useEditorStore } from "@/stores/editor.js";
 
+vi.mock("@/dialegs.js", () => ({ confirma: vi.fn(async () => true) }));
+
 let pinia;
 let store;
 beforeEach(() => {
@@ -60,9 +62,8 @@ describe("PanellVideos", () => {
     expect(canvia.mock.lastCall[0].map((v) => v.id)).toEqual(["b", "a"]);
     await w.findAll('input[type="checkbox"]')[0].setValue(false);
     expect(canvia.mock.lastCall[0][0].inclou_qr).toBe(false);
-    window.confirm = vi.fn(() => true);
     await w.findAll('[title="Treu el vídeo"]')[0].trigger("click");
-    expect(canvia.mock.lastCall[0]).toHaveLength(1);
+    await vi.waitFor(() => expect(canvia.mock.lastCall[0]).toHaveLength(1));
   });
 
   it("afegeix un vídeo amb el títol del servidor i mostra els errors", async () => {

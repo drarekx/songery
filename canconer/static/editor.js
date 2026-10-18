@@ -9,6 +9,7 @@ import {
 import {
   TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, pinia, useEditorStore,
 } from "./dist/vue.js";
+import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
 const urls = dades.urls;
@@ -1257,9 +1258,9 @@ const EINES = {
     seleccio = { p: p + 1, id: null };
     canviat({ refesLlenc: true });
   },
-  "pagina-esborra": () => {
+  "pagina-esborra": async () => {
     if (obert?.tipus !== "canco" || !editable || pagines.length < 2) return;
-    if (!confirm("Vols esborrar aquesta pàgina de la cançó? (Ho pots desfer amb ⌘Z)")) return;
+    if (!await confirma({ titol: "Esborrar la pàgina?", text: "S'esborra aquesta pàgina de la cançó. Ho pots desfer amb ⌘Z.", accepta: "Esborra la pàgina", perill: true })) return;
     foto(true);
     pagines.splice(paginaActual(), 1);
     seleccio = null;
@@ -2027,7 +2028,7 @@ async function treuCanco() {
   const entrada = entradaActual();
   if (!entrada) return;
   const on = entrada.usos > 1 ? "Continuarà als altres cançoners on surt i a la biblioteca." : "Continuarà a la biblioteca.";
-  if (!confirm(`Vols treure «${entrada.titol || "Sense títol"}» d'aquest cançoner? ${on}`)) return;
+  if (!await confirma({ titol: `Treure «${entrada.titol || "Sense títol"}» del cançoner?`, text: on, accepta: "Treu-la", perill: true })) return;
   await desa();
   await api(urls.entrada + entrada.id, "DELETE");
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
@@ -2149,7 +2150,7 @@ $$("[data-tanca-dialeg]").forEach((b) => b.addEventListener("click", () => b.clo
 // ------------------------------------------------------------ Pàgines mestres
 
 async function novaMestra() {
-  const nom = prompt("Nom de la pàgina mestra nova:", "Mestra nova");
+  const nom = await pregunta({ titol: "Pàgina mestra nova", text: "Com es diu? Després en podràs dissenyar la pàgina esquerra i la dreta.", valor: "Mestra nova", accepta: "Crea-la" });
   if (!nom) return;
   await desa();
   const id = "m" + nouId();
@@ -2168,7 +2169,7 @@ function canviaNomMestra(nom) {
 async function duplicaMestra() {
   const m = K.mestres.find((x) => x.id === obert?.id);
   if (!m) return;
-  if (K.mestres.length >= 20) return alert("Com a màxim hi pot haver 20 pàgines mestres.");
+  if (K.mestres.length >= 20) return avisaDialeg({ titol: "No n'hi caben més", text: "Com a màxim hi pot haver 20 pàgines mestres." });
   await desa();
   const id = nouId();
   K.mestres.push({ ...copia(m), id, nom: `${m.nom} (còpia)` });
@@ -2219,7 +2220,7 @@ $("#confirma-copia-mestres").addEventListener("click", async () => {
 
 async function esborraMestra() {
   if (obert?.tipus !== "mestra" || obert.id === "estandard") return;
-  if (!confirm("Vols esborrar aquesta pàgina mestra? Les pàgines que la fan servir es quedaran sense mestra.")) return;
+  if (!await confirma({ titol: "Esborrar la pàgina mestra?", text: "Les pàgines que la fan servir es quedaran sense mestra.", accepta: "Esborra-la", perill: true })) return;
   K.mestres = K.mestres.filter((m) => m.id !== obert.id);
   pendent = false;
   await api(urls.disseny, "PUT", { mestres: K.mestres });
@@ -2261,7 +2262,7 @@ async function pintaBiblioteca() {
     boto.addEventListener("click", () => enganxaElements(item.elements, 0));
     const esborra = el("button", { text: "×", classe: "absolute right-1 top-1 hidden h-6 w-6 rounded bg-white text-ink-500 shadow-suau hover:text-vermello-600 group-hover:block", atributs: { type: "button", title: "Esborra de la biblioteca" } });
     esborra.addEventListener("click", async () => {
-      if (!confirm(`Vols esborrar «${item.nom}» de la biblioteca?`)) return;
+      if (!await confirma({ titol: `Esborrar «${item.nom}»?`, text: "Desapareix de la biblioteca d'elements. Les pàgines on ja l'has posat no canvien.", accepta: "Esborra", perill: true })) return;
       await api(`${urls.elements}/${item.id}`, "DELETE");
       pintaBiblioteca();
     });
@@ -2272,7 +2273,7 @@ async function pintaBiblioteca() {
 
 async function desaABiblioteca(elements, nomPerDefecte) {
   if (!elements?.length) return;
-  const nom = prompt("Nom per a la biblioteca d'elements:", nomPerDefecte);
+  const nom = await pregunta({ titol: "Desar a la biblioteca d'elements", text: "Podràs posar-ho a qualsevol pàgina o cançoner des de la pestanya Elements.", valor: nomPerDefecte });
   if (!nom) return;
   await api(urls.elements, "POST", { nom, elements });
   mostraEstat("Desat a la biblioteca");
@@ -2343,7 +2344,7 @@ async function mostraVersio(v, li) {
   const accions = el("div", { classe: "mt-3 flex flex-wrap gap-2" });
   const restaura = el("button", { text: `Restaura la v${v.numero}`, classe: "btn btn-petit", atributs: { type: "button" } });
   restaura.addEventListener("click", async () => {
-    if (!confirm(`L'esborrany tornarà a ser com la v${v.numero}. L'estat actual es desarà abans com una versió nova. Continuar?`)) return;
+    if (!await confirma({ titol: `Tornar a la versió ${v.numero}?`, text: "L'esborrany tornarà a ser com aquesta versió. L'estat actual es desarà abans com una versió nova, així que no es perd res.", accepta: "Restaura-la" })) return;
     await api(`${urls.canco}${obert.id}/restaura`, "POST", { versio_id: v.id });
     [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
     await obre(obert, { forca: true });
