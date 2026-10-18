@@ -5,7 +5,7 @@ import {
   colorCss, dibuixaPagina, esAcord, transportaAcord, esperaFonts, posaAcord, posaMida, registraFonts, reposiciona, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaSelectorColor, pinia, useEditorStore,
+  TIPUS_ACORD, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellPropietats, pinia, useEditorStore,
 } from "./dist/vue.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
@@ -272,6 +272,34 @@ store.connecta({
   triaFont(boto, clau) {
     obreSelectorFont(boto, { actual: K.estils[clau]?.font, tria: (font) => store.canviaEstil(clau, "font", font) });
   },
+  // Propietats
+  canviaPropietats: (propietats) => canviaPropietats(propietats),
+  canviaPosicio,
+  canviaPagina,
+  accio: (nom) => accio(nom),
+  alinea: (tipus) => alinea(tipus),
+  gira,
+  centra(eix) {
+    const e = elementSel();
+    if (e) canviaPropietats(eix === "x" ? { x: arrodoneix((AMPLE - e.w) / 2) } : { y: arrodoneix((ALT - e.h) / 2) });
+  },
+  seleccionaGrup() {
+    const e = elementSel();
+    if (e) selecciona(seleccio.p, e.id);
+  },
+  editaLletra() {
+    const e = elementSel();
+    if (e) editaLletra(seleccio.p, e.id);
+  },
+  canviaImatge() {
+    $("#fitxer-imatge").dataset.desti = "substitueix";
+    $("#fitxer-imatge").click();
+  },
+  triaFontElement,
+  desaABiblioteca: desaSeleccioABiblioteca,
+  canviaNomMestra,
+  duplicaMestra: () => duplicaMestra(),
+  esborraMestra: () => esborraMestra(),
   // Capes
   ressaltaCapes: (p, ids, si) => ids.forEach((id) => nodeElement(p, id)?.classList.toggle("ressaltat", si)),
   seleccionaCapa(p, id, { afegeix = false, sol = false } = {}) {
@@ -303,6 +331,7 @@ muntaPanellAcords("#llista-acords");
 muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
 muntaPanellCapes("#panell-capes");
+muntaPanellPropietats("#panell-propietats");
 
 // Diagrames d'acords (SVG) per als elements «diagrama» i «tots els acords»: els genera el servidor,
 // es guarden aquí i, quan n'arriben de nous, es torna a dibuixar.
@@ -1498,7 +1527,6 @@ function accio(nom) {
   canviat();
   repintaPagina(p).then(() => { pintaSeleccio(); pintaPropietats(); });
 }
-$$("[data-accio]").forEach((b) => b.addEventListener("click", () => accio(b.dataset.accio)));
 
 /** Alinea els elements seleccionats entre ells (sobre el requadre comú). */
 function alinea(tipus) {
@@ -1520,19 +1548,7 @@ function alinea(tipus) {
   pintaSeleccio();
   canviat();
 }
-$$("[data-alinea-multi]").forEach((b) => b.addEventListener("click", () => alinea(b.dataset.alineaMulti)));
 
-$$("[data-gira]").forEach((b) => b.addEventListener("click", () => {
-  const e = elementSel();
-  if (!e || !editable) return;
-  foto(true);
-  e.rotacio = ((((e.rotacio || 0) + Number(b.dataset.gira)) % 360) + 540) % 360 - 180;
-  const node = nodeElement(seleccio.p, e.id);
-  if (node) reposiciona(node, e);
-  pintaSeleccio();
-  pintaPropietats();
-  canviat();
-}));
 
 function copiaElement() {
   const els = elementsSel();
@@ -1625,124 +1641,65 @@ document.addEventListener("keydown", (ev) => {
 
 const NOMS_TIPUS = { diagrama: "Diagrama d'acord", text: "Text", lletra: "Marc de lletra", imatge: "Imatge", forma: "Forma", numero: "Número de pàgina", index: "Índex", diagrames: "Diagrames d'acords", qr: "Codi QR", index_qr: "Índex de vídeos" };
 
-function omplenaEstils(select) {
-  const valor = select.value;
-  select.replaceChildren(...Object.entries(K.estils).map(([clau, e]) => el("option", { text: e.nom, atributs: { value: clau } })));
-  select.value = valor;
-}
-
+/** Estat del panell de propietats (el component PanellPropietats). */
 function pintaPropietats() {
-  pintaPropietatsElement();
-  // Botons per passar la selecció a la pàgina anterior o següent (alternativa a arrossegar).
-  $$("[data-moure-pagina]").forEach((d) => d.classList.toggle("hidden", pagines.length < 2 || obert?.tipus === "llibre"));
-  $$('[data-accio="a-pagina-anterior"]').forEach((b) => (b.disabled = !editable || !seleccio || seleccio.p === 0));
-  $$('[data-accio="a-pagina-seguent"]').forEach((b) => (b.disabled = !editable || !seleccio || seleccio.p >= pagines.length - 1));
-}
-
-function pintaPropietatsElement() {
   pintaCapes();
-  const multi = idsSel().length > 1;
-  $("#props-multi").classList.toggle("hidden", !multi);
-  $("#props-multi").classList.toggle("flex", multi);
-  if (multi) {
+  const ids = idsSel();
+  const moure = {
+    visible: pagines.length > 1 && obert?.tipus !== "llibre",
+    anterior: editable && !!seleccio && seleccio.p > 0,
+    seguent: editable && !!seleccio && seleccio.p < pagines.length - 1,
+  };
+  if (ids.length > 1) {
     const els = elementsSel();
-    const grup = els[0].grup && els.every((x) => x.grup === els[0].grup) && idsGrup(seleccio.p, els[0].id).length === els.length;
-    $("#props-pagina").classList.add("hidden");
-    $("#props-element").classList.add("hidden");
-    $("#props-element").classList.remove("flex");
-    $("#titol-multi").textContent = grup ? `Grup (${els.length} elements)` : `${els.length} elements seleccionats`;
-    $("#info-multi").textContent = grup ? "Es mou, s'escala i es gira com un sol element." : "Agrupa'ls perquè es moguin sempre junts.";
-    $('#props-multi [data-accio="agrupa"]').classList.toggle("hidden", grup);
-    $('#props-multi [data-accio="desagrupa"]').classList.toggle("hidden", !els.some((x) => x.grup));
-    $$("#props-multi button").forEach((b) => (b.disabled = !editable));
-    return;
+    const grup = !!els[0].grup && els.every((x) => x.grup === els[0].grup) && idsGrup(seleccio.p, els[0].id).length === els.length;
+    return store.sincronitza({ propietats: { mode: "multi", multi: { n: els.length, grup, algunGrup: els.some((x) => x.grup) }, element: null, pagina: null, moure } });
   }
   const e = elementSel();
-  $("#props-pagina").classList.toggle("hidden", !!e);
-  $("#props-element").classList.toggle("hidden", !e);
-  $("#props-element").classList.toggle("flex", !!e);
-  $$("#props-element input, #props-element select, #props-element textarea, #props-element button").forEach((c) => (c.disabled = !editable));
-  if (!e) return pintaPropietatsPagina();
-  $("#titol-props").textContent = NOMS_TIPUS[e.tipus] || "Element";
-  $$("[data-per]").forEach((b) => b.classList.toggle("hidden", !b.dataset.per.split(" ").includes(e.tipus)));
-  omplenaEstils($('[data-prop="estil"]'));
-  if (e.tipus === "qr") omplenaVideosQR(e);
-  $$("[data-prop]").forEach((camp) => {
-    const valor = e[camp.dataset.prop];
-    if (camp.type === "checkbox") camp.checked = camp.dataset.prop === "ajusta" ? valor !== false : !!valor;
-    else if (document.activeElement !== camp) camp.value = camp.type === "color" ? valor || "#000000" : valor ?? "";
+  if (e) {
+    return store.sincronitza({
+      propietats: { mode: "element", element: { ...copia(e), infoMarc: infoMarc(e) }, multi: null, pagina: null, moure },
+      estils: copia(K.estils), tipografies: TIPOGRAFIES, videos: copia(videosCanco()),
+    });
+  }
+  const model = pagines[paginaActual()];
+  const mestra = obert?.tipus === "mestra" ? K.mestres.find((x) => x.id === obert.id) : null;
+  store.sincronitza({
+    mestres: K.mestres.map(({ id, nom }) => ({ id, nom })),
+    propietats: {
+      mode: "pagina", element: null, multi: null, moure,
+      pagina: obert && model ? {
+        tipus: obert.tipus, mestra: model.mestra || null, costat: model.costat || null, fons: model.fons || "#ffffff",
+        nomMestra: mestra?.nom || "", mestraEsborrable: !!mestra && mestra.id !== "estandard",
+      } : obert ? { tipus: obert.tipus } : null,
+    },
   });
-  const format = e.format || {};
-  $$("[data-format-prop]").forEach((camp) => {
-    const valor = format[camp.dataset.formatProp];
-    if (camp.type === "checkbox") camp.checked = !!valor;
-    else if (camp.type === "color") camp.value = valor || K.estils[e.estil]?.color || "#000000";
-    else if (document.activeElement !== camp) camp.value = valor ?? "";
-  });
-  $$("[data-alinea]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.alinea === (e.alineacio || "left"))));
-  $('#props-element [data-accio="bloqueja"]').setAttribute("aria-pressed", String(!!e.bloquejat));
-  $("#nota-grup").classList.toggle("hidden", !e.grup);
-  $("#nota-grup").classList.toggle("flex", !!e.grup);
-  const font = TIPOGRAFIES.find((f) => f.clau === format.font);
-  const fontEstil = TIPOGRAFIES.find((f) => f.clau === K.estils[e.estil]?.font);
-  $("#font-element .nom-font").textContent = font ? font.nom : `De l'estil (${fontEstil?.nom || "—"})`;
-  $("#font-element .nom-font").style.fontFamily = FONTS[format.font || K.estils[e.estil]?.font] || "";
-  $$("[data-ajust]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ajust === (e.ajust || "cover"))));
-  if (e.tipus === "lletra") pintaInfoMarc();
 }
 
+/** Posició i mida de l'element seleccionat (mentre s'arrossega, sense tornar a pintar tot el panell). */
 function pintaPropietatsPosicio() {
   const e = elementSel();
-  if (!e) return;
-  for (const prop of ["x", "y", "w", "h"]) {
-    const camp = $(`[data-prop="${prop}"]`);
-    if (camp && document.activeElement !== camp) camp.value = e[prop];
+  const actual = store.propietats.element;
+  if (!e || !actual || actual.id !== e.id) return;
+  for (const prop of ["x", "y", "w", "h", "rotacio"]) actual[prop] = e[prop];
+}
+
+/** Informació d'un marc de lletra: a quina mida ha quedat la lletra o si no hi cap. */
+function infoMarc(e) {
+  if (e?.tipus !== "lletra") return null;
+  const node = nodeElement(seleccio.p, e.id);
+  const factor = Number(node?.dataset.escala || 1);
+  const mida = (Number(e.format?.mida || K.estils[e.estil || "lletra"]?.mida) || 11) * factor;
+  if (node?.classList.contains("desborda")) {
+    return { alerta: true, text: "La lletra no hi cap. Fes el marc més gran, activa l'ajust, afegeix columnes o fes servir «Talla aquí» per passar-ne una part a la pàgina següent." };
   }
+  return { alerta: false, text: factor < 1 ? `Lletra ajustada a ${mida.toFixed(1)} pt perquè hi càpiga.` : `Lletra a ${mida.toFixed(1)} pt.` };
 }
 
 function pintaInfoMarc() {
   const e = elementSel();
-  if (e?.tipus !== "lletra") return;
-  const node = nodeElement(seleccio.p, e.id);
-  const factor = Number(node?.dataset.escala || 1);
-  const mida = (Number(e.format?.mida || K.estils[e.estil || "lletra"]?.mida) || 11) * factor;
-  const info = $("#info-marc");
-  if (node?.classList.contains("desborda")) {
-    info.className = "rounded-md bg-vermello-50 px-3 py-2 text-[13px] leading-snug text-vermello-700";
-    info.textContent = "La lletra no hi cap. Fes el marc més gran, activa l'ajust, afegeix columnes o fes servir «Talla aquí» per passar-ne una part a la pàgina següent.";
-  } else {
-    info.className = "rounded-md bg-paper-200/60 px-3 py-2 text-[13px] leading-snug text-ink-700";
-    info.textContent = factor < 1 ? `Lletra ajustada a ${mida.toFixed(1)} pt perquè hi càpiga.` : `Lletra a ${mida.toFixed(1)} pt.`;
-  }
-}
-
-function pintaPropietatsPagina() {
-  const especial = obert?.tipus === "especial";
-  const mestra = obert?.tipus === "mestra";
-  const llibre = obert?.tipus === "llibre";
-  $("#titol-props-pagina").textContent = llibre ? "Tot el llibret" : mestra ? "Pàgina mestra" : "Pàgina";
-  const model = pagines[paginaActual()];
-  $("#camp-mestra").classList.toggle("hidden", mestra || llibre);
-  $("#camp-costat").classList.toggle("hidden", mestra || llibre || !model?.mestra);
-  $("#ajuda-mestra").classList.toggle("hidden", !mestra);
-  $("#fons-pagina").closest("label").classList.toggle("hidden", llibre || mestra);
-  $("#desa-pagina-biblioteca").classList.toggle("hidden", llibre);
-  if (llibre || !model) return;
-  const select = $("#mestra-pagina");
-  select.replaceChildren(el("option", { text: "Cap (pàgina neta)", atributs: { value: "" } }),
-    ...K.mestres.map((m) => el("option", { text: m.nom, atributs: { value: m.id } })));
-  select.value = model.mestra || "";
-  select.disabled = !editable;
-  $("#costat-pagina").value = model.costat || "";
-  $("#costat-pagina").disabled = !editable;
-  $("#fons-pagina").value = model.fons || "#ffffff";
-  $("#fons-pagina").disabled = !editable;
-  if (mestra) {
-    const m = K.mestres.find((x) => x.id === obert.id);
-    $("#nom-mestra").value = m?.nom || "";
-    $("#esborra-mestra").classList.toggle("hidden", m?.id === "estandard");
-  }
-  void especial;
+  const actual = store.propietats.element;
+  if (e?.tipus === "lletra" && actual?.id === e.id) actual.infoMarc = infoMarc(e);
 }
 
 function canviaPropietats(propietats, { repinta = true } = {}) {
@@ -1754,75 +1711,68 @@ function canviaPropietats(propietats, { repinta = true } = {}) {
   if (repinta) repintaPagina(seleccio.p).then(() => pintaPropietats());
 }
 
-$$("[data-prop]").forEach((camp) => camp.addEventListener("input", () => {
-  const prop = camp.dataset.prop;
-  let valor;
-  if (camp.type === "checkbox") valor = camp.checked;
-  else if (camp.type === "number" || camp.type === "range") {
-    if (camp.value === "") return;
-    valor = Number(camp.value);
-  } else valor = camp.value;
-  const nomesPosicio = ["x", "y", "w", "h", "rotacio", "opacitat"].includes(prop);
-  if (nomesPosicio) {
-    const e = elementSel();
-    foto();
-    e[prop] = valor;
-    const node = nodeElement(seleccio.p, e.id);
-    if (node) reposiciona(node, e);
-    pintaSeleccio();
-    canviat();
-    if (prop === "w" || prop === "h") reajusta();
-  } else canviaPropietats({ [prop]: valor });
-}));
-
-$$("[data-format-prop]").forEach((camp) => camp.addEventListener("input", () => {
+/** Posició, mida, rotació o opacitat: es mou l'element sense tornar-lo a dibuixar. */
+function canviaPosicio(prop, valor) {
   const e = elementSel();
-  if (!e) return;
-  const format = { ...(e.format || {}) };
-  const prop = camp.dataset.formatProp;
-  if (camp.type === "checkbox") format[prop] = camp.checked;
-  else if (camp.value === "") delete format[prop];
-  else format[prop] = camp.type === "number" || prop === "pes" ? Number(camp.value) : camp.value;
-  canviaPropietats({ format });
-}));
-$("#treu-format").addEventListener("click", () => canviaPropietats({ format: {} }));
-$$("[data-alinea]").forEach((b) => b.addEventListener("click", () => canviaPropietats({ alineacio: b.dataset.alinea })));
-$$("[data-ajust]").forEach((b) => b.addEventListener("click", () => canviaPropietats({ ajust: b.dataset.ajust })));
-$$("[data-centra]").forEach((b) => b.addEventListener("click", () => {
-  const e = elementSel();
-  if (e) canviaPropietats(b.dataset.centra === "x" ? { x: arrodoneix((AMPLE - e.w) / 2) } : { y: arrodoneix((ALT - e.h) / 2) });
-}));
-$$("[data-variable]").forEach((b) => b.addEventListener("click", () => {
-  const camp = $('[data-prop="text"]');
-  camp.setRangeText(`{${b.dataset.variable}}`, camp.selectionStart, camp.selectionEnd, "end");
-  camp.dispatchEvent(new Event("input"));
-}));
-$("#canvia-imatge").addEventListener("click", () => { $("#fitxer-imatge").dataset.desti = "substitueix"; $("#fitxer-imatge").click(); });
-$("#edita-lletra").addEventListener("click", () => { const e = elementSel(); if (e) editaLletra(seleccio.p, e.id); });
+  if (!e || !editable) return;
+  foto();
+  e[prop] = valor;
+  const node = nodeElement(seleccio.p, e.id);
+  if (node) reposiciona(node, e);
+  pintaSeleccio();
+  canviat();
+  if (prop === "w" || prop === "h") reajusta();
+}
 
-$("#mestra-pagina").addEventListener("change", (ev) => {
+/** Mestra, costat de la mestra o fons de la pàgina oberta. */
+function canviaPagina(canvis) {
   const model = pagines[paginaActual()];
-  foto(true);
-  model.mestra = ev.target.value || null;
+  if (!model || !editable) return;
+  foto(!("fons" in canvis));
+  for (const [clau, valor] of Object.entries(canvis)) {
+    if (valor) model[clau] = valor;
+    else if (clau === "mestra") model.mestra = null;
+    else delete model[clau];
+  }
   if (!model.mestra) delete model.costat;
   canviat();
   repintaPagina(paginaActual());
-  pintaPropietatsPagina();
-});
-$("#costat-pagina").addEventListener("change", (ev) => {
-  const model = pagines[paginaActual()];
+  pintaPropietats();
+}
+
+function gira(graus) {
+  const e = elementSel();
+  if (!e || !editable) return;
   foto(true);
-  if (ev.target.value) model.costat = ev.target.value;
-  else delete model.costat;
+  e.rotacio = ((((e.rotacio || 0) + graus) % 360) + 540) % 360 - 180;
+  const node = nodeElement(seleccio.p, e.id);
+  if (node) reposiciona(node, e);
+  pintaSeleccio();
+  pintaPropietats();
   canviat();
-  repintaPagina(paginaActual());
-});
-$("#fons-pagina").addEventListener("input", (ev) => {
-  foto();
-  pagines[paginaActual()].fons = ev.target.value;
-  canviat();
-  repintaPagina(paginaActual());
-});
+}
+
+function triaFontElement(boto) {
+  const e = elementSel();
+  if (!e || !editable) return;
+  obreSelectorFont(boto, {
+    actual: e.format?.font ?? null,
+    permetBuit: true,
+    tria: (clau) => {
+      const format = { ...(e.format || {}) };
+      if (clau) format.font = clau;
+      else delete format.font;
+      canviaPropietats({ format });
+    },
+  });
+}
+
+function desaSeleccioABiblioteca(quin) {
+  if (quin === "pagina") return desaABiblioteca(copia(pagines[paginaActual()]?.elements || []), "Pàgina");
+  if (quin === "multi") return desaABiblioteca(copia(elementsSel()), "Grup");
+  const e = elementSel();
+  if (e) desaABiblioteca([copia(e)], NOMS_TIPUS[e.tipus]);
+}
 
 // Pestanyes del panell dret
 $$("[data-pestanya]").forEach((b) => b.addEventListener("click", () => mostraPestanya(b.dataset.pestanya)));
@@ -1929,20 +1879,6 @@ document.addEventListener("pointerdown", (ev) => {
   if (popoverFonts.classList.contains("flex") && !popoverFonts.contains(ev.target) && !ev.target.closest("[data-selector-font]")) tancaSelectorFont();
 });
 
-$("#font-element").addEventListener("click", (ev) => {
-  const e = elementSel();
-  if (!e || !editable) return;
-  obreSelectorFont(ev.currentTarget, {
-    actual: e.format?.font ?? null,
-    permetBuit: true,
-    tria: (clau) => {
-      const format = { ...(e.format || {}) };
-      if (clau) format.font = clau;
-      else delete format.font;
-      canviaPropietats({ format });
-    },
-  });
-});
 
 // Importar tipografies (TTF, OTF, WOFF, WOFF2)
 const dialegFont = $("#dialeg-font");
@@ -2232,13 +2168,6 @@ function colorsDelDocument() {
   }
   return trobats.filter((c) => c && c !== "#ffffff");
 }
-muntaSelectorColor($("#fons-pagina"), { colors: colorsDelDocument });
-muntaSelectorColor($('[data-format-prop="color"]'), { colors: colorsDelDocument, buit: "Color de l'estil",
-  perDefecte: () => (typeof K !== "undefined" && seleccio ? K.estils[elementSel()?.estil]?.color : undefined) });
-muntaSelectorColor($('[data-per="qr"] [data-prop="color"]'), { colors: colorsDelDocument });
-muntaSelectorColor($('[data-prop="fons"]'), { colors: colorsDelDocument, buit: "Sense fons" });
-muntaSelectorColor($('[data-prop="vora"]'), { colors: colorsDelDocument, buit: "Sense vora" });
-
 // Vídeos de YouTube de la cançó (es desen amb el contingut i es versionen amb ella)
 
 function videosCanco() {
@@ -2256,19 +2185,6 @@ function canviaVideos(llista) {
   canco.contingut = { ...(canco.contingut || {}), videos: llista };
   canviat();
   pintaLlenc();
-}
-
-function omplenaVideosQR(e) {
-  const llista = videosCanco();
-  $("#video-qr").replaceChildren(...(llista.length
-    ? llista.map((v, i) => el("option", { text: v.titol || `Vídeo ${i + 1}`, atributs: { value: v.id } }))
-    : [el("option", { text: "La cançó no té cap vídeo", atributs: { value: "" } })]));
-  const costat = Math.min(e.w, e.h - (e.peu ? 4.5 : 0));
-  const avis = $("#avis-qr");
-  avis.classList.toggle("hidden", costat >= QR_MINIM && llista.length > 0);
-  avis.textContent = !llista.length
-    ? "Afegeix un vídeo a la pestanya Cançó."
-    : `El codi fa ${costat.toFixed(1)} mm. Per escanejar-lo bé, fes-lo de ${QR_MINIM} mm o més.`;
 }
 
 async function aplicaTransport() {
@@ -2419,14 +2335,14 @@ $("#nova-mestra").addEventListener("click", async () => {
   await api(urls.disseny, "PUT", { mestres: K.mestres });
   await obre({ tipus: "mestra", id });
 });
-$("#nom-mestra").addEventListener("input", (ev) => {
+function canviaNomMestra(nom) {
   const m = K.mestres.find((x) => x.id === obert?.id);
   if (!m) return;
-  m.nom = ev.target.value || "Mestra";
+  m.nom = nom || "Mestra";
   canviat();
   pintaLlista();
-});
-$("#duplica-mestra").addEventListener("click", async () => {
+}
+async function duplicaMestra() {
   const m = K.mestres.find((x) => x.id === obert?.id);
   if (!m) return;
   if (K.mestres.length >= 20) return alert("Com a màxim hi pot haver 20 pàgines mestres.");
@@ -2435,7 +2351,7 @@ $("#duplica-mestra").addEventListener("click", async () => {
   K.mestres.push({ ...copia(m), id, nom: `${m.nom} (còpia)` });
   await api(urls.disseny, "PUT", { mestres: K.mestres });
   await obre({ tipus: "mestra", id });
-});
+}
 
 const dialegCopia = $("#dialeg-copia-mestres");
 let altresCanconers = [];
@@ -2478,7 +2394,7 @@ $("#confirma-copia-mestres").addEventListener("click", async () => {
   else pintaLlista();
 });
 
-$("#esborra-mestra").addEventListener("click", async () => {
+async function esborraMestra() {
   if (obert?.tipus !== "mestra" || obert.id === "estandard") return;
   if (!confirm("Vols esborrar aquesta pàgina mestra? Les pàgines que la fan servir es quedaran sense mestra.")) return;
   K.mestres = K.mestres.filter((m) => m.id !== obert.id);
@@ -2487,7 +2403,7 @@ $("#esborra-mestra").addEventListener("click", async () => {
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
   obert = null;
   await obre({ tipus: "mestra", id: "estandard" });
-});
+}
 
 // ------------------------------------------------------------ Estils
 
@@ -2539,14 +2455,6 @@ async function desaABiblioteca(elements, nomPerDefecte) {
   mostraEstat("Desat a la biblioteca");
   mostraPestanya("biblioteca");
 }
-$("#selecciona-grup").addEventListener("click", () => { const e = elementSel(); if (e) selecciona(seleccio.p, e.id); });
-$("#desa-multi-biblioteca").addEventListener("click", () => desaABiblioteca(copia(elementsSel()), "Grup"));
-$("#desa-element-biblioteca").addEventListener("click", () => {
-  const e = elementSel();
-  if (e) desaABiblioteca([copia(e)], NOMS_TIPUS[e.tipus]);
-});
-$("#desa-pagina-biblioteca").addEventListener("click", () => desaABiblioteca(copia(pagines[paginaActual()]?.elements || []), "Pàgina"));
-
 // ------------------------------------------------------------ Historial de versions
 
 function tancaHistorial() {

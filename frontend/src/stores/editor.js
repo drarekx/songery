@@ -29,6 +29,16 @@ export const useEditorStore = defineStore("editor", {
     /** Capes de les pàgines obertes: [{etiqueta, elements: [{id, tipus, nom, font, bloquejat, grup,
      *  seleccionat, index}], mestra: n}] (cada element, del de davant al del fons). */
     capes: null,
+    /** Pàgines mestres del cançoner: [{id, nom}]. */
+    mestres: [],
+    /** Panell de propietats. mode: "pagina" (no hi ha res seleccionat), "element" o "multi".
+     *  pagina: {tipus (el que hi ha obert: canco, especial, mestra o llibre), mestra, costat, fons,
+     *           nomMestra, mestraEsborrable}
+     *  element: còpia de l'element seleccionat, amb grup (si forma part d'un grup), infoMarc
+     *           ({text, alerta}, per als marcs de lletra)
+     *  multi: {n, grup (la selecció és un grup sencer), algunGrup}
+     *  moure: {visible, anterior, seguent} (botons per passar-ho a la pàgina del costat) */
+    propietats: { mode: "pagina", pagina: null, element: null, multi: null, moure: { visible: false, anterior: false, seguent: false } },
     urls: {},
     /** Accions que encara fa editor.js. */
     ponts: markRaw({}),
@@ -71,6 +81,29 @@ export const useEditorStore = defineStore("editor", {
       if (n > 11) n -= 12;
       if (n < -11) n += 12;
       this.canviaEntrada({ transport: n });
+    },
+    /** Propietats de l'element seleccionat (es tornen a dibuixar). */
+    canviaPropietats(propietats) {
+      const e = this.propietats.element;
+      if (!e || !this.editable) return;
+      Object.assign(e, propietats);
+      this.crida("canviaPropietats", propietats);
+    },
+    /** Posició, mida, rotació i opacitat: es mouen sense tornar a dibuixar l'element. */
+    canviaPosicio(prop, valor) {
+      const e = this.propietats.element;
+      if (!e || !this.editable || !Number.isFinite(valor)) return;
+      e[prop] = valor;
+      this.crida("canviaPosicio", prop, valor);
+    },
+    /** Format propi de l'element (sobre el de l'estil); valor buit: torna al de l'estil. */
+    canviaFormat(prop, valor) {
+      const e = this.propietats.element;
+      if (!e || !this.editable) return;
+      const format = { ...(e.format || {}) };
+      if (valor === "" || valor === null || valor === undefined) delete format[prop];
+      else format[prop] = valor;
+      this.canviaPropietats({ format });
     },
     canviaEstil(clau, prop, valor) {
       if (!this.estils[clau]) return;
