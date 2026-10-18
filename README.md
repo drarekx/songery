@@ -115,6 +115,7 @@ pip install -r requirements.txt
 python app.py                      # http://localhost:5050
 python app.py --host 0.0.0.0       # per obrir-lo des del mòbil a la mateixa xarxa
 python app.py --port 8080 --debug
+python app.py --sense-recarrega    # per defecte es recarrega sol quan canvia el codi
 ```
 
 Motor de PDF: per defecte, el Chrome/Edge/Brave local (`CANCONER_NAVEGADOR` permet triar-ne un altre
