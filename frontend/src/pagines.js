@@ -34,17 +34,21 @@ function declaracions(e) {
   ].join(";");
 }
 
-/** CSS dels estils del cançoner. Dins dels marcs de lletra, l'acord, la secció i la nota fan servir el seu estil. */
-export function cssEstils(estils) {
-  const regles = Object.entries(estils).map(([clau, e]) => `.estil-${clau}{${declaracions(e)}}`);
+/**
+ * CSS dels estils del cançoner. Dins dels marcs de lletra, l'acord, la secció i la nota fan servir el seu estil.
+ * ambit: selector que limita els estils a una part de la pàgina (p. ex. diversos cançoners a l'inici).
+ */
+export function cssEstils(estils, ambit = "") {
+  const a = ambit ? `${ambit} ` : "";
+  const regles = Object.entries(estils).map(([clau, e]) => `${a}.estil-${clau}{${declaracions(e)}}`);
   if (estils.acord) {
-    regles.push(`.marc-lletra .acord-nom{${declaracions(estils.acord)}}`);
+    regles.push(`${a}.marc-lletra .acord-nom{${declaracions(estils.acord)}}`);
     // Espai a sobre de les línies amb acords: l'alçada d'una línia de l'estil Acord.
     const alcada = (Number(estils.acord.mida) || 9) * (Number(estils.acord.interlineat) || 1.2);
-    regles.push(`.marc-lletra .linia.amb-acords{padding-top:calc(${alcada}pt * var(--escala, 1))}`);
+    regles.push(`${a}.marc-lletra .linia.amb-acords{padding-top:calc(${alcada}pt * var(--escala, 1))}`);
   }
-  if (estils.seccio) regles.push(`.marc-lletra .seccio{${declaracions(estils.seccio)}}`);
-  if (estils.nota) regles.push(`.marc-lletra .nota{${declaracions(estils.nota)}}`);
+  if (estils.seccio) regles.push(`${a}.marc-lletra .seccio{${declaracions(estils.seccio)}}`);
+  if (estils.nota) regles.push(`${a}.marc-lletra .nota{${declaracions(estils.nota)}}`);
   return regles.join("\n");
 }
 

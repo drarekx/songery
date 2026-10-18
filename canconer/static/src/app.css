@@ -62,6 +62,29 @@
   .miniatura-mestra { @apply relative shrink-0 overflow-hidden bg-white shadow-[0_0_0_1px] shadow-paper-300; }
   .miniatura-mestra .pagina { @apply pointer-events-none; }
 
+  /* Inici: els cançoners com a llibrets A5 sobre la taula, amb la portada real */
+  .prestatge { @apply grid list-none gap-x-9 gap-y-12 p-0; grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr)); }
+  .llibret {
+    @apply relative block overflow-hidden bg-white transition duration-200 ease-out;
+    aspect-ratio: 148 / 210;
+    box-shadow: 0 10px 24px -16px rgb(27 26 23 / 0.45), 0 1px 0 rgb(27 26 23 / 0.06);
+  }
+  .llibret:hover, .llibret:focus-visible {
+    transform: translateY(-6px) rotate(-0.6deg);
+    box-shadow: 0 22px 40px -18px rgb(27 26 23 / 0.5), 0 2px 0 rgb(27 26 23 / 0.06);
+  }
+  .llibret:focus-visible { @apply outline-none ring-2 ring-vermello-500 ring-offset-4 ring-offset-taula; }
+  /* El plec del llibret, a l'esquerra */
+  .llibret::after { content: ""; @apply pointer-events-none absolute inset-y-0 left-0 w-3; background: linear-gradient(90deg, rgb(27 26 23 / 0.09), transparent); }
+  .portada-llibret { @apply absolute inset-0 block; }
+  .portada-llibret > .pagina { position: absolute; left: 0; top: 0; }
+  .llibret-nou {
+    @apply flex flex-col justify-center gap-3 border-2 border-dashed border-ink-300 px-[14%] text-center text-ink-500 transition hover:border-ink-400 focus-within:border-vermello-500;
+    aspect-ratio: 148 / 210;
+  }
+  .enllac-llibret { @apply inline-flex min-h-[2.25rem] items-center rounded px-1.5 text-ink-700 hover:text-vermello-700; }
+  .enllac-llibret:first-child { @apply -ml-1.5; }
+
   /* Passos de l'actualització */
   .pas-actualitzacio { @apply flex items-start gap-4 px-5 py-4 transition; }
   .pas-actualitzacio[data-estat="pendent"] { @apply opacity-50; }

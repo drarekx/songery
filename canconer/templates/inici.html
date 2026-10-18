@@ -1,61 +1,94 @@
 {% extends "base.html" %}
-{% block contingut %}
-<div class="flex flex-col gap-10">
-  <div class="flex flex-col gap-2">
-    <h1 class="font-display text-4xl font-medium tracking-tight sm:text-5xl">Els teus cançoners</h1>
-    <p class="max-w-2xl text-ink-500">Escriu les cançons amb els acords a sobre de la lletra. L'aplicació les maqueta en un llibret A5 i prepara el PDF per imprimir en A4, plegar i cosir.</p>
-  </div>
+{% block classe_main %}w-full flex-1 bg-taula{% endblock %}
 
+{% block accions %}
+<form method="post" action="{{ url_for('canconer_importa') }}" enctype="multipart/form-data">
+  <label class="pestanya hidden h-auto cursor-pointer sm:inline-flex" title="Importa un cançoner exportat (.canconer)">
+    <svg class="mr-1.5 h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 10V2m0 0L5 5m3-3 3 3M3 10v3.5h10V10"/></svg>
+    Importa
+    <input type="file" name="fitxer" accept=".canconer,application/zip" class="sr-only" onchange="this.form.submit()">
+  </label>
+</form>
+{% endblock %}
+
+{% block contingut %}
+<div class="mx-auto flex w-full max-w-[75rem] flex-col gap-8 px-4 py-10 lg:px-10">
+  <h1 class="sr-only">Els teus cançoners</h1>
   {% if error %}<p class="avis"><span aria-hidden="true">⚠</span><span>{{ error }}</span></p>{% endif %}
 
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {# Crear: sempre el primer, perquè és l'acció principal. #}
-    <section class="targeta flex flex-col gap-4 border-dashed bg-transparent p-5 shadow-none">
-      <h2 class="font-display text-xl font-medium">Nou cançoner</h2>
-      <form method="post" action="{{ url_for('canconer_nou') }}" class="flex flex-col gap-3">
-        <label class="sr-only" for="titol-nou">Títol</label>
-        <input id="titol-nou" name="titol" class="camp" placeholder="p. ex. Cançons de la trobada" required>
-        <button class="btn btn-primari">Crea el cançoner</button>
-      </form>
-      <form method="post" action="{{ url_for('canconer_exemple') }}" class="-mt-1">
-        <button class="text-[13px] text-ink-500 underline decoration-paper-300 underline-offset-4 transition hover:text-ink-900 hover:decoration-ink-400">o prova'n un d'exemple amb 4 cançons</button>
-      </form>
-      <form method="post" action="{{ url_for('canconer_importa') }}" enctype="multipart/form-data" class="mt-auto border-t border-dashed border-paper-300 pt-4">
-        <label class="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink-700 hover:text-ink-900">
-          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 10V2m0 0L5 5m3-3 3 3M3 10v3.5h10V10"/></svg>
-          Importa un cançoner (.canconer)
-          <input type="file" name="fitxer" accept=".canconer,application/zip" class="sr-only" onchange="this.form.submit()">
-        </label>
-      </form>
-    </section>
-
+  <ul class="prestatge">
     {% for c in canconers %}
-    <article class="targeta group relative flex min-h-[11rem] flex-col overflow-hidden p-5 transition hover:-translate-y-0.5 hover:border-ink-300 hover:shadow-full">
-      {# Llom del llibret: detall decoratiu a l'esquerra. #}
-      <span class="absolute inset-y-0 left-0 w-1 bg-vermello-500/80 transition group-hover:w-1.5" aria-hidden="true"></span>
-      <span class="text-xs font-semibold uppercase tracking-[0.14em] text-ink-400">{{ c.any or "Sense any" }}</span>
-      <h2 class="mt-2 font-display text-2xl font-medium leading-tight tracking-tight">
-        {# L'enllaç cobreix tota la targeta (excepte els botons d'acció). #}
-        <a href="{{ url_for('canconer', id_canconer=c.id) }}" class="after:absolute after:inset-0">{{ c.titol }}</a>
-      </h2>
-      {% if c.subtitol %}<p class="mt-1 text-ink-500">{{ c.subtitol }}</p>{% endif %}
-      <div class="mt-auto flex items-center justify-between gap-3 pt-5 text-[13px] text-ink-500">
-        <span>{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }}</span>
-        <span class="relative z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
-          <form method="post" action="{{ url_for('canconer_duplica', id_canconer=c.id) }}">
-            <button class="btn btn-fantasma btn-petit" title="Fa una còpia del cançoner (les cançons són les mateixes de la biblioteca)">Duplica</button>
-          </form>
-          <a class="btn btn-fantasma btn-petit" href="{{ url_for('canconer_exporta', id_canconer=c.id) }}" title="Descarrega'l en un fitxer .canconer (còpia de seguretat o per portar-lo a un altre Mac)">Exporta</a>
+    <li class="group flex flex-col gap-3">
+      <a href="{{ url_for('canconer', id_canconer=c.id) }}" class="llibret" aria-label="Obre «{{ c.titol }}»">
+        {% if c.portada %}
+        <span class="portada-llibret" data-canconer="{{ c.id }}" aria-hidden="true"></span>
+        <script type="application/json" data-portada="{{ c.id }}">{{ {"pagina": c.portada, "estils": c.estils} | tojson }}</script>
+        {% else %}
+        <span class="flex h-full items-center justify-center p-6 text-center font-display text-xl">{{ c.titol }}</span>
+        {% endif %}
+      </a>
+      <div class="flex flex-col gap-0.5 px-0.5">
+        <span class="truncate font-display text-[17px] font-medium leading-snug" title="{{ c.titol }}">{{ c.titol }}</span>
+        <span class="flex items-baseline justify-between gap-2 text-[13px] text-ink-500">
+          <span>{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }}{% if c.pagines %} · {{ c.pagines }} pàg.{% endif %}</span>
+          <span class="font-mono text-[11px]" title="{{ c.actualitzat }}">{{ c.editat }}</span>
         </span>
       </div>
-    </article>
+      <div class="-mt-1 flex flex-wrap items-center gap-x-1 text-[13px] font-medium opacity-70 transition focus-within:opacity-100 group-hover:opacity-100">
+        <a href="{{ url_for('canconer_imprimir', id_canconer=c.id) }}" class="enllac-llibret">Imprimeix</a>
+        <form method="post" action="{{ url_for('canconer_duplica', id_canconer=c.id) }}">
+          <button class="enllac-llibret" title="Fa una còpia del cançoner (les cançons són les mateixes de la biblioteca)">Duplica</button>
+        </form>
+        <a href="{{ url_for('canconer_exporta', id_canconer=c.id) }}" class="enllac-llibret" title="Descarrega'l en un fitxer .canconer (còpia de seguretat o per portar-lo a un altre Mac)">Exporta</a>
+      </div>
+    </li>
     {% endfor %}
-  </div>
 
-  {% if not canconers %}
-  <p class="text-ink-500">Encara no hi ha cap cançoner. Crea'n un o prova l'exemple per veure com funciona.</p>
-  {% endif %}
+    {# El llibret en blanc: per crear-ne un de nou #}
+    <li class="flex flex-col gap-3">
+      <form method="post" action="{{ url_for('canconer_nou') }}" class="llibret-nou">
+        <svg class="h-7 w-7 self-center" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+        <label for="titol-nou" class="text-[13px]">Un cançoner nou</label>
+        <input id="titol-nou" name="titol" required placeholder="Títol…" autocomplete="off"
+               class="w-full border-0 border-b border-ink-300 bg-transparent px-0 py-1 text-center font-display text-xl text-ink-900 placeholder:text-ink-300 focus:border-vermello-500 focus:outline-none focus:ring-0">
+        <button class="btn btn-primari btn-petit self-center">Crea'l</button>
+      </form>
+      <form method="post" action="{{ url_for('canconer_exemple') }}" class="px-0.5">
+        <button class="text-[13px] text-ink-700 underline decoration-ink-300 underline-offset-4 hover:text-ink-900">o prova'n un d'exemple amb 4 cançons</button>
+      </form>
+    </li>
+  </ul>
 
-  <p class="mt-4 border-t border-paper-300 pt-4 text-[12px] text-ink-400"><a class="underline hover:text-ink-700" href="{{ url_for('marges_llista') }}">Marges d'enquadernació</a></p>
+  <p class="text-[12px] text-ink-500"><a class="underline hover:text-ink-900" href="{{ url_for('marges_llista') }}">Marges d'enquadernació</a></p>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="{{ url_for('fonts_css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<script id="fonts-inici" type="application/json">{{ tipografies_navegador() | tojson }}</script>
+<script type="module">
+  // Portades reals: el mateix motor que l'editor i el PDF, amb els estils de cada cançoner
+  // limitats al seu llibret perquè no es barregin.
+  import { AMPLE, ajustaMarcs, cssEstils, dibuixaPagina, esperaFonts, registraFonts } from "{{ url_for('static', filename='dist/canconer.js') }}";
+  const PX_MM = 96 / 25.4;
+  registraFonts(JSON.parse(document.getElementById("fonts-inici").textContent));
+  const estils = document.createElement("style");
+  document.head.append(estils);
+  const caixes = [];
+  for (const dades of document.querySelectorAll("[data-portada]")) {
+    const { pagina, estils: propis } = JSON.parse(dades.textContent);
+    const caixa = document.querySelector(`.portada-llibret[data-canconer="${dades.dataset.portada}"]`);
+    estils.textContent += cssEstils(propis, `[data-canconer="${dades.dataset.portada}"]`) + "\n";
+    const node = dibuixaPagina(pagina, { urlImatge: (id) => `/imatges/${id}`, grup: dades.dataset.portada });
+    node.style.transformOrigin = "0 0";
+    caixa.append(node);
+    caixes.push({ caixa, node, elements: new Map((pagina.elements || []).map((e) => [e.id, e])) });
+  }
+  const escala = () => caixes.forEach(({ caixa, node }) => (node.style.transform = `scale(${caixa.clientWidth / (AMPLE * PX_MM)})`));
+  escala();
+  new ResizeObserver(escala).observe(document.querySelector(".prestatge"));
+  await esperaFonts(document.querySelector(".prestatge"));
+  caixes.forEach(({ caixa, elements }) => ajustaMarcs(caixa, (id) => elements.get(id)));
+</script>
 {% endblock %}

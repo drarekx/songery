@@ -59,6 +59,24 @@ envia aquest fitxer (o el detall de sota) per poder-ho arreglar.</p>
 </body></html>"""
 
 
+def fa_temps(moment: str) -> str:
+    """«avui», «ahir», «fa 3 dies», «fa 2 setmanes» o la data, a partir d'una data ISO."""
+    try:
+        dia = datetime.fromisoformat(moment).date()
+    except (TypeError, ValueError):
+        return ""
+    dies = (datetime.now().date() - dia).days
+    if dies <= 0:
+        return "avui"
+    if dies == 1:
+        return "ahir"
+    if dies < 14:
+        return f"fa {dies} dies"
+    if dies < 60:
+        return f"fa {dies // 7} setmanes"
+    return dia.strftime("%d/%m/%Y")
+
+
 def _enter(valor, defecte: int = 0) -> int:
     try:
         return int(valor)
@@ -145,7 +163,17 @@ def crea_app() -> Flask:
 
     @app.get("/")
     def inici():
-        return render_template("inici.html", canconers=bd.llista_canconers(), error=request.args.get("error"))
+        # Cada cançoner es mostra com un llibret amb la seva portada real (la dibuixa el navegador
+        # amb el mateix motor que l'editor i el PDF) i el nombre de pàgines.
+        canconers = []
+        for c in bd.llista_canconers():
+            try:
+                pla = maquetacio.pla(bd.carrega_canconer(c["id"]))
+            except Exception:  # noqa: BLE001 - un cançoner malmès no ha de tombar la pàgina d'inici
+                pla = None
+            canconers.append({**c, "pagines": pla["total"] if pla else None,
+                              "portada": pla["pagines"][0] if pla else None, "editat": fa_temps(c["actualitzat"])})
+        return render_template("inici.html", canconers=canconers, error=request.args.get("error"))
 
     @app.post("/canconer/<id_canconer>/duplica")
     def canconer_duplica(id_canconer):
