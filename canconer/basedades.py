@@ -424,21 +424,54 @@ def restaura_versio(id_canco: str, id_versio: str) -> None:
                      ara(), id_canco))
 
 
-def biblioteca(cerca: str = "") -> list[dict]:
-    """Totes les cançons, amb els cançoners on surten."""
+ORDRES_BIBLIOTECA = {
+    "titol": "c.titol COLLATE NOCASE",
+    "autor": "c.autor COLLATE NOCASE, c.titol COLLATE NOCASE",
+    "data": "c.actualitzada DESC",
+}
+
+
+def biblioteca(cerca: str = "", ordre: str = "titol") -> list[dict]:
+    """Totes les cançons (també les que no són a cap cançoner), amb els cançoners on surten.
+
+    Per a cada cançó: data de l'última modificació, nombre de versions, número de l'última i si
+    l'esborrany té canvis que encara no són a cap versió.
+    """
     with connexio() as con:
-        files = con.execute("""
+        files = con.execute(f"""
             SELECT c.id, c.titol, c.autor, c.actualitzada,
-                   (SELECT MAX(numero) FROM versio WHERE canco_id = c.id) AS ultima
-            FROM canco c WHERE c.tipus = 'canco' ORDER BY c.titol COLLATE NOCASE""").fetchall()
+                   (SELECT MAX(numero) FROM versio WHERE canco_id = c.id) AS ultima,
+                   (SELECT COUNT(*) FROM versio WHERE canco_id = c.id) AS n_versions,
+                   COALESCE((SELECT NOT (doc = c.doc AND titol = c.titol AND autor = c.autor) FROM versio
+                             WHERE canco_id = c.id ORDER BY numero DESC LIMIT 1), 1) AS modificat
+            FROM canco c WHERE c.tipus = 'canco'
+            ORDER BY {ORDRES_BIBLIOTECA.get(ordre, ORDRES_BIBLIOTECA["titol"])}""").fetchall()
         usos = con.execute("SELECT e.canco_id, k.id, k.dades FROM entrada e "
                            "JOIN canconer k ON k.id = e.canconer_id").fetchall()
     per_canco: dict[str, list] = {}
     for u in usos:
-        per_canco.setdefault(u["canco_id"], []).append({"id": u["id"], "titol": _meta(u["dades"])["titol"]})
+        per_canco.setdefault(u["canco_id"], []).append({"id": u["id"], "titol": json.loads(u["dades"]).get("titol") or "Cançoner"})
     cerca = cerca.strip().lower()
-    return [{**dict(f), "canconers": per_canco.get(f["id"], [])} for f in files
+    return [{**dict(f), "modificat": bool(f["modificat"]), "canconers": per_canco.get(f["id"], [])} for f in files
             if not cerca or cerca in f"{f['titol']} {f['autor']}".lower()]
+
+
+def usos_canco(id_canco: str) -> list[dict]:
+    """Cançoners on surt la cançó i quina versió hi fan servir (None = l'esborrany, sempre l'última)."""
+    with connexio() as con:
+        files = con.execute("""
+            SELECT k.id, k.dades, e.versio_id, v.numero FROM entrada e
+            JOIN canconer k ON k.id = e.canconer_id LEFT JOIN versio v ON v.id = e.versio_id
+            WHERE e.canco_id = ?""", (_valida(id_canco),)).fetchall()
+    return [{"id": f["id"], "titol": json.loads(f["dades"]).get("titol") or "Cançoner",
+             "versio_id": f["versio_id"], "versio_numero": f["numero"]} for f in files]
+
+
+def edita_nota_versio(id_versio: str, nota: str) -> None:
+    with connexio() as con:
+        cur = con.execute("UPDATE versio SET nota = ? WHERE id = ?", (nota[:200], _valida(id_versio)))
+        if cur.rowcount == 0:
+            raise KeyError(id_versio)
 
 
 def esborra_canco(id_canco: str) -> None:

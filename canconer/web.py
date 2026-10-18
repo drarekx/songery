@@ -179,8 +179,29 @@ def crea_app() -> Flask:
 
     @app.get("/biblioteca")
     def biblioteca():
-        return render_template("biblioteca.html", cancons=bd.biblioteca(request.args.get("q", "")),
-                               q=request.args.get("q", ""), seccio="biblioteca")
+        ordre = request.args.get("ordre", "titol")
+        return render_template("biblioteca.html", cancons=bd.biblioteca(request.args.get("q", ""), ordre),
+                               q=request.args.get("q", ""), ordre=ordre, seccio="biblioteca")
+
+    @app.get("/biblioteca/<id_canco>")
+    def biblioteca_canco(id_canco):
+        """Fitxa d'una cançó: historial de versions, cançoners on surt i accions."""
+        canco = o_404(bd.carrega_canco, id_canco)
+        usos = bd.usos_canco(id_canco)
+        # Les pàgines es mostren amb els estils i mestres del primer cançoner on surt (o els de defecte).
+        disseny_canconer = bd.meta_canconer(usos[0]["id"]) if usos else plantilles.amb_valors_per_defecte({})
+        return render_template("biblioteca_canco.html", canco=canco, usos=usos, versions=bd.versions(id_canco),
+                               canconers=bd.llista_canconers(), seccio="biblioteca",
+                               estils=disseny_canconer["estils"], mestres=disseny_canconer["mestres"])
+
+    @app.post("/biblioteca/<id_canco>/afegeix")
+    def biblioteca_afegeix(id_canco):
+        """Afegeix la cançó a un cançoner (seguint l'esborrany) i l'obre per editar-la."""
+        o_404(bd.carrega_canco, id_canco)
+        id_canconer = request.form.get("canconer", "")
+        meta_o_404(id_canconer)
+        bd.afegeix_entrada(id_canconer, id_canco)
+        return redirect(url_for("canconer", id_canconer=id_canconer, canco=id_canco))
 
     @app.post("/biblioteca/<id_canco>/esborra")
     def biblioteca_esborra(id_canco):
@@ -322,6 +343,12 @@ def crea_app() -> Flask:
     @app.get("/api/versio/<id_versio>")
     def api_versio(id_versio):
         return jsonify(o_404(bd.carrega_versio, id_versio))
+
+    @app.put("/api/versio/<id_versio>/nota")
+    def api_versio_nota(id_versio):
+        nota = str((request.get_json(silent=True) or {}).get("nota", "")).strip()
+        o_404(bd.edita_nota_versio, id_versio, nota)
+        return jsonify({"ok": True, "nota": nota[:200]})
 
     @app.post("/api/canco/<id_canco>/restaura")
     def api_restaura(id_canco):

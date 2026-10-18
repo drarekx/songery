@@ -54,6 +54,12 @@
   .btn-petit { @apply min-h-[2rem] px-2.5 text-[13px]; }
   .btn-icona { @apply min-h-[2rem] w-8 px-0; }
 
+  /* Fila de l'historial de versions (biblioteca) */
+  .fila-versio {
+    @apply flex w-full items-start gap-3 border-b border-paper-200 px-4 py-3 text-left transition hover:bg-paper-100
+      aria-[current=true]:bg-vermello-50 aria-[current=true]:shadow-[inset_3px_0_0] aria-[current=true]:shadow-vermello-500;
+  }
+
   /* Camps de formulari */
   .etiqueta { @apply mb-1.5 block text-[13px] font-semibold text-ink-700; }
   .camp {
