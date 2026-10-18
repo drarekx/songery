@@ -8,7 +8,8 @@ Esquema:
   nota      → text*                     indicació en petit: «x2», «només veus»...
   imatge    → (atom) attrs: src (id), posicio (esquerra|dreta|centre), amplada (% de l'amplada útil)
   acord     → (atom en línia) attrs: nom. S'ancora al caràcter que el segueix.
-  marques del text: tonica (síl·laba tònica), bold, italic, cor (veus del cor)
+  marques del text: tonica (síl·laba tònica), bold, italic, cor (veus del cor), i amb un valor (attrs.valor):
+  mida (em), font (clau de la tipografia), color i fons (color del text i del fons: #rrggbb o cmyk(...))
 
 Exemple de línia: [acord G]"Camino pel " [acord D/F#]"sender de la " [acord Em]"muntanya"
 """

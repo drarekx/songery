@@ -3,11 +3,11 @@
 import {
   ALT, AMPLE, FONTS, MARGE, acordsDePagines, acordsDelDocument, ajustaMarcs, aplicaEstils, arrodoneix, canviaMida,
   colorCss, dibuixaElement, dibuixaPagina, dinsRectangle, enganxa, esAcord, esperaFonts, gira as calculaGir,
-  guies as guiesDe, midaEscalada, mou as calculaMoviment, novaSeleccio, posaAcord, posaMida, registraFonts,
+  guies as guiesDe, midaEscalada, mou as calculaMoviment, novaSeleccio, posaAcord, posaMarcaValor, posaMida, registraFonts,
   reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, pinia, useEditorStore,
+  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
@@ -1182,6 +1182,26 @@ function pintaBombolla() {
   const dalt = Math.min(inici.top, fi.top) - bombolla.offsetHeight - 26;
   bombolla.style.top = `${dalt > 8 ? dalt : Math.max(inici.bottom, fi.bottom) + 8}px`;
   $("#mida-seleccio").value = String(ed.getAttributes("mida").valor || 1);
+  const font = ed.getAttributes("font").valor;
+  const boto = $("#font-seleccio");
+  boto.firstElementChild.textContent = TIPOGRAFIES.find((f) => f.clau === font)?.nom || "Aa";
+  boto.firstElementChild.style.fontFamily = font ? (TIPOGRAFIES.find((f) => f.clau === font)?.css || "") : "";
+  $("#color-seleccio").value = ed.getAttributes("color").valor || "";
+  $("#fons-seleccio").value = ed.getAttributes("fons").valor || "";
+}
+
+// Tipografia, color i fons del text seleccionat (marques del document: surten igual al PDF).
+$("#font-seleccio").addEventListener("click", (ev) => {
+  const ed = edicio?.editor;
+  if (!ed) return;
+  obreSelectorFont(ev.currentTarget, {
+    actual: ed.getAttributes("font").valor ?? null, permetBuit: true,
+    tria: (clau) => posaMarcaValor(ed, "font", clau),
+  });
+});
+for (const [id, marca] of [["#color-seleccio", "color"], ["#fons-seleccio", "fons"]]) {
+  muntaSelectorColor($(id), { buit: marca === "fons" ? "Sense fons" : "El de l'estil", colors: () => colorsDelDocument(), compacte: true });
+  $(id).addEventListener("input", (ev) => { if (edicio?.editor) posaMarcaValor(edicio.editor, marca, ev.target.value); });
 }
 
 bombolla.querySelectorAll("button").forEach((b) => b.addEventListener("mousedown", (ev) => ev.preventDefault()));

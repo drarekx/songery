@@ -42,7 +42,8 @@ export const muntaRedimensionaPanell = (desti, props) => munta(RedimensionaPanel
  * Selector de color sobre un <input> existent: el camp guarda el valor (text) i rep «input» quan
  * canvia, així el codi que ja l'escoltava continua igual. Si el codi canvia el valor o el desactiva,
  * el selector s'actualitza.
- * opcions: buit (text de «sense color»), perDefecte (valor o funció), colors (funció → llista)
+ * opcions: buit (text de «sense color»), perDefecte (valor o funció), colors (funció → llista),
+ * compacte (només la mostra)
  */
 export function muntaSelectorColor(input, opcions = {}) {
   input.type = "text";
@@ -73,6 +74,7 @@ export function muntaSelectorColor(input, opcions = {}) {
       buit: opcions.buit ?? null,
       perDefecte: estat.perDefecte ?? llegeixPerDefecte(),
       colors: opcions.colors,
+      compacte: !!opcions.compacte,
       "onUpdate:modelValue": (valor) => {
         input.value = valor;
         input.dispatchEvent(new Event("input", { bubbles: true }));

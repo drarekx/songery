@@ -7,6 +7,7 @@ import Italic from "@tiptap/extension-italic";
 import { Dropcursor, Gapcursor, Placeholder, UndoRedo } from "@tiptap/extensions";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { FONTS, colorCss } from "./pagines.js";
 
 // ---------------------------------------------------------------- Acords (mateixa regla que parser.py)
 
@@ -231,6 +232,28 @@ const Mida = Mark.create({
   renderHTML: ({ HTMLAttributes }) => ["span", HTMLAttributes, 0],
 });
 
+/**
+ * Marca amb un valor (tipografia, color del text o color de fons) d'un tros de text. El valor es desa
+ * a l'atribut «valor»: la clau de la tipografia o el color («#rrggbb» o «cmyk(c,m,y,k)», exacte al PDF).
+ */
+function marcaAmbValor(nom, propietat, css) {
+  return Mark.create({
+    name: nom,
+    addAttributes: () => ({
+      valor: {
+        default: null,
+        parseHTML: (el) => el.getAttribute(`data-${nom}`),
+        renderHTML: (attrs) => (attrs.valor ? { [`data-${nom}`]: attrs.valor, style: `${propietat}:${css(attrs.valor)}` } : {}),
+      },
+    }),
+    parseHTML: () => [{ tag: `span[data-${nom}]` }],
+    renderHTML: ({ HTMLAttributes }) => ["span", HTMLAttributes, 0],
+  });
+}
+const Font = marcaAmbValor("font", "font-family", (clau) => FONTS[clau] || "inherit");
+const ColorText = marcaAmbValor("color", "color", colorCss);
+const Fons = marcaAmbValor("fons", "background-color", colorCss);
+
 const Cor = Mark.create({
   name: "cor",
   parseHTML: () => [{ tag: "span.cor" }],
@@ -346,7 +369,7 @@ export function creaEditorCanco(element, opcions) {
       Document, Text, Linia, Seccio, Nota,
       creaImatge(opcions.urlImatge),
       creaAcord(opcions.editaAcord),
-      Bold, Italic, Tonica, Cor, Mida,
+      Bold, Italic, Tonica, Cor, Mida, Font, ColorText, Fons,
       UndoRedo, Dropcursor.configure({ color: "#141414", width: 2 }), Gapcursor,
       Placeholder.configure({
         placeholder: ({ node, pos }) => {
@@ -387,6 +410,12 @@ export function posaAcord(editor, nom, pos = null, posInsercio = null) {
 export function posaMida(editor, valor) {
   if (Number(valor) === 1) editor.chain().focus().unsetMark("mida").run();
   else editor.chain().focus().setMark("mida", { valor: Number(valor) }).run();
+}
+
+/** Posa (o treu, amb valor buit) una marca amb valor al text seleccionat: font, color o fons. */
+export function posaMarcaValor(editor, nom, valor) {
+  if (valor) editor.chain().focus().setMark(nom, { valor }).run();
+  else editor.chain().focus().unsetMark(nom).run();
 }
 
 export function treuAcord(editor, pos) {

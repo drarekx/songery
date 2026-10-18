@@ -14,6 +14,8 @@ const props = defineProps({
   perDefecte: { type: String, default: undefined },
   colors: { type: Function, default: null },
   disabled: { type: Boolean, default: false },
+  /** Només la mostra de color, sense el text (per a barres petites). */
+  compacte: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue"]);
 
@@ -92,11 +94,11 @@ onBeforeUnmount(tanca);
 </script>
 
 <template>
-  <button ref="boto" type="button" class="boto-color" :disabled="disabled"
-          :title="esCmyk ? 'Color CMYK: surt exacte al PDF per a impremta' : 'Tria el color'"
+  <button ref="boto" type="button" class="boto-color" :class="{ compacte }" :disabled="disabled"
+          :title="compacte ? etiqueta : esCmyk ? 'Color CMYK: surt exacte al PDF per a impremta' : 'Tria el color'"
           :aria-expanded="obert" @click="obert ? tanca() : obre()">
     <span class="mostra-color" :class="{ buit: !mostrat }" :style="{ background: mostrat ? colorCss(mostrat) : '' }" aria-hidden="true"></span>
-    <span class="text-color">{{ etiqueta }}</span>
+    <span v-if="!compacte" class="text-color">{{ etiqueta }}</span>
   </button>
   <Teleport to="body">
     <div v-if="obert" ref="popover" class="popover-color" role="dialog" aria-label="Color" :style="posicio">
