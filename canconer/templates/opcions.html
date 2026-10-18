@@ -99,6 +99,24 @@
         <a href="{{ url_for('canconer', id_canconer=c.id, especial='portada') }}" class="btn">Dissenya la portada a l'editor →</a>
       </div>
 
+      <section id="marges" class="flex flex-col gap-3 rounded-lg border border-paper-300 bg-paper-50 p-4">
+        <form method="post" action="{{ url_for('canconer_tria_marges', id_canconer=c.id) }}" class="flex flex-col gap-2">
+          <label for="tria-marges" class="text-[14px] font-semibold">Marges d'enquadernació</label>
+          <select id="tria-marges" name="marges" class="camp py-1.5 text-[14px]" onchange="this.form.requestSubmit()">
+            {% for m in marges %}<option value="{{ m.id }}" {{ "selected" if m.id == marge.id }}>{{ m.nom }}</option>{% endfor %}
+          </select>
+          <noscript><button class="btn btn-petit">Aplica</button></noscript>
+        </form>
+        <p class="text-[12px] leading-snug text-ink-500">
+          {% if marge.interior or marge.exterior or marge.superior or marge.inferior %}
+          {{ marge.interior | num }} mm al plec{% if marge.exterior or marge.superior or marge.inferior %}, {{ marge.exterior | num }} a fora, {{ marge.superior | num }} a dalt i {{ marge.inferior | num }} a baix{% endif %}.
+          A l'editor es veuen com a guies a cada pàgina (i els elements s'hi enganxen): deixa-hi el contingut important a dins. El PDF no es redueix.
+          {% else %}Sense guies de marges: el PDF surt a vora plena, tal com el dissenyes.{% endif %}
+          {% if marge.forats %}El PDF porta marques per a {{ marge.forats }} forats al marge interior.{% endif %}
+          <a class="text-accent-600 underline" href="{{ url_for('marges_llista', torna=request.full_path) }}">Gestiona les mestres de marges</a>
+        </p>
+      </section>
+
       <section class="flex flex-col gap-3 rounded-lg border border-paper-300 bg-paper-50 p-4">
         <h2 class="text-[14px] font-semibold">Còpies i fitxers</h2>
         <a href="{{ url_for('canconer_exporta', id_canconer=c.id) }}" class="btn btn-petit justify-start">Exporta a un fitxer .canconer</a>

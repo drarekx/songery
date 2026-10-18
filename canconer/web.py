@@ -232,7 +232,7 @@ def crea_app() -> Flask:
         marge = bd.carrega_marge(c.get("marges"))
         return render_template("editor.html", c=c, seccio="editor",
                                actual=request.args.get("canco"), especial=request.args.get("especial"),
-                               marge={**marge, "escala": marges.escala(marge)} if marges.actiu(marge) else None)
+                               marge=marge if marges.te_guies(marge) else None)
 
     @app.route("/canconer/<id_canconer>/opcions", methods=["GET", "POST"])
     def canconer_opcions(id_canconer):
@@ -249,7 +249,8 @@ def crea_app() -> Flask:
                 "instrument": "ukulele" if f.get("instrument") == "ukulele" else "guitarra",
             })
             return redirect(url_for("canconer_opcions", id_canconer=id_canconer, desat=1))
-        return render_template("opcions.html", c=c, seccio="opcions", desat=request.args.get("desat"))
+        return render_template("opcions.html", c=c, seccio="opcions", desat=request.args.get("desat"),
+                               marges=bd.llista_marges(), marge=bd.carrega_marge(c.get("marges")))
 
     @app.get("/canconer/<id_canconer>/portada")
     def canconer_portada(id_canconer):
@@ -259,15 +260,13 @@ def crea_app() -> Flask:
     def canconer_imprimir(id_canconer):
         c = canconer_impressio(id_canconer)
         return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.clau(c),
-                               instrument=c["instrument"], marges=bd.llista_marges(), gs=bool(cmyk.ghostscript()),
-                               escala_marges=marges.escala(c["marge"]))
+                               instrument=c["instrument"], gs=bool(cmyk.ghostscript()))
 
     @app.post("/canconer/<id_canconer>/marges")
     def canconer_tria_marges(id_canconer):
         meta_o_404(id_canconer)
         bd.desa_meta(id_canconer, {"marges": bd.carrega_marge(request.form.get("marges"))["id"]})
-        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
-                                instrument=request.form.get("instrument") or None))
+        return redirect(url_for("canconer_opcions", id_canconer=id_canconer) + "#marges")
 
     def plantilla_marge() -> dict:
         return {k: v for k, v in marges.PREDEFINIDES[1].items() if k not in ("id", "nom")}
@@ -281,8 +280,7 @@ def crea_app() -> Flask:
         """Índex de cançons al PDF, sí o no."""
         meta_o_404(id_canconer)
         bd.desa_meta(id_canconer, {"pagina_index": bool(request.form.get("pagina_index"))})
-        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
-                                instrument=request.form.get("instrument") or None))
+        return redirect(url_for("canconer_opcions", id_canconer=id_canconer) + "#marges")
 
     @app.post("/canconer/<id_canconer>/qr")
     def canconer_tria_qr(id_canconer):
@@ -291,8 +289,7 @@ def crea_app() -> Flask:
         posicio = request.form.get("posicio_qr", c.get("posicio_qr"))
         bd.desa_meta(id_canconer, {"pagina_qr": bool(request.form.get("pagina_qr")),
                                    "posicio_qr": "inici" if posicio == "inici" else "final"})
-        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
-                                instrument=request.form.get("instrument") or None))
+        return redirect(url_for("canconer_opcions", id_canconer=id_canconer) + "#marges")
 
     @app.get("/actualitzacio")
     def actualitzacio():
@@ -326,7 +323,7 @@ def crea_app() -> Flask:
     @app.get("/marges")
     def marges_llista():
         return render_template("marges.html", marges=bd.llista_marges(), torna=_torna_segura(request.args.get("torna")),
-                               sense_marges=marges.SENSE_MARGES, posicions=marges.posicions_forats, escala=marges.escala)
+                               sense_marges=marges.SENSE_MARGES, posicions=marges.posicions_forats)
 
     @app.post("/marges")
     def marges_nova():

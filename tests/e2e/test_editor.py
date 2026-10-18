@@ -119,3 +119,33 @@ def test_vista_previa_de_la_biblioteca_amb_pagines(pagina, servidor):
     pagina.espera("document.getElementById('previa-pagines').textContent === 'pàg. 2 de 2'")
     pagina.avalua("document.getElementById('previa').dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }))")
     pagina.espera("document.getElementById('previa-pagines').textContent === 'pàg. 1 de 2'")
+
+
+def test_marges_del_canconer_com_a_guies_que_enganxen(pagina, servidor):
+    """Els marges es trien a Opcions; a l'editor surten a cada pàgina i els elements s'hi enganxen."""
+    import urllib.parse
+    import urllib.request
+
+    url = canconer_exemple(servidor)
+    id_canconer = url.rstrip("/").rsplit("/", 1)[-1]
+    dades = urllib.parse.urlencode({"marges": "encolat"}).encode()
+    urllib.request.urlopen(urllib.request.Request(f"{servidor}/canconer/{id_canconer}/marges", data=dades))
+    pagina.obre(url, LLEST)
+    pagina.espera("document.querySelectorAll('.capa-elements [data-id]').length > 0")
+    assert pagina.avalua("document.querySelectorAll('.pagina-editor').length") == pagina.avalua(
+        "document.querySelectorAll('.pagina-editor .guia-marges').length") == 2
+    # Pàgina de la dreta (senar): el plec, de 9 mm, és a l'esquerra. El marc de lletra hi és a 13 mm;
+    # arrossegat 3,4 mm cap a l'esquerra (a 9,6 mm), s'enganxa a la guia dels 9 mm.
+    x, y, px_mm = pagina.avalua("""(() => {
+      const caixa = document.querySelectorAll('.pagina-editor')[1];
+      const marc = caixa.querySelector('.marc-lletra');
+      const r = marc.getBoundingClientRect();
+      return [r.left + 30, r.top + 30, caixa.getBoundingClientRect().width / 148];
+    })()""")
+    pagina.arrossega(x, y, x - 3.4 * px_mm, y)
+    pagina.espera("document.querySelector('#panell-propietats input')")
+    valor_x = pagina.avalua("""(() => {
+      const etiqueta = [...document.querySelectorAll('#panell-propietats label')].find((l) => l.textContent.trim().startsWith('X'));
+      return Number(etiqueta.querySelector('input').value);
+    })()""")
+    assert valor_x == 9

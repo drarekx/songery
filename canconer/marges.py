@@ -2,14 +2,11 @@
 
 Una mestra de marges diu quant espai cal deixar a cada vora de la pàgina A5 impresa. El marge
 interior és el del plec (o el llom): a les pàgines parells (esquerra) és la vora dreta i a les
-senars (dreta), l'esquerra. Com que s'aplica al PDF A5 en ordre de lectura, abans de la
-imposició, el marge interior queda sempre al costat del plec, tant a les cares de davant com a
-les del darrere.
+senars (dreta), l'esquerra.
 
-Les pàgines s'escalen (sense deformar-les) perquè hi càpiguen dins dels marges: no es retalla
-res. La mestra «Sense marges» no toca el PDF, així que la sortida és idèntica a la de sempre.
-
-Opcionalment es poden marcar els forats de les anelles al marge interior.
+Cada cançoner en tria una (a «Opcions») i l'editor la mostra com a guies a totes les pàgines: qui
+dissenya hi adapta el contingut. El PDF no es redueix ni es mou; si la mestra té forats per a
+anelles, només s'hi afegeixen les marques dels forats al marge interior.
 """
 
 from __future__ import annotations
@@ -61,22 +58,21 @@ def normalitza(d: dict, id_marge: str | None = None) -> dict:
     }
 
 
-def actiu(marge: dict | None) -> bool:
-    """Si la mestra canvia el PDF (si no, la sortida és exactament la de sempre)."""
+def te_guies(marge: dict | None) -> bool:
+    """Si la mestra té algun marge o forat (l'editor en mostra les guies)."""
     return bool(marge) and (any(marge.get(c) for c in ("interior", "exterior", "superior", "inferior"))
                             or marge.get("forats", 0) > 0)
+
+
+def actiu(marge: dict | None) -> bool:
+    """Si la mestra canvia el PDF: només quan hi ha forats per marcar (els marges són guies)."""
+    return bool(marge) and marge.get("forats", 0) > 0
 
 
 def empremta(marge: dict) -> str:
     """Hash de la mestra (sense el nom): per a la memòria cau dels PDF."""
     dades = {k: v for k, v in normalitza(marge).items() if k not in ("id", "nom")}
     return hashlib.sha256(json.dumps(dades, sort_keys=True).encode()).hexdigest()[:10]
-
-
-def escala(marge: dict, ample_mm: float = 148, alt_mm: float = 210) -> float:
-    """Escala a què queda la pàgina per deixar-hi els marges."""
-    return min((ample_mm - marge["interior"] - marge["exterior"]) / ample_mm,
-               (alt_mm - marge["superior"] - marge["inferior"]) / alt_mm)
 
 
 def _cercle(cx: float, cy: float, r: float) -> str:
@@ -112,7 +108,7 @@ def _forats(pagina: PageObject, marge: dict, esquerra: bool, ample: float, alt: 
 
 
 def aplica(pdf_a5: bytes, marge: dict) -> bytes:
-    """Retorna el PDF A5 amb els marges aplicats (cada pàgina escalada dins dels seus marges)."""
+    """Retorna el PDF A5 amb les marques dels forats de la mestra (les pàgines no es toquen)."""
     if not actiu(marge):
         return pdf_a5
     lector = PdfReader(BytesIO(pdf_a5))
@@ -121,17 +117,9 @@ def aplica(pdf_a5: bytes, marge: dict) -> bytes:
         caixa = origen.mediabox
         ample, alt = float(caixa.width), float(caixa.height)
         esquerra = (i + 1) % 2 == 0  # pàgina parell: a l'esquerra, amb el plec a la dreta
-        interior, exterior = marge["interior"] * PT_MM, marge["exterior"] * PT_MM
-        superior, inferior = marge["superior"] * PT_MM, marge["inferior"] * PT_MM
-        s = min((ample - interior - exterior) / ample, (alt - superior - inferior) / alt)
-        x_zona = exterior if esquerra else interior
-        x = x_zona + (ample - interior - exterior - ample * s) / 2
-        y = inferior + (alt - superior - inferior - alt * s) / 2
         pagina = PageObject.create_blank_page(width=ample, height=alt)
-        pagina.merge_transformed_page(origen, Transformation()
-                                      .translate(-float(caixa.left), -float(caixa.bottom)).scale(s).translate(x, y))
-        if marge.get("forats"):
-            _forats(pagina, marge, esquerra, ample, alt)
+        pagina.merge_transformed_page(origen, Transformation().translate(-float(caixa.left), -float(caixa.bottom)))
+        _forats(pagina, marge, esquerra, ample, alt)
         escriptor.add_page(pagina)
     sortida = BytesIO()
     escriptor.write(sortida)

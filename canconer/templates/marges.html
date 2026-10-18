@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block titol %}Marges d'enquadernació{% endblock %}
 
-{# Esquema d'una doble pàgina A5 amb els marges (zona ratllada), la pàgina escalada i els forats #}
+{# Esquema d'una doble pàgina A5 amb els marges (zona ratllada), la zona útil i els forats #}
 {% macro esquema(m) %}
-{% set e = escala(m) %}
 <svg viewBox="-4 -4 304 218" class="h-auto w-full max-w-[15rem]" role="img" aria-label="Esquema de la doble pàgina amb els marges">
   <defs>
     <pattern id="ratlles-{{ m.id }}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -16,14 +15,14 @@
   {% set lliure_w = 148 - m.interior - m.exterior %}
   {% set lliure_h = 210 - m.superior - m.inferior %}
   <rect x="{{ x0 }}" y="0" width="148" height="210" fill="url(#ratlles-{{ m.id }})" stroke="#c9c1b1" stroke-width="0.8"/>
-  <rect x="{{ zona_x + (lliure_w - 148 * e) / 2 }}" y="{{ m.superior + (lliure_h - 210 * e) / 2 }}" width="{{ 148 * e }}" height="{{ 210 * e }}" fill="#fff" stroke="#9a9283" stroke-width="0.6"/>
+  <rect x="{{ zona_x }}" y="{{ m.superior }}" width="{{ lliure_w }}" height="{{ lliure_h }}" fill="#fff" stroke="#0ea5e9" stroke-width="0.8" stroke-dasharray="3 2"/>
   {% for y in posicions(m) %}
   <circle cx="{{ (148 - m.distancia) if esquerra else (148 + m.distancia) }}" cy="{{ y }}" r="{{ m.diametre / 2 }}" fill="#fff" stroke="#6b6458" stroke-width="0.8"/>
   {% endfor %}
   {% endfor %}
   <line x1="148" y1="-4" x2="148" y2="214" stroke="#b3261e" stroke-width="0.8" stroke-dasharray="3 2"/>
 </svg>
-<p class="text-[12px] text-ink-500">{% if e < 1 %}Pàgines al {{ (e * 100) | num }} % de la mida.{% else %}Sense reducció.{% endif %}</p>
+<p class="text-[12px] text-ink-500">La línia blava és la guia que es veu a l'editor.</p>
 {% endmacro %}
 
 {% macro camps(m, editable) %}
@@ -45,10 +44,10 @@
 
 {% block contingut %}
 <div class="flex flex-col gap-8">
-  {% if torna %}<a href="{{ torna }}" class="text-[13px] text-ink-500 hover:text-ink-900">← Torna a imprimir</a>{% endif %}
+  {% if torna %}<a href="{{ torna }}" class="text-[13px] text-ink-500 hover:text-ink-900">← Torna</a>{% endif %}
   <div>
     <h1 class="font-display text-4xl font-medium tracking-tight">Marges d'enquadernació</h1>
-    <p class="mt-1 max-w-2xl text-ink-500">Espai que es deixa a les vores de cada pàgina A5 per cosir, encolar o posar anelles. El marge interior va sempre al costat del plec. En imprimir, les pàgines es redueixen (sense deformar-les) perquè hi càpiguen. Aquestes mestres serveixen per a tots els cançoners: cadascun tria la seva a «Imprimir».</p>
+    <p class="mt-1 max-w-2xl text-ink-500">Espai que es deixa a les vores de cada pàgina A5 per cosir, encolar o posar anelles. El marge interior va sempre al costat del plec. A l'editor es veuen com a guies a cada pàgina perquè hi adaptis el contingut; el PDF no es redueix. Aquestes mestres serveixen per a tots els cançoners: cadascun tria la seva a «Opcions».</p>
   </div>
 
   <ul class="flex flex-col gap-4">

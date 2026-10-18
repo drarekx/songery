@@ -41,20 +41,18 @@ def test_sense_marges_no_toca_el_pdf():
     assert not marges.actiu(_marge())
 
 
-def test_el_marge_interior_queda_sempre_al_plec():
-    m = _marge(interior=10)
-    lector = PdfReader(BytesIO(marges.aplica(_pdf_a5(), m)))
+def test_els_marges_son_guies_i_no_redueixen_el_pdf():
+    """Els marges es veuen a l'editor com a guies: el PDF surt a la mida real. Amb forats, només
+    s'hi afegeixen les marques (la pàgina no es mou ni s'escala)."""
+    original = _pdf_a5()
+    assert marges.aplica(original, _marge(interior=10, exterior=3)) is original
+    assert marges.te_guies(_marge(interior=10)) and not marges.actiu(_marge(interior=10))
+    lector = PdfReader(BytesIO(marges.aplica(original, _marge(interior=14, forats=2))))
     assert len(lector.pages) == 4
-    s = marges.escala(m)
-    for i, pagina in enumerate(lector.pages):
+    for pagina in lector.pages:
         assert float(pagina.mediabox.width) == pytest.approx(imposicio.A5_AMPLE, abs=0.01)
-        escala, x, _y = _desplacament(pagina)
-        assert escala == pytest.approx(s, abs=1e-3)
-        dreta = x + imposicio.A5_AMPLE * s
-        if (i + 1) % 2 == 0:  # esquerra: el plec és a la dreta
-            assert imposicio.A5_AMPLE - dreta == pytest.approx(10 * marges.PT_MM, abs=0.1)
-        else:  # dreta: el plec és a l'esquerra
-            assert x == pytest.approx(10 * marges.PT_MM, abs=0.1)
+        escala, x, y = _desplacament(pagina)
+        assert (escala, x, y) == (pytest.approx(1), pytest.approx(0), pytest.approx(0))
 
 
 def test_forats_i_validacio():
@@ -66,20 +64,17 @@ def test_forats_i_validacio():
     assert (net["interior"], net["exterior"], net["superior"], net["forats"], net["nom"]) == (0, 40, 2.5, 4, "Marges")
 
 
-def test_la_cau_distingeix_les_mestres(monkeypatch, tmp_path):
+def test_la_cau_nomes_distingeix_les_mestres_amb_forats(monkeypatch, tmp_path):
     monkeypatch.setattr(pdf, "genera_a5", lambda *a, **k: _pdf_a5())
     monkeypatch.setattr(pdf, "_directori_cau", lambda: tmp_path)
     c = {"titol": "Prova", "marge": _marge()}
-    assert pdf.clau(c) == pdf.empremta(c)
-    sense = pdf.genera(c, "a4", "")
     cosit = {**c, "marge": _marge(interior=4)}
-    encolat = {**c, "marge": _marge(interior=9)}
-    assert pdf.empremta(cosit) == pdf.empremta(c)  # el dibuix de les pàgines no canvia
-    assert len({pdf.clau(c), pdf.clau(cosit), pdf.clau(encolat)}) == 3
-    a4_cosit, a4_encolat = pdf.genera(cosit, "a4", ""), pdf.genera(encolat, "a4", "")
-    assert len({sense, a4_cosit, a4_encolat}) == 3
-    assert pdf.genera(c, "a4", "") == sense
-    assert sense == imposicio.imposa(_pdf_a5())
+    anelles = {**c, "marge": _marge(interior=14, forats=2)}
+    assert pdf.clau(c) == pdf.empremta(c) == pdf.clau(cosit)  # els marges no canvien el PDF
+    assert pdf.clau(anelles) != pdf.clau(c)
+    sense = pdf.genera(c, "a4", "")
+    assert pdf.genera(cosit, "a4", "") == sense == imposicio.imposa(_pdf_a5())
+    assert pdf.genera(anelles, "a4", "") != sense
 
 
 @pytest.fixture
@@ -105,14 +100,15 @@ def test_gestio_de_mestres_de_marges(client):
     assert bd.carrega_marge(nova["id"])["id"] == "cap"
 
 
-def test_triar_marges_a_imprimir(client):
+def test_triar_marges_a_opcions_i_guies_a_l_editor(client):
     k = bd.crea_canconer("Enquadernat")
-    assert "Sense marges" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
-    r = client.post(f"/canconer/{k}/marges", data={"marges": "encolat", "instrument": "ukulele"})
-    assert r.status_code == 302 and "instrument=ukulele" in r.headers["Location"]
+    assert "Sense marges" in client.get(f"/canconer/{k}/opcions").get_data(as_text=True)
+    assert '"marge": null' in client.get(f"/canconer/{k}").get_data(as_text=True)
+    r = client.post(f"/canconer/{k}/marges", data={"marges": "encolat"})
+    assert r.status_code == 302 and r.headers["Location"].endswith(f"/canconer/{k}/opcions#marges")
     assert bd.meta_canconer(k)["marges"] == "encolat"
-    html = client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
-    assert "9 mm al plec" in html and "-m" in html  # la v dels PDF porta la mestra
-    assert '"marge": {' in client.get(f"/canconer/{k}").get_data(as_text=True)
+    assert "9 mm al plec" in client.get(f"/canconer/{k}/opcions").get_data(as_text=True)
+    assert "Encolat" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
+    assert '"marge": {' in client.get(f"/canconer/{k}").get_data(as_text=True)  # guies a l'editor
     client.post(f"/canconer/{k}/marges", data={"marges": "noexisteix"})
     assert bd.meta_canconer(k)["marges"] == "cap"

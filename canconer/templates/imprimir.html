@@ -59,25 +59,13 @@
       {% endif %}
     </section>
 
-    {# Mestra de marges per a l'enquadernació (globals; el cançoner recorda la triada) #}
-    <section class="targeta flex flex-col gap-3 p-4">
-      <form method="post" action="{{ url_for('canconer_tria_marges', id_canconer=c.id) }}" class="flex items-center justify-between gap-3">
-        <input type="hidden" name="instrument" value="{{ request.args.get('instrument', '') }}">
-        <label for="tria-marges" class="text-[14px] font-semibold">Marges d'enquadernació</label>
-        <select id="tria-marges" name="marges" class="camp w-auto py-1.5 text-[14px]" onchange="this.form.requestSubmit()">
-          {% for m in marges %}<option value="{{ m.id }}" {{ "selected" if m.id == c.marge.id }}>{{ m.nom }}</option>{% endfor %}
-        </select>
-        <noscript><button class="btn btn-petit">Aplica</button></noscript>
-      </form>
+    {# Marges d'enquadernació: es trien a Opcions i a l'editor es veuen com a guies #}
+    <section class="targeta flex flex-col gap-1 p-4">
+      <p class="text-[14px] font-semibold">Marges d'enquadernació: {{ c.marge.nom }}</p>
       <p class="text-[13px] leading-snug text-ink-500">
-        {% if escala_marges < 1 or c.marge.forats %}
-        {{ c.marge.interior | num }} mm al plec{% if c.marge.exterior or c.marge.superior or c.marge.inferior %}, {{ c.marge.exterior | num }} a fora, {{ c.marge.superior | num }} a dalt i {{ c.marge.inferior | num }} a baix{% endif %}.
-        Les pàgines s'imprimeixen al <strong class="text-ink-900">{{ (escala_marges * 100) | num }} %</strong> perquè hi càpiguen. A l'editor, una línia blava discontínua marca la zona de seguretat.
+        El PDF surt a la mida real (sense reduir); els marges són guies a l'editor.
         {% if c.marge.forats %}Porta marques per a {{ c.marge.forats }} forats. Per a anelles, imprimeix el llibret A5 a doble cara (o els fulls A4 i talla'ls pel mig).{% endif %}
-        {% else %}
-        El PDF surt exactament com el dissenyes, a vora plena.
-        {% endif %}
-        <a class="text-accent-600 underline" href="{{ url_for('marges_llista', torna=request.full_path) }}">Gestiona les mestres de marges</a>
+        <a class="text-accent-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}#marges">Canvia'ls a Opcions</a>
       </p>
     </section>
 
@@ -131,7 +119,7 @@
         <svg class="h-4 w-4 text-ink-400 transition group-open:rotate-180" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
       </summary>
       <div class="flex flex-col gap-3 border-t border-paper-300 px-4 py-4 text-[14px]">
-        <p class="leading-snug text-ink-500">Els colors que hagis triat en CMYK a l'editor surten amb el valor exacte. La resta (colors en RGB i imatges) es converteix a CMYK. Els marges d'enquadernació s'hi apliquen igual.</p>
+        <p class="leading-snug text-ink-500">Els colors que hagis triat en CMYK a l'editor surten amb el valor exacte. La resta (colors en RGB i imatges) es converteix a CMYK. Les marques dels forats d'enquadernació, si n'hi ha, també.</p>
         {% if gs %}
         {{ descarrega("a5-cmyk", "Llibret A5 en CMYK", "Pàgines en ordre de lectura: el que acostumen a demanar les impremtes") }}
         {{ descarrega("a4-cmyk", "Fulls A4 en CMYK, ja imposats", "Doble cara per la vora curta, per plegar i cosir") }}

@@ -423,18 +423,24 @@ function opcionsDibuix() {
   };
 }
 
-/** Zona de seguretat de la mestra de marges triada a «Imprimir» (no s'imprimeix). */
-function guiaMarges(numero) {
+/** Zona útil d'una pàgina segons la mestra de marges del cançoner (en mm), o null si no n'hi ha. */
+function zonaMarges(numero) {
   const m = dades.marge;
-  if (!m) return "";
+  if (!m) return null;
   const esquerra = numero % 2 === 0; // a l'esquerra, el plec és a la dreta
+  const x0 = esquerra ? m.exterior : m.interior;
+  return { x: x0, y: m.superior, x2: AMPLE - (esquerra ? m.interior : m.exterior), y2: ALT - m.inferior };
+}
+
+/** Guia dels marges d'enquadernació del cançoner (triats a «Opcions»; no s'imprimeix). */
+function guiaMarges(numero) {
+  const z = zonaMarges(numero);
+  if (!z) return "";
+  const m = dades.marge;
   const guia = el("div", { classe: "guia-marges", atributs: {
-    title: `Marges «${m.nom}»: en imprimir, la pàgina es redueix al ${Math.round(m.escala * 1000) / 10} % per deixar ${m.interior} mm al plec. Deixa el contingut important dins de la línia.` } });
+    title: `Marges «${m.nom}»: ${m.interior} mm al plec. Deixa el contingut important dins de la línia (no s'imprimeix).` } });
   const mm = (v) => `${v * PX_MM * escala}px`;
-  Object.assign(guia.style, {
-    top: mm(m.superior), bottom: mm(m.inferior),
-    left: mm(esquerra ? m.exterior : m.interior), right: mm(esquerra ? m.interior : m.exterior),
-  });
+  Object.assign(guia.style, { left: mm(z.x), top: mm(z.y), right: mm(AMPLE - z.x2), bottom: mm(ALT - z.y2) });
   return guia;
 }
 
@@ -643,7 +649,16 @@ function puntMm(ev, caixa) {
 }
 
 /** Guies d'una pàgina (vores, marges, centre i els altres elements). */
-const guies = (p, exclou) => guiesDe(pagines[p].elements, exclou);
+/** Línies on s'enganxen els elements: les de sempre i, si n'hi ha, les dels marges d'enquadernació. */
+function guies(p, exclou) {
+  const g = guiesDe(pagines[p].elements, exclou);
+  const z = zonaMarges(numerosPagina()[p] ?? 2);
+  if (z) {
+    g.xs.push(z.x, z.x2);
+    g.ys.push(z.y, z.y2);
+  }
+  return g;
+}
 
 
 function pintaGuies(p, lx, ly) {
