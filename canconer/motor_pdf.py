@@ -27,6 +27,8 @@ from pathlib import Path
 
 import websocket
 
+from .actualitzacions import context_ssl
+
 NAVEGADORS_MAC = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
@@ -81,12 +83,12 @@ def descarrega_motor() -> str:
                   ("Linux", "x86_64"): "linux64"}.get((platform.system(), platform.machine()))
     if not plataforma:
         raise MotorNoDisponible("No hi ha cap navegador Chrome o Edge i aquest sistema no permet baixar-ne un.")
-    with urllib.request.urlopen(VERSIONS_CFT, timeout=30) as r:
+    with urllib.request.urlopen(VERSIONS_CFT, timeout=30, context=context_ssl()) as r:
         baixades = json.load(r)["channels"]["Stable"]["downloads"]["chrome-headless-shell"]
     url = next(d["url"] for d in baixades if d["platform"] == plataforma)
     desti = _directori_motor()
     desti.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url, timeout=600) as r:
+    with urllib.request.urlopen(url, timeout=600, context=context_ssl()) as r:
         dades = r.read()
     with zipfile.ZipFile(io.BytesIO(dades)) as z:
         z.extractall(desti)

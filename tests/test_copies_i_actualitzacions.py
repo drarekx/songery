@@ -112,3 +112,15 @@ def test_comparacio_de_versions(monkeypatch):
     resposta.__exit__ = lambda *a: None
     monkeypatch.setattr(actualitzacions.urllib.request, "urlopen", lambda *a, **k: resposta)
     assert actualitzacions.comprova() == {"versio": "99.0.0", "url": "u", "notes": "notes"}
+
+
+def test_context_ssl_fa_servir_els_certificats_de_certifi():
+    """Dins l'app empaquetada, urllib no troba els certificats del sistema (CERTIFICATE_VERIFY_FAILED):
+    les peticions HTTPS amb urllib han de fer servir els de certifi."""
+    import ssl
+
+    from canconer import actualitzacions
+
+    ctx = actualitzacions.context_ssl()
+    assert isinstance(ctx, ssl.SSLContext) and ctx.verify_mode == ssl.CERT_REQUIRED
+    assert ctx.cert_store_stats()["x509_ca"] > 50  # el paquet de certifi, no un magatzem buit

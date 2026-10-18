@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import ssl
 import sys
 import urllib.request
 from functools import cache
@@ -12,6 +13,18 @@ from pathlib import Path
 
 REPOSITORI = "drarekx/songery"
 API_ULTIMA = f"https://api.github.com/repos/{REPOSITORI}/releases/latest"
+
+
+@cache
+def context_ssl() -> ssl.SSLContext:
+    """Context HTTPS amb els certificats arrel de certifi. Dins l'app empaquetada, el Python no troba
+    els del sistema i urllib fallava amb «CERTIFICATE_VERIFY_FAILED: unable to get local issuer
+    certificate». Sense certifi, el context per defecte."""
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except (ImportError, OSError):
+        return ssl.create_default_context()
 
 
 @cache
@@ -41,7 +54,7 @@ def ultima_publicada(temps_maxim: float = 8) -> dict:
     """Última release publicada: {"versio", "url", "notes"}. Llança OSError si no s'hi pot accedir."""
     peticio = urllib.request.Request(API_ULTIMA, headers={
         "Accept": "application/vnd.github+json", "User-Agent": f"Canconers/{versio_actual()}"})
-    with urllib.request.urlopen(peticio, timeout=temps_maxim) as resposta:
+    with urllib.request.urlopen(peticio, timeout=temps_maxim, context=context_ssl()) as resposta:
         dades = json.load(resposta)
     return {"versio": str(dades.get("tag_name", "")).lstrip("v"), "url": dades.get("html_url", ""),
             "notes": str(dades.get("body") or "")[:2000]}
