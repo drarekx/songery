@@ -1636,36 +1636,63 @@ function enganxaA(p, punt) {
   enganxaElements(portapapers.map((e) => ({ ...e, x: e.x + dx, y: e.y + dy })), 0);
 }
 
-/** Opcions per a un lloc buit d'una pàgina. */
-function menuPagina(p, punt) {
+/**
+ * Menú del llenç (un lloc buit d'una pàgina o la zona del voltant): tot el que hi ha a la barra
+ * d'eines. p: la pàgina; punt: on s'afegeixen els elements nous (mm), o null per al centre.
+ */
+function menuLlenc(p, punt) {
   const canco = obert?.tipus === "canco";
+  const pila = pilaActual();
+  const lloc = punt || { x: AMPLE / 2, y: ALT / 2 };
+  const ambPagina = (fes) => () => { seleccio = { p, id: null }; fes(); };
   const afegir = [
-    ["nou-text", "Text"], ["nou-lletra", "Marc de lletra"], ["nou-imatge", "Imatge…"], ["nou-forma", "Rectangle"],
+    ["nou-lletra", "Marc de lletra amb acords"], ["nou-text", "Text"], ["nou-imatge", "Imatge…"], ["nou-forma", "Rectangle"],
     ["nou-elipse", "El·lipse"], ["nou-numero", "Número de pàgina"], ...(canco ? [["nou-qr", "Codi QR d'un vídeo"]] : []),
-  ].map(([tipus, text]) => ({ text, desactivat: !editable, fes: () => afegeixA(tipus, p, punt) }));
+  ].map(([tipus, text]) => ({ text, desactivat: !editable, fes: () => afegeixA(tipus, p, lloc) }));
+  if (canco) {
+    afegir.push(separador,
+      { text: "Diagrames d'acords…", marcat: !$("#panell-acords").classList.contains("hidden"), desactivat: !editable, fes: () => EINES.acords() },
+      { text: "Importa text amb acords…", desactivat: !editable, fes: () => EINES["importa-text"]() });
+  }
   return [
-    { text: "Enganxa aquí", drecera: tecla("⌘V"), desactivat: !portapapers || !editable, fes: () => enganxaA(p, punt) },
-    { seccio: "Afegeix aquí" }, ...afegir,
-    ...(canco ? [{ text: "Diagrames d'acords…", desactivat: !editable, fes: () => { if ($("#panell-acords").classList.contains("hidden")) EINES.acords(); } }] : []),
+    { text: "Desfés", drecera: tecla("⌘Z"), desactivat: !editable || !pila.enrere.length, fes: EINES.desfes },
+    { text: "Refés", drecera: tecla("⇧⌘Z"), desactivat: !editable || !pila.endavant.length, fes: EINES.refes },
     separador,
+    { text: punt ? "Enganxa aquí" : "Enganxa", drecera: tecla("⌘V"), desactivat: !portapapers || !editable, fes: () => enganxaA(p, lloc) },
+    { text: punt ? "Afegeix aquí" : "Afegeix", desactivat: !editable, submenu: afegir },
     { text: "Selecciona-ho tot", drecera: tecla("⌘A"), fes: () => seleccionaMolts(p, pagines[p].elements.filter((e) => !e.bloquejat).map((e) => e.id)) },
-    ...(canco ? [
-      { seccio: "Pàgina" },
-      { text: "Afegeix una pàgina després", desactivat: !editable, fes: () => { seleccio = { p, id: null }; EINES["pagina-nova"](); } },
-      { text: "Duplica la pàgina", desactivat: !editable, fes: () => { seleccio = { p, id: null }; EINES["pagina-duplica"](); } },
-      { text: "Esborra la pàgina…", perill: true, desactivat: !editable || pagines.length < 2, fes: () => { seleccio = { p, id: null }; EINES["pagina-esborra"](); } },
-    ] : []),
+    ...(canco ? [{ text: "Pàgina", desactivat: !editable, submenu: [
+      { text: "Afegeix una pàgina després", fes: ambPagina(EINES["pagina-nova"]) },
+      { text: "Duplica la pàgina", fes: ambPagina(EINES["pagina-duplica"]) },
+      { text: "Mou la pàgina enrere", desactivat: p === 0, fes: ambPagina(EINES["pagina-esquerra"]) },
+      { text: "Mou la pàgina endavant", desactivat: p >= pagines.length - 1, fes: ambPagina(EINES["pagina-dreta"]) },
+      separador,
+      { text: "Esborra la pàgina…", perill: true, desactivat: pagines.length < 2, fes: ambPagina(EINES["pagina-esborra"]) },
+    ] }] : []),
     separador,
-    { text: "Ajusta el zoom a la finestra", fes: () => posaZoom(1, null, { anima: true }) },
+    { text: "Mou el llenç", drecera: "espai", marcat: ma.fixa, fes: () => { ma.fixa = !ma.fixa; pintaMa(); } },
+    { text: "Zoom", submenu: [
+      { text: "Apropa", fes: () => posaZoom(zoom * 1.25, null, { anima: true }) },
+      { text: "Allunya", fes: () => posaZoom(zoom * 0.8, null, { anima: true }) },
+      { text: "Ajusta a la finestra", fes: () => posaZoom(1, null, { anima: true }) },
+      { text: "Mida real", fes: () => posaZoom(1 / escalaAmbZoom(1), null, { anima: true }) },
+    ] },
   ];
 }
 
 llenc.addEventListener("contextmenu", (ev) => {
   // Mentre s'escriu, el menú del navegador (corrector, copiar i enganxar).
   if (ev.target.closest(".editant, [contenteditable='true'], [contenteditable='plaintext-only']")) return;
-  const caixa = ev.target.closest(".pagina-editor");
-  if (!caixa || obert?.tipus === "llibre") return;
+  if (!obert || obert.tipus === "llibre") return;
   ev.preventDefault();
+  const caixa = ev.target.closest(".pagina-editor");
+  if (!caixa) {
+    // Fora de les pàgines: el menú del llenç, sobre la pàgina activa (o la primera).
+    const p = Math.min(seleccio?.p ?? 0, pagines.length - 1);
+    if (p < 0) return;
+    selecciona(p, null);
+    return store.obreMenu(ev.clientX, ev.clientY, menuLlenc(p, null));
+  }
   const p = Number(caixa.dataset.pagina);
   const node = ev.target.closest(".capa-elements [data-id]") || ev.target.closest(".capa-seleccio") && seleccio?.p === p && nodeElement(p, idsSel()[0]);
   const id = node?.dataset?.id;
@@ -1675,7 +1702,7 @@ llenc.addEventListener("contextmenu", (ev) => {
     store.obreMenu(ev.clientX, ev.clientY, menuSeleccio());
   } else {
     selecciona(p, null);
-    store.obreMenu(ev.clientX, ev.clientY, menuPagina(p, puntMm(ev, caixa)));
+    store.obreMenu(ev.clientX, ev.clientY, menuLlenc(p, puntMm(ev, caixa)));
   }
 });
 

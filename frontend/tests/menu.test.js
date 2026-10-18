@@ -60,6 +60,42 @@ describe("MenuContext", () => {
     expect(store.menu).toBeNull();
   });
 
+  it("submenús: s'obren amb el ratolí o amb →, i ← hi torna", async () => {
+    munta(MenuContext);
+    const rect = vi.fn();
+    store.obreMenu(10, 10, [{ text: "Copia", fes: vi.fn() }, { text: "Afegeix", submenu: [
+      { text: "Rectangle", fes: rect }, { text: "Text", desactivat: true, fes: vi.fn() },
+    ] }]);
+    await new Promise((r) => setTimeout(r));
+    const submenu = () => document.querySelectorAll(".menu-context")[1];
+    expect(submenu()).toBeUndefined();
+    opcio("Afegeix").dispatchEvent(new Event("mouseenter"));
+    await new Promise((r) => setTimeout(r, 150));
+    expect(submenu().textContent).toContain("Rectangle");
+    expect(opcio("Afegeix").getAttribute("aria-expanded")).toBe("true");
+    [...submenu().querySelectorAll("button")].find((b) => b.textContent.includes("Rectangle")).click();
+    expect(rect).toHaveBeenCalled();
+    expect(store.menu).toBeNull();
+
+    // Amb el teclat
+    store.obreMenu(10, 10, [{ text: "Copia", fes: vi.fn() }, { text: "Afegeix", submenu: [{ text: "Rectangle", fes: rect }] }]);
+    await new Promise((r) => setTimeout(r));
+    const tecla = (key) => document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+    tecla("ArrowDown");
+    tecla("ArrowDown");
+    tecla("ArrowRight");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(submenu().textContent).toContain("Rectangle");
+    tecla("ArrowLeft");
+    await new Promise((r) => setTimeout(r));
+    expect(submenu()).toBeUndefined();
+    expect(store.menu).not.toBeNull();
+    tecla("ArrowRight");
+    await new Promise((r) => setTimeout(r, 20));
+    tecla("Enter");
+    expect(rect).toHaveBeenCalledTimes(2);
+  });
+
   it("es tanca clicant fora", async () => {
     munta(MenuContext);
     store.obreMenu(10, 10, [{ text: "A", fes: vi.fn() }]);

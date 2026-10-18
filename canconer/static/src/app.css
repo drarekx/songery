@@ -155,6 +155,9 @@
   .menu-context-marca { @apply w-3 shrink-0 text-center text-[12px]; }
   .menu-context-drecera { @apply font-sans text-[12px] text-ink-400; }
   .menu-context-separador { @apply mx-2 my-1 h-px bg-paper-300; }
+  .menu-context-fletxa { @apply -mr-0.5 h-3.5 w-3.5 shrink-0 text-ink-400; }
+  .menu-context-item:hover .menu-context-fletxa, .menu-context-item:focus-visible .menu-context-fletxa { @apply text-white/80; }
+  .menu-context-item.sub-obert { @apply bg-paper-200; }
   .menu-context-seccio { @apply px-2 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-ink-400; }
 
   /* Passos de l'actualització */
