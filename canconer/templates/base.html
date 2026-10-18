@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c4321f'/%3E%3Cpath d='M9 9h6.5v14H9zM16.5 9H23v14h-6.5z' fill='%23fff'/%3E%3C/svg%3E">
 </head>
-<body class="{% block classe_body %}min-h-full{% endblock %} bg-paper font-sans text-[15px] text-ink antialiased">
+<body class="{% block classe_body %}flex min-h-dvh flex-col{% endblock %} bg-paper font-sans text-[15px] text-ink antialiased">
 
 <header class="z-30 shrink-0 border-b border-paper-300 bg-paper-50/95 backdrop-blur supports-[backdrop-filter]:bg-paper-50/80 {% block classe_capcalera %}sticky top-0{% endblock %}">
   <div class="flex h-14 items-center gap-3 px-4 lg:px-6">
@@ -54,6 +54,10 @@
 <main class="{% block classe_main %}mx-auto w-full max-w-6xl px-4 py-8 lg:px-6{% endblock %}">
 {% block contingut %}{% endblock %}
 </main>
+
+<footer class="mt-auto shrink-0 border-t border-paper-300 bg-paper-50 px-4 py-1.5 text-[12px] text-ink-400 lg:px-6">
+  Cançoners · versió instal·lada <span class="font-mono text-ink-500">{{ versio_app }}</span>
+</footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% block scripts %}{% endblock %}
