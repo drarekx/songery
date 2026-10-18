@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, cmyk, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, recursos, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -182,7 +182,7 @@ def crea_app() -> Flask:
                 enviat = bd.meta_canconer(request.args["paperera"])
             except KeyError:
                 pass
-        return render_template("inici.html", canconers=canconers, error=request.args.get("error"), enviat=enviat,
+        return render_template("inici.html", canconers=canconers, bases=recursos.BASES, error=request.args.get("error"), enviat=enviat,
                                a_la_paperera=len(bd.llista_canconers(paperera=True)) + len(bd.cancons_paperera()))
 
     @app.post("/canconer/<id_canconer>/duplica")
@@ -216,6 +216,13 @@ def crea_app() -> Flask:
     @app.post("/canconer/exemple")
     def canconer_exemple():
         return redirect(url_for("canconer", id_canconer=exemple.crea_exemple()))
+
+    @app.post("/canconer/base/<clau>")
+    def canconer_base(clau):
+        """Crea un dels cançoners base (Nadales, cançons populars...) amb totes les seves cançons."""
+        if clau not in recursos.BASES:
+            abort(404)
+        return redirect(url_for("canconer", id_canconer=recursos.crea(clau)))
 
     @app.get("/canconer/<id_canconer>")
     def canconer(id_canconer):
