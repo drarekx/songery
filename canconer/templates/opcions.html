@@ -109,12 +109,11 @@
         <p class="text-[12px] leading-snug text-ink-500">L'exportació inclou les cançons amb el seu historial, les imatges i les tipografies importades. S'importa des de la pàgina d'inici.</p>
       </section>
 
-      <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
-            data-confirma="Segur que vols esborrar tot el cançoner «{{ c.titol }}»? No es pot desfer."
+      <form method="post" action="{{ url_for('canconer_a_paperera', id_canconer=c.id) }}"
             class="rounded-lg border border-vermello-200 bg-vermello-50/50 p-4">
-        <h2 class="text-[14px] font-semibold text-vermello-700">Esborrar el cançoner</h2>
-        <p class="mt-1 text-[13px] text-ink-500">S'esborren totes les cançons. No es pot desfer.</p>
-        <button class="btn btn-perill btn-petit -ml-2.5 mt-2">Esborra el cançoner</button>
+        <h2 class="text-[14px] font-semibold text-vermello-700">Envia'l a la paperera</h2>
+        <p class="mt-1 text-[13px] text-ink-500">Desapareix de la llista però es pot recuperar fins que buidis la paperera. Les cançons es queden a la biblioteca.</p>
+        <button class="btn btn-perill btn-petit -ml-2.5 mt-2">Envia'l a la paperera</button>
       </form>
     </aside>
   </div>

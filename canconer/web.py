@@ -175,7 +175,14 @@ def crea_app() -> Flask:
                 pla = None
             canconers.append({**c, "pagines": pla["total"] if pla else None,
                               "portada": pla["pagines"][0] if pla else None, "editat": fa_temps(c["actualitzat"])})
-        return render_template("inici.html", canconers=canconers, error=request.args.get("error"))
+        enviat = None
+        if request.args.get("paperera"):
+            try:
+                enviat = bd.meta_canconer(request.args["paperera"])
+            except KeyError:
+                pass
+        return render_template("inici.html", canconers=canconers, error=request.args.get("error"), enviat=enviat,
+                               a_la_paperera=len(bd.llista_canconers(paperera=True)))
 
     @app.post("/canconer/<id_canconer>/duplica")
     def canconer_duplica(id_canconer):
@@ -335,11 +342,38 @@ def crea_app() -> Flask:
     def canconer_previsualitzacio(id_canconer):
         return redirect(url_for("canconer_imprimir", id_canconer=id_canconer))
 
+    # ------------------------------------------------------------ Paperera
+
+    @app.post("/canconer/<id_canconer>/paperera")
+    def canconer_a_paperera(id_canconer):
+        meta_o_404(id_canconer)
+        bd.envia_a_paperera(id_canconer)
+        return redirect(url_for("inici", paperera=id_canconer))
+
+    @app.post("/canconer/<id_canconer>/recupera")
+    def canconer_recupera(id_canconer):
+        meta_o_404(id_canconer)
+        bd.recupera_de_paperera(id_canconer)
+        return redirect(request.form.get("torna") if request.form.get("torna") == "/paperera" else url_for("inici"))
+
     @app.post("/canconer/<id_canconer>/esborra")
     def canconer_esborra(id_canconer):
+        """Esborra per sempre un cançoner que ja és a la paperera."""
         meta_o_404(id_canconer)
+        if not bd.a_paperera(id_canconer):
+            abort(400)
         bd.esborra_canconer(id_canconer)
-        return redirect(url_for("inici"))
+        return redirect(url_for("paperera"))
+
+    @app.get("/paperera")
+    def paperera():
+        canconers = [{**c, "enviat": fa_temps(c["paperera"])} for c in bd.llista_canconers(paperera=True)]
+        return render_template("paperera.html", canconers=canconers)
+
+    @app.post("/paperera/buida")
+    def paperera_buida():
+        bd.buida_paperera()
+        return redirect(url_for("paperera"))
 
     @app.get("/biblioteca")
     def biblioteca():

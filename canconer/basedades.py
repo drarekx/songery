@@ -164,14 +164,40 @@ def _meta(dades: str | dict) -> dict:
     return plantilles.amb_valors_per_defecte({**VALORS_PER_DEFECTE, **meta})
 
 
-def llista_canconers() -> list[dict]:
+def llista_canconers(paperera: bool = False) -> list[dict]:
+    """Cançoners, del més recent al més antic. paperera=True: els que s'hi han enviat."""
     with connexio() as con:
-        files = con.execute("""
-            SELECT c.id, c.dades, c.actualitzat, COUNT(e.canco_id) AS n
+        files = con.execute(f"""
+            SELECT c.id, c.dades, c.actualitzat, c.paperera, COUNT(e.canco_id) AS n
             FROM canconer c LEFT JOIN entrada e ON e.canconer_id = c.id
-            GROUP BY c.id ORDER BY c.actualitzat DESC""").fetchall()
-    return [{**_meta(f["dades"]), "id": f["id"], "n_cancons": f["n"], "actualitzat": f["actualitzat"]}
-            for f in files]
+            WHERE c.paperera IS {"NOT " if paperera else ""}NULL
+            GROUP BY c.id ORDER BY {"c.paperera" if paperera else "c.actualitzat"} DESC""").fetchall()
+    return [{**_meta(f["dades"]), "id": f["id"], "n_cancons": f["n"], "actualitzat": f["actualitzat"],
+             "paperera": f["paperera"]} for f in files]
+
+
+def envia_a_paperera(id_canconer: str) -> None:
+    with connexio() as con:
+        con.execute("UPDATE canconer SET paperera = ? WHERE id = ? AND paperera IS NULL", (ara(), _valida(id_canconer)))
+
+
+def recupera_de_paperera(id_canconer: str) -> None:
+    with connexio() as con:
+        con.execute("UPDATE canconer SET paperera = NULL WHERE id = ?", (_valida(id_canconer),))
+
+
+def a_paperera(id_canconer: str) -> bool:
+    with connexio() as con:
+        fila = con.execute("SELECT paperera FROM canconer WHERE id = ?", (_valida(id_canconer),)).fetchone()
+    if not fila:
+        raise KeyError(id_canconer)
+    return fila["paperera"] is not None
+
+
+def buida_paperera() -> int:
+    """Esborra per sempre els cançoners de la paperera (les cançons es queden a la biblioteca)."""
+    with connexio() as con:
+        return con.execute("DELETE FROM canconer WHERE paperera IS NOT NULL").rowcount
 
 
 def crea_canconer(titol: str, **meta) -> str:
@@ -756,7 +782,13 @@ def esborra_marge(id_marge: str) -> None:
 
 # Migracions de l'esquema, en ordre. No se'n treu ni se'n canvia mai cap de publicada: les noves
 # s'afegeixen al final. La primera també posa al dia les bases de dades d'abans d'haver-n'hi.
+def _afegeix_paperera(con) -> None:
+    if "paperera" not in {f[1] for f in con.execute("PRAGMA table_info(canconer)")}:
+        con.execute("ALTER TABLE canconer ADD COLUMN paperera TEXT")
+
+
 MIGRACIONS = [
     _afegeix_columnes,  # 1: canco.tipus i entrada.inici
     _sembra_marges,  # 2: mestres de marges predefinides
+    _afegeix_paperera,  # 3: canconer.paperera (data en què s'hi ha enviat)
 ]

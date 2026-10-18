@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titol %}Paperera · Cançoners{% endblock %}
+
+{% block contingut %}
+<div class="flex flex-col gap-6">
+  <a href="{{ url_for('inici') }}" class="text-[13px] text-ink-500 hover:text-ink-900">← Els teus cançoners</a>
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-4xl font-medium tracking-tight">Paperera</h1>
+      <p class="mt-1 max-w-2xl text-ink-500">Els cançoners que hi envies es poden recuperar. Quan la buides, s'esborren per sempre; les cançons es queden a la biblioteca.</p>
+    </div>
+    {% if canconers %}
+    <form method="post" action="{{ url_for('paperera_buida') }}"
+          data-confirma="Vols buidar la paperera? {{ canconers | length }} cançoner{{ 's' if canconers | length != 1 }} s'esborrarà per sempre i no es podrà desfer. Les cançons es queden a la biblioteca.">
+      <button class="btn btn-perill">Buida la paperera</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if canconers %}
+  <ul class="targeta divide-y divide-paper-200">
+    {% for c in canconers %}
+    <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+      <div class="flex min-w-0 flex-1 flex-col">
+        <span class="truncate font-display text-lg font-medium">{{ c.titol }}</span>
+        <span class="text-[13px] text-ink-500">{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }} · a la paperera {{ c.enviat }}</span>
+      </div>
+      <form method="post" action="{{ url_for('canconer_recupera', id_canconer=c.id) }}">
+        <input type="hidden" name="torna" value="/paperera">
+        <button class="btn btn-petit">Recupera'l</button>
+      </form>
+      <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
+            data-confirma="Vols esborrar per sempre «{{ c.titol }}»? No es podrà desfer. Les cançons es queden a la biblioteca.">
+        <button class="btn btn-perill btn-petit">Esborra per sempre</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-ink-500">La paperera és buida.</p>
+  {% endif %}
+</div>
+{% endblock %}
