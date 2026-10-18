@@ -271,6 +271,7 @@ store.connecta({
   // Barres del llenç
   eina: (nom) => EINES[nom]?.(),
   zoom: (factor) => posaZoom(factor === null ? 1 : zoom * factor),
+  ma() { ma.fixa = !ma.fixa; pintaMa(); },
   format: (nom) => edicio?.editor && FORMATS[nom]?.(edicio.editor),
   midaMarc: (mida) => canviaMidaMarc(mida),
   ajustaMarc: (ajusta) => canviaMidaMarc(undefined, ajusta),
@@ -892,18 +893,76 @@ llenc.addEventListener("dblclick", (ev) => {
   else if (e?.grup) selecciona(p, e.id, { sol: true }); // entra dins del grup
 });
 
-// Zoom amb Ctrl/⌘ + roda o el gest de pinça.
+// Zoom amb Ctrl/⌘ + roda o el gest de pinça: el punt que hi ha sota el punter es queda on és.
 llenc.addEventListener("wheel", (ev) => {
   if (!ev.ctrlKey && !ev.metaKey) return;
   ev.preventDefault();
-  posaZoom(zoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1));
+  const r = llenc.getBoundingClientRect();
+  posaZoom(zoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1), { x: ev.clientX - r.left, y: ev.clientY - r.top });
 }, { passive: false });
 
-function posaZoom(z) {
+/** Canvia el zoom. focus: punt del llenç (px) que ha de quedar quiet; per defecte, el centre. */
+function posaZoom(z, focus = null) {
+  const f = focus || { x: llenc.clientWidth / 2, y: llenc.clientHeight / 2 };
+  // On és el punt dins del contingut, en proporció (es manté encara que el contingut canviï de mida).
+  posaZoom.fixa ??= { px: (llenc.scrollLeft + f.x) / Math.max(1, llenc.scrollWidth), py: (llenc.scrollTop + f.y) / Math.max(1, llenc.scrollHeight), f };
   zoom = Math.max(0.3, Math.min(4, z));
   clearTimeout(posaZoom.t);
-  posaZoom.t = setTimeout(pintaLlenc, 60);
+  posaZoom.t = setTimeout(async () => {
+    const { px, py, f: punt } = posaZoom.fixa;
+    posaZoom.fixa = null;
+    await pintaLlenc();
+    llenc.scrollLeft = px * llenc.scrollWidth - punt.x;
+    llenc.scrollTop = py * llenc.scrollHeight - punt.y;
+  }, 60);
 }
+
+// Moure el llenç amb la mà: mantenint l'espai premut i arrossegant, amb el botó del mig del ratolí
+// o amb el botó de la mà de la barra (que la deixa fixa).
+let ma = { espai: false, fixa: false, arrossegant: null };
+const pintaMa = () => {
+  llenc.classList.toggle("mode-ma", ma.espai || ma.fixa);
+  llenc.classList.toggle("movent-ma", !!ma.arrossegant);
+  store.sincronitza({ eines: { ...store.eines, ma: ma.fixa } });
+};
+function escrivintA(objectiu) {
+  return !!edicio || !!objectiu?.matches?.("input, textarea, select, [contenteditable='true'], [contenteditable='plaintext-only']");
+}
+document.addEventListener("keydown", (ev) => {
+  if (ev.code !== "Space" || ev.repeat || escrivintA(ev.target) || ev.target.closest?.("dialog, button")) return;
+  ev.preventDefault(); // sense això, l'espai faria baixar la pàgina
+  ma.espai = true;
+  pintaMa();
+});
+document.addEventListener("keyup", (ev) => {
+  if (ev.code !== "Space" || !ma.espai) return;
+  ma.espai = false;
+  pintaMa();
+});
+window.addEventListener("blur", () => { ma.espai = false; pintaMa(); });
+llenc.addEventListener("pointerdown", (ev) => {
+  if (!(ma.espai || ma.fixa || ev.button === 1)) return;
+  ev.preventDefault();
+  ev.stopImmediatePropagation(); // no és un gest sobre els elements
+  ma.arrossegant = { x: ev.clientX, y: ev.clientY, left: llenc.scrollLeft, top: llenc.scrollTop };
+  llenc.setPointerCapture(ev.pointerId);
+  pintaMa();
+}, true);
+llenc.addEventListener("pointermove", (ev) => {
+  if (!ma.arrossegant) return;
+  ev.stopImmediatePropagation();
+  llenc.scrollLeft = ma.arrossegant.left - (ev.clientX - ma.arrossegant.x);
+  llenc.scrollTop = ma.arrossegant.top - (ev.clientY - ma.arrossegant.y);
+}, true);
+const deixaMa = (ev) => {
+  if (!ma.arrossegant) return;
+  ev.stopImmediatePropagation();
+  ma.arrossegant = null;
+  pintaMa();
+};
+llenc.addEventListener("pointerup", deixaMa, true);
+llenc.addEventListener("pointercancel", deixaMa, true);
+llenc.addEventListener("auxclick", (ev) => { if (ev.button === 1) ev.preventDefault(); }); // el clic del mig no obre res
 new ResizeObserver(() => { if (!gest && !edicio) pintaLlenc(); }).observe(llenc);
 
 // ------------------------------------------------------------ Edició de text i lletra

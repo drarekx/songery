@@ -44,8 +44,9 @@ export const useEditorStore = defineStore("editor", {
      *  moure: {visible, anterior, seguent} (botons per passar-ho a la pàgina del costat) */
     propietats: { mode: "pagina", pagina: null, element: null, multi: null, moure: { visible: false, anterior: false, seguent: false } },
     /** Barra d'eines: inactives (no es pot afegir res: versió fixada o tot el llibret), pagina (es
-     *  poden afegir, moure i esborrar pàgines: una cançó editable) i el panell d'acords obert. */
-    eines: { inactives: false, pagina: false, acordsObert: false },
+     *  poden afegir, moure i esborrar pàgines: una cançó editable), el panell d'acords obert i la mà
+     *  (moure el llenç) fixada. */
+    eines: { inactives: false, pagina: false, acordsObert: false, ma: false },
     /** Zoom del llenç (1 = la pàgina sencera hi cap). */
     zoom: 1,
     /** Marc de lletra que s'edita: {actius: {tonica, bold, italic, cor, seccio, nota}, mida, ajusta,

@@ -92,3 +92,16 @@ describe("AvisLlenc", () => {
     expect(w.text()).toBe("");
   });
 });
+
+describe("BarraEines: la mà", () => {
+  it("el botó de la mà es pot deixar premut", async () => {
+    const w = munta(BarraEines);
+    const boto = w.find('[aria-label="Mou el llenç"]');
+    expect(boto.attributes("aria-pressed")).toBe("false");
+    await boto.trigger("click");
+    expect(ponts.ma).toHaveBeenCalled();
+    store.sincronitza({ eines: { ...store.eines, ma: true } });
+    await w.vm.$nextTick();
+    expect(boto.attributes("aria-pressed")).toBe("true");
+  });
+});

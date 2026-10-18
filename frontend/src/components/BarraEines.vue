@@ -47,7 +47,13 @@ const GRUPS = [
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" v-html="eina.icona"></svg>
       </button>
     </template>
-    <div class="zoom ml-auto" role="group" aria-label="Zoom">
+    <button type="button" class="eina ml-auto" data-tooltip="Mou el llenç (o mantén premut l'espai, o arrossega amb el botó del mig)"
+            aria-label="Mou el llenç" :aria-pressed="String(!!store.eines.ma)" @click="store.crida('ma')">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7 10V4.5a1.2 1.2 0 0 1 2.4 0V9m0-4.5V3.3a1.2 1.2 0 0 1 2.4 0V9m0-4.2a1.2 1.2 0 0 1 2.4 0V10m0-3a1.2 1.2 0 0 1 2.4 0v4.5c0 3.4-2.4 6-5.6 6-2.2 0-3.6-1-4.7-2.7L4.3 12a1.2 1.2 0 0 1 2-1.3L7 11.6"/>
+      </svg>
+    </button>
+    <div class="zoom" role="group" aria-label="Zoom">
       <button type="button" aria-label="Allunya" title="Allunya (Ctrl/⌘ + roda)" @click="store.crida('zoom', 0.8)">
         <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 8h9"/></svg></button>
       <span aria-live="polite">{{ Math.round(store.zoom * 100) }} %</span>
