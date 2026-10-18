@@ -53,7 +53,7 @@
         </div>
       </div>
       {% if c.pagina_acords %}
-      <p class="text-[13px] leading-snug text-ink-500">La pàgina d'acords del PDF surt per a <strong class="text-ink-900">{{ "ukulele" if instrument == "ukulele" else "guitarra" }}</strong>. Pots treure les dues versions del mateix cançoner: el nom del fitxer porta l'instrument.</p>
+      <p class="text-[13px] leading-snug text-ink-500">Tots els diagrames del PDF (la pàgina d'acords i els que hi ha a les pàgines de les cançons) surten per a <strong class="text-ink-900">{{ "ukulele" if instrument == "ukulele" else "guitarra" }}</strong>. Pots treure les dues versions del mateix cançoner: el nom del fitxer porta l'instrument.</p>
       {% else %}
       <p class="text-[13px] leading-snug text-ink-500">Aquest cançoner no té pàgina de diagrames. L'activa a <a class="text-accent-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}">Opcions</a>.</p>
       {% endif %}
@@ -181,6 +181,12 @@
         <span class="interruptor"><input class="peer sr-only" type="checkbox" id="mostra-ordre" checked><span></span></span>
         Mostra l'ordre
       </label>
+      {% if marges_guia %}
+      <label class="flex items-center gap-2 text-[13px] font-medium text-ink-700" title="Guies dels marges d'enquadernació «{{ c.marge.nom }}» (no s'imprimeixen)">
+        <span class="interruptor"><input class="peer sr-only" type="checkbox" id="mostra-marges" checked><span></span></span>
+        Mostra els marges
+      </label>
+      {% endif %}
       <span id="explicacio-mode" class="basis-full text-[13px] text-ink-500 2xl:basis-auto"></span>
     </div>
     <div id="desplacament-visor" class="h-[75dvh] overflow-auto overscroll-contain lg:h-[calc(100dvh-10rem)]">
@@ -209,6 +215,7 @@
     mode: "fulls",
     desplacament: document.getElementById("desplacament-visor"),
     titols: (n) => titols[inicis.indexOf(n)] || "",
+    marges: {{ marges_guia | tojson }},
   });
   connectaZoom(visor, document.getElementById("barra-visor"));
 
@@ -221,6 +228,18 @@
   };
   mostraOrdre.addEventListener("change", aplicaOrdre);
   aplicaOrdre();
+
+  // Guies dels marges d'enquadernació (només a la pantalla). Es recorda l'elecció.
+  const mostraMarges = document.getElementById("mostra-marges");
+  if (mostraMarges) {
+    try { mostraMarges.checked = localStorage.getItem("canconer.mostraMarges") !== "no"; } catch { /* sense emmagatzematge */ }
+    const aplicaMarges = () => {
+      document.getElementById("visor").classList.toggle("amb-marges", mostraMarges.checked);
+      try { localStorage.setItem("canconer.mostraMarges", mostraMarges.checked ? "si" : "no"); } catch { /* sense emmagatzematge */ }
+    };
+    mostraMarges.addEventListener("change", aplicaMarges);
+    aplicaMarges();
+  }
 
   const botons = document.querySelectorAll("[data-mode]");
   async function mostra(mode) {

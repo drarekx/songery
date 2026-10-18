@@ -46,7 +46,9 @@ def empremta(canconer: dict) -> str:
     # La mestra de marges no canvia el dibuix de les pàgines (s'aplica després): no compta aquí.
     canconer = {k: v for k, v in canconer.items() if k != "marge"}
     dades = json.dumps([canconer, fonts], sort_keys=True, ensure_ascii=False).encode()
-    codi = b"".join(f.read_bytes() for f in (_ESTATIC / "pagines.css", _ESTATIC / "dist" / "canconer.js") if f.exists())
+    # Tot el codi del motor de dibuix: canconer.js i els trossos que comparteix amb altres entrades.
+    fitxers = [_ESTATIC / "pagines.css", _ESTATIC / "dist" / "canconer.js", *sorted((_ESTATIC / "dist" / "trossos").glob("*.js"))]
+    codi = b"".join(f.read_bytes() for f in fitxers if f.exists())
     return hashlib.sha256(dades + codi).hexdigest()[:20]
 
 

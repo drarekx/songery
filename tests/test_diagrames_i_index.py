@@ -66,3 +66,22 @@ def test_web(client):
     client.post(f"/canconer/{k}/opcions", data={"titol": "Sense índex"})  # l'índex es tria a Opcions
     assert bd.meta_canconer(k)["pagina_index"] is False
     assert "Índex de cançons: no" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
+
+
+def test_l_instrument_de_la_impressio_canvia_tots_els_diagrames():
+    """Triar ukulele a Imprimir canvia la pàgina d'acords i també els diagrames de dins les cançons."""
+    from canconer import diagrames, exemple, maquetacio
+
+    k = exemple.crea_exemple()
+    entrada = bd.carrega_canconer(k)["cancons"][0]
+    contingut = bd.carrega_canco(entrada["id"])["contingut"]
+    contingut["pagines"][0]["elements"].append({"id": "dg", "tipus": "diagrama", "acord": "G", "x": 10, "y": 150,
+                                                "w": 18, "h": 23.7, "rotacio": 0, "opacitat": 1})
+    bd.desa_esborrany(entrada["id"], contingut=contingut)
+    bd.desa_meta(k, {"pagina_acords": True})
+    for instrument in ("guitarra", "ukulele"):
+        pla = maquetacio.pla({**bd.carrega_canconer(k), "instrument": instrument})
+        canco = next(p for p in pla["pagines"] if p.get("entrada") == entrada["id"])
+        acords = next(p for p in pla["pagines"] if p["tipus"] == "acords")
+        assert canco["context"]["diagrames"]["G"] == diagrames.svg("G", instrument)
+        assert diagrames.svg("G", instrument) in acords["diagrames"]

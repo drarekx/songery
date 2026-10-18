@@ -26,6 +26,8 @@ export class Visor {
    *   titols: funció (numPagina) => text per a la llegenda d'una doble pàgina
    *   clicPagina: funció (numPagina) cridada en clicar una pàgina A5
    *   canviZoom: funció (zoom) cridada quan canvia el zoom
+   *   marges: marges d'enquadernació en mm ({interior, exterior, superior, inferior}) per dibuixar-ne
+   *           les guies (només a la pantalla; es mostren amb la classe .amb-marges)
    */
   constructor(contenidor, opcions = {}) {
     this.contenidor = contenidor;
@@ -34,6 +36,7 @@ export class Visor {
     this.titols = opcions.titols || (() => "");
     this.clicPagina = opcions.clicPagina || null;
     this.canviZoom = opcions.canviZoom || (() => {});
+    this.marges = opcions.marges || null;
     this.zoom = 1;
     this.document = null;
     this.url = null;
@@ -168,6 +171,11 @@ export class Visor {
         pagina.className = "pagina-visor";
         pagina.append(llenc);
         if (this.mode === "dobles") pagina.append(capaOrdre([{ numero: n, text: `pàgina ${n}` }]));
+        if (this.marges) {
+          // En una doble A5, la pàgina n; en un full A4, les dues A5 de la cara (parell a l'esquerra).
+          const a5 = this.mode === "dobles" ? [[n % 2 === 0, 0, 1]] : [[true, 0, 0.5], [false, 0.5, 0.5]];
+          for (const [esquerra, x0, ample] of a5) pagina.append(guiaMarges(this.marges, esquerra, x0, ample));
+        }
         fulls.append(pagina);
         llocs.push({ llenc, n, dibuixat: false });
       }
@@ -340,6 +348,19 @@ export async function dibuixaPagines(url, llocs) {
 }
 
 /** Capa que mostra el número de cada pàgina a sobre del PDF (no s'imprimeix: és només a la pantalla). */
+/** Guia dels marges d'una pàgina A5 (en una part de la imatge: x0 i ample, en fracció de l'amplada). */
+function guiaMarges(m, esquerra, x0, ample) {
+  const guia = document.createElement("span");
+  guia.className = "guia-marges-visor";
+  const esq = (esquerra ? m.exterior : m.interior) / 148;
+  const dre = (esquerra ? m.interior : m.exterior) / 148;
+  Object.assign(guia.style, {
+    left: `${(x0 + esq * ample) * 100}%`, right: `${(1 - x0 - ample + dre * ample) * 100}%`,
+    top: `${(m.superior / 210) * 100}%`, bottom: `${(m.inferior / 210) * 100}%`,
+  });
+  return guia;
+}
+
 function capaOrdre(caselles, titol = "") {
   const capa = document.createElement("span");
   capa.className = "capa-ordre";

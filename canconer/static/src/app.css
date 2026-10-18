@@ -239,6 +239,8 @@
   .visor-pagines canvas.marcada { @apply relative z-10 outline outline-2 outline-offset-0 outline-accent-500; }
   .visor-buit { @apply block; }
   .pagina-visor { @apply relative block; }
+  .guia-marges-visor { @apply pointer-events-none absolute hidden border border-dashed border-sky-500/80; }
+  .amb-marges .guia-marges-visor { @apply block; }
 
   /* Ordre de les pàgines sobre el PDF: només a la pantalla, amb l'interruptor «Mostra l'ordre» */
   .capa-ordre { @apply pointer-events-none absolute inset-0 hidden; }

@@ -261,7 +261,9 @@ def crea_app() -> Flask:
     def canconer_imprimir(id_canconer):
         c = canconer_impressio(id_canconer)
         return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.clau(c),
-                               instrument=c["instrument"], gs=bool(cmyk.ghostscript()))
+                               instrument=c["instrument"], gs=bool(cmyk.ghostscript()),
+                               marges_guia={k: c["marge"][k] for k in ("interior", "exterior", "superior", "inferior")}
+                               if marges.te_guies(c["marge"]) else None)
 
     @app.post("/canconer/<id_canconer>/marges")
     def canconer_tria_marges(id_canconer):

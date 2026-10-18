@@ -112,3 +112,11 @@ def test_triar_marges_a_opcions_i_guies_a_l_editor(client):
     assert '"marge": {' in client.get(f"/canconer/{k}").get_data(as_text=True)  # guies a l'editor
     client.post(f"/canconer/{k}/marges", data={"marges": "noexisteix"})
     assert bd.meta_canconer(k)["marges"] == "cap"
+
+
+def test_guies_de_marges_a_la_vista_previa_d_imprimir(client):
+    k = bd.crea_canconer("Amb anelles")
+    assert "marges: null" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
+    client.post(f"/canconer/{k}/marges", data={"marges": "anelles"})
+    html = client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
+    assert 'id="mostra-marges"' in html and '"interior": 14' in html
