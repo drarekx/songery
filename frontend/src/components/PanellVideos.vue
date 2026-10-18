@@ -3,7 +3,7 @@
   títol), canviar-ne el títol, marcar-los per a l'índex de QR, reordenar-los, treure'ls i mirar-los.
 -->
 <script setup>
-import { ref } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 import { confirma } from "@/dialegs.js";
 import { useEditorStore } from "@/stores/editor.js";
 
@@ -53,9 +53,31 @@ async function afegeix() {
 }
 
 function mira(v) {
+  bloquejat.value = false;
   reproduint.value = v;
   dialeg.value.showModal();
 }
+
+// Alguns vídeos (sovint música amb drets) no es poden veure fora de YouTube: el reproductor ho diu
+// amb un missatge (onError 101 o 150) i aleshores s'ofereix obrir-lo a YouTube.
+const bloquejat = ref(false);
+const reproductor = ref(null);
+const urlReproductor = (v) => `https://www.youtube-nocookie.com/embed/${v.video}?autoplay=1&enablejsapi=1`
+  + `&origin=${encodeURIComponent(location.origin)}${v.inici ? `&start=${v.inici}` : ""}`;
+const urlYouTube = (v) => `https://www.youtube.com/watch?v=${v.video}${v.inici ? `&t=${v.inici}s` : ""}`;
+
+function escolta() {
+  reproductor.value?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: "videos", channel: "widget" }), "*");
+}
+
+function missatge(ev) {
+  if (!reproductor.value || ev.source !== reproductor.value.contentWindow) return;
+  let d;
+  try { d = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data; } catch { return; }
+  if (d?.event === "onError" && [100, 101, 150].includes(Number(d.info))) bloquejat.value = true;
+}
+window.addEventListener("message", missatge);
+onBeforeUnmount(() => window.removeEventListener("message", missatge));
 
 </script>
 
@@ -98,15 +120,21 @@ function mira(v) {
     <dialog ref="dialeg" class="w-[min(56rem,94vw)] rounded-xl border border-paper-300 bg-ink-900 p-0 text-white shadow-full backdrop:bg-ink-900/60"
             @close="reproduint = null">
       <div class="flex items-center justify-between gap-3 px-4 py-2">
-        <h2 class="truncate text-[14px] font-medium">{{ reproduint?.titol || (reproduint && urlCurta(reproduint)) }}</h2>
+        <h2 class="min-w-0 flex-1 truncate text-[14px] font-medium">{{ reproduint?.titol || (reproduint && urlCurta(reproduint)) }}</h2>
+        <a v-if="reproduint" :href="urlYouTube(reproduint)" target="_blank" rel="noopener"
+           class="shrink-0 text-[13px] text-white/80 underline underline-offset-4 hover:text-white">Obre a YouTube</a>
         <button type="button" class="btn btn-fantasma btn-icona text-white" aria-label="Tanca" @click="dialeg.close()">
           <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg>
         </button>
       </div>
-      <div class="aspect-video w-full bg-black">
-        <iframe v-if="reproduint" class="h-full w-full" title="Vídeo de YouTube"
-                :src="`https://www.youtube-nocookie.com/embed/${reproduint.video}?autoplay=1${reproduint.inici ? `&start=${reproduint.inici}` : ''}`"
-                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      <div class="relative aspect-video w-full bg-black">
+        <iframe v-if="reproduint" ref="reproductor" class="h-full w-full" title="Vídeo de YouTube" :src="urlReproductor(reproduint)"
+                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen @load="escolta"></iframe>
+        <div v-if="reproduint && bloquejat" class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ink-900 p-8 text-center" role="alert">
+          <p class="max-w-md text-[15px] leading-snug">El propietari d'aquest vídeo no permet veure'l fora de YouTube (passa sovint amb música amb drets).
+            El codi QR funciona igual: obre el vídeo a YouTube.</p>
+          <a :href="urlYouTube(reproduint)" target="_blank" rel="noopener" class="btn bg-white text-ink-900 hover:bg-paper-200">Mira'l a YouTube</a>
+        </div>
       </div>
     </dialog>
   </div>
