@@ -28,6 +28,7 @@ TIPUS_PDF = {
 }
 MIDA_MAXIMA_IMATGE = 12 * 1024 * 1024
 MIDA_MAXIMA_FONT = 15 * 1024 * 1024
+PER_PAGINA = 20  # cançons per pàgina a la biblioteca
 
 
 def _nom_fitxer(text: str) -> str:
@@ -182,7 +183,7 @@ def crea_app() -> Flask:
             except KeyError:
                 pass
         return render_template("inici.html", canconers=canconers, error=request.args.get("error"), enviat=enviat,
-                               a_la_paperera=len(bd.llista_canconers(paperera=True)))
+                               a_la_paperera=len(bd.llista_canconers(paperera=True)) + len(bd.cancons_paperera()))
 
     @app.post("/canconer/<id_canconer>/duplica")
     def canconer_duplica(id_canconer):
@@ -368,7 +369,8 @@ def crea_app() -> Flask:
     @app.get("/paperera")
     def paperera():
         canconers = [{**c, "enviat": fa_temps(c["paperera"])} for c in bd.llista_canconers(paperera=True)]
-        return render_template("paperera.html", canconers=canconers)
+        cancons = [{**c, "enviat": fa_temps(c["paperera"])} for c in bd.cancons_paperera()]
+        return render_template("paperera.html", canconers=canconers, cancons=cancons)
 
     @app.post("/paperera/buida")
     def paperera_buida():
@@ -378,8 +380,21 @@ def crea_app() -> Flask:
     @app.get("/biblioteca")
     def biblioteca():
         ordre = request.args.get("ordre", "titol")
-        return render_template("biblioteca.html", cancons=bd.biblioteca(request.args.get("q", ""), ordre),
-                               q=request.args.get("q", ""), ordre=ordre, seccio="biblioteca")
+        q = request.args.get("q", "")
+        totes = bd.biblioteca(q, ordre)
+        pagines = max(1, -(-len(totes) // PER_PAGINA))
+        pagina = min(max(1, request.args.get("pagina", 1, type=int) or 1), pagines)
+        inici = (pagina - 1) * PER_PAGINA
+        enviada = None
+        if request.args.get("paperera"):
+            try:
+                enviada = bd.carrega_canco(request.args["paperera"])
+            except (KeyError, ValueError):
+                pass
+        return render_template("biblioteca.html", cancons=totes[inici:inici + PER_PAGINA], total=len(totes),
+                               pagina=pagina, pagines=pagines, desde=inici + 1, q=q, ordre=ordre,
+                               canconers=bd.llista_canconers(), enviada=enviada,
+                               error=request.args.get("error"), seccio="biblioteca")
 
     @app.get("/biblioteca/<id_canco>")
     def biblioteca_canco(id_canco):
@@ -401,11 +416,57 @@ def crea_app() -> Flask:
         bd.afegeix_entrada(id_canconer, id_canco)
         return redirect(url_for("canconer", id_canconer=id_canconer, canco=id_canco))
 
-    @app.post("/biblioteca/<id_canco>/esborra")
-    def biblioteca_esborra(id_canco):
-        o_404(bd.carrega_canco, id_canco)
+    @app.post("/biblioteca/nova")
+    def biblioteca_nova():
+        """Cançó nova des de la biblioteca. Si es tria un cançoner, s'hi afegeix i s'obre per editar-la."""
+        id_canco = bd.crea_canco(request.form.get("titol", "").strip() or "Nova cançó", request.form.get("autor", "").strip())
+        id_canconer = request.form.get("canconer")
+        if id_canconer:
+            meta_o_404(id_canconer)
+            bd.afegeix_entrada(id_canconer, id_canco)
+            return redirect(url_for("canconer", id_canconer=id_canconer, canco=id_canco))
+        return redirect(url_for("biblioteca_canco", id_canco=id_canco))
+
+    @app.post("/biblioteca/<id_canco>/paperera")
+    def biblioteca_a_paperera(id_canco):
+        # Es torna a la mateixa pàgina del llistat (cerca, ordre i pàgina).
+        llistat = {k: request.form[k] for k in ("q", "ordre", "pagina") if request.form.get(k)}
+        try:
+            bd.canco_a_paperera(id_canco)
+        except KeyError:
+            abort(404)
+        except bd.CancoEnUs as e:
+            return redirect(url_for("biblioteca", error=str(e), **llistat))
+        return redirect(url_for("biblioteca", paperera=id_canco, **llistat))
+
+    @app.post("/api/canconer/<id_canconer>/entrada/<id_canco>/paperera")
+    def api_canco_a_paperera(id_canconer, id_canco):
+        """Elimina una cançó des d'un cançoner: en surt i va a la paperera (si no és a cap altre)."""
+        meta_o_404(id_canconer)
+        try:
+            bd.canco_a_paperera(id_canco, des_de=id_canconer)
+        except KeyError:
+            abort(404)
+        except bd.CancoEnUs as e:
+            return jsonify({"error": str(e), "canconers": e.canconers}), 409
+        return jsonify({"ok": True})
+
+    @app.post("/canco/<id_canco>/recupera")
+    def canco_recupera(id_canco):
+        try:
+            bd.recupera_canco(id_canco)
+        except KeyError:
+            abort(404)
+        torna = request.form.get("torna", "")
+        return redirect(torna if torna.startswith("/") and not torna.startswith("//") else url_for("paperera"))
+
+    @app.post("/canco/<id_canco>/esborra")
+    def canco_esborra(id_canco):
+        """Esborra per sempre una cançó que ja és a la paperera."""
+        if not o_404(bd.a_paperera_canco, id_canco):
+            abort(400)
         bd.esborra_canco(id_canco)
-        return redirect(url_for("biblioteca"))
+        return redirect(url_for("paperera"))
 
     # ------------------------------------------------------------ Pàgines que llegeix Gotenberg
 
@@ -535,6 +596,15 @@ def crea_app() -> Flask:
     @app.get("/api/canco/<id_canco>")
     def api_canco(id_canco):
         return jsonify(o_404(bd.carrega_canco, id_canco))
+
+    @app.get("/api/canco/<id_canco>/previa")
+    def api_canco_previa(id_canco):
+        """Cançó amb els estils i mestres del primer cançoner on surt (o els de defecte), per a la
+        vista prèvia de la biblioteca."""
+        canco = o_404(bd.carrega_canco, id_canco)
+        usos = bd.usos_canco(id_canco)
+        disseny_canconer = bd.meta_canconer(usos[0]["id"]) if usos else plantilles.amb_valors_per_defecte({})
+        return jsonify({**canco, "estils": disseny_canconer["estils"], "mestres": disseny_canconer["mestres"]})
 
     @app.put("/api/canco/<id_canco>")
     def api_canco_desa(id_canco):

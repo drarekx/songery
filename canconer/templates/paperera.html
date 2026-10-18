@@ -7,38 +7,67 @@
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="font-display text-4xl font-medium tracking-tight">Paperera</h1>
-      <p class="mt-1 max-w-2xl text-ink-500">Els cançoners que hi envies es poden recuperar. Quan la buides, s'esborren per sempre; les cançons es queden a la biblioteca.</p>
+      <p class="mt-1 max-w-2xl text-ink-500">El que hi envies es pot recuperar. Quan la buides, s'esborra per sempre. Les cançons dels cançoners esborrats es queden a la biblioteca.</p>
     </div>
-    {% if canconers %}
+    {% if canconers or cancons %}
     <form method="post" action="{{ url_for('paperera_buida') }}"
           data-confirma-titol="Buidar la paperera?" data-confirma-accepta="Buida-la"
-          data-confirma="{{ canconers | length }} cançoner{{ 's' if canconers | length != 1 }} s'esborrar{{ 'an' if canconers | length != 1 else 'à' }} per sempre i no es podrà desfer. Les cançons es queden a la biblioteca.">
+          data-confirma="{% set n = canconers | length + cancons | length %}{{ n }} element{{ 's' if n != 1 }} s'esborrar{{ 'an' if n != 1 else 'à' }} per sempre i no es podrà desfer.">
       <button class="btn btn-perill">Buida la paperera</button>
     </form>
     {% endif %}
   </div>
 
   {% if canconers %}
-  <ul class="targeta divide-y divide-paper-200">
-    {% for c in canconers %}
-    <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-      <div class="flex min-w-0 flex-1 flex-col">
-        <span class="truncate font-display text-lg font-medium">{{ c.titol }}</span>
-        <span class="text-[13px] text-ink-500">{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }} · a la paperera {{ c.enviat }}</span>
-      </div>
-      <form method="post" action="{{ url_for('canconer_recupera', id_canconer=c.id) }}">
-        <input type="hidden" name="torna" value="/paperera">
-        <button class="btn btn-petit">Recupera'l</button>
-      </form>
-      <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
-            data-confirma-titol="Esborrar «{{ c.titol }}» per sempre?" data-confirma-accepta="Esborra'l per sempre"
-            data-confirma="No es podrà desfer. Les cançons es queden a la biblioteca.">
-        <button class="btn btn-perill btn-petit">Esborra per sempre</button>
-      </form>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
+  <section class="flex flex-col gap-2">
+    <h2 class="text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-500">Cançoners</h2>
+    <ul class="targeta divide-y divide-paper-200">
+      {% for c in canconers %}
+      <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <div class="flex min-w-0 flex-1 flex-col">
+          <span class="truncate font-display text-lg font-medium">{{ c.titol }}</span>
+          <span class="text-[13px] text-ink-500">{{ c.n_cancons }} {{ "cançó" if c.n_cancons == 1 else "cançons" }} · a la paperera {{ c.enviat }}</span>
+        </div>
+        <form method="post" action="{{ url_for('canconer_recupera', id_canconer=c.id) }}">
+          <input type="hidden" name="torna" value="/paperera">
+          <button class="btn btn-petit">Recupera'l</button>
+        </form>
+        <form method="post" action="{{ url_for('canconer_esborra', id_canconer=c.id) }}"
+              data-confirma-titol="Esborrar «{{ c.titol }}» per sempre?" data-confirma-accepta="Esborra'l per sempre"
+              data-confirma="No es podrà desfer. Les cançons es queden a la biblioteca.">
+          <button class="btn btn-perill btn-petit">Esborra per sempre</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if cancons %}
+  <section class="flex flex-col gap-2">
+    <h2 class="text-[13px] font-semibold uppercase tracking-[0.1em] text-ink-500">Cançons</h2>
+    <ul class="targeta divide-y divide-paper-200">
+      {% for c in cancons %}
+      <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <div class="flex min-w-0 flex-1 flex-col">
+          <span class="truncate font-display text-lg font-medium">{{ c.titol or "Sense títol" }}{% if c.tipus == "pagina" %} <span class="font-sans text-[12px] text-ink-500">(pàgina lliure)</span>{% endif %}</span>
+          <span class="text-[13px] text-ink-500">{% if c.autor %}{{ c.autor }} · {% endif %}a la paperera {{ c.enviat }}{% if c.origen %} · eliminada de «{{ c.origen }}»{% endif %}</span>
+        </div>
+        <form method="post" action="{{ url_for('canco_recupera', id_canco=c.id) }}">
+          <button class="btn btn-petit" title="{{ 'Torna a «' ~ c.origen ~ '»' if c.origen else 'Torna a la biblioteca' }}">Recupera-la</button>
+        </form>
+        <form method="post" action="{{ url_for('canco_esborra', id_canco=c.id) }}"
+              data-confirma-titol="Esborrar «{{ c.titol }}» per sempre?" data-confirma-accepta="Esborra-la per sempre"
+              data-confirma="S'esborra amb totes les seves versions. No es podrà desfer.">
+          <button class="btn btn-perill btn-petit">Esborra per sempre</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if not canconers and not cancons %}
   <p class="text-ink-500">La paperera és buida.</p>
   {% endif %}
 </div>

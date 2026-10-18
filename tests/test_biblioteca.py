@@ -81,3 +81,25 @@ def test_restaurar_afecta_nomes_els_que_segueixen_l_esborrany(client):
     assert client.post(f"/api/canco/{a}/restaura", json={"versio_id": v1["id"]}).status_code == 200
     assert bd.carrega_canconer(segueix)["cancons"][0]["titol"] == "Original"
     assert bd.carrega_canconer(fixat)["cancons"][0]["titol"] == "Canviada"
+
+
+def test_paginacio_i_vista_previa(client):
+    ids = [_canco(f"Pag {n:02d}") for n in range(25)]
+    html = client.get("/biblioteca?q=Pag").get_data(as_text=True)
+    assert "Pag 00" in html and "Pag 19" in html and "Pag 20" not in html
+    assert "de <strong" in html and "pagina=2" in html
+    html = client.get("/biblioteca?q=Pag&pagina=2").get_data(as_text=True)
+    assert "Pag 20" in html and "Pag 00" not in html
+    assert "Pag 24" in client.get("/biblioteca?q=Pag&pagina=99").get_data(as_text=True)  # cau a l'última
+
+    d = client.get(f"/api/canco/{ids[0]}/previa").get_json()
+    assert d["titol"] == "Pag 00" and d["contingut"]["pagines"] and "estils" in d and "mestres" in d
+    assert client.get("/api/canco/noexisteix/previa").status_code == 404
+
+
+def test_paperera_des_de_la_biblioteca_torna_a_la_mateixa_pagina(client):
+    a = _canco("Solta")
+    r = client.post(f"/biblioteca/{a}/paperera", data={"q": "Sol", "ordre": "titol", "pagina": "1"})
+    assert "q=Sol" in r.location and f"paperera={a}" in r.location
+    html = client.get(r.location).get_data(as_text=True)
+    assert "és a la paperera" in html and "Desfés" in html

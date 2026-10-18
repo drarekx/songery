@@ -51,6 +51,13 @@ const etiquetaVersio = computed(() => {
       <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5M8 5v3l2 1.5"/></svg>
       Versions i historial <span class="font-mono text-[11px] text-ink-400">{{ etiquetaVersio }}</span>
     </button>
-    <button type="button" class="btn btn-perill btn-petit" @click="store.crida('treuCanco')">Treu del cançoner</button>
+    <div class="flex flex-col gap-1.5 border-t border-paper-300 pt-4">
+      <button type="button" class="btn btn-petit" @click="store.crida('treuCanco')">Treu del cançoner</button>
+      <button type="button" class="btn btn-perill btn-petit" :disabled="store.entrada.usos > 1" @click="store.crida('eliminaCanco')">Elimina la cançó…</button>
+      <p class="text-[12px] leading-snug text-ink-500">
+        <template v-if="store.entrada.usos > 1">També és en altres cançoners: només la pots treure d'aquest.</template>
+        <template v-else>«Treu» la deixa a la biblioteca; «Elimina» l'envia a la paperera.</template>
+      </p>
+    </div>
   </div>
 </template>

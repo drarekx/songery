@@ -254,6 +254,7 @@ store.connecta({
   },
   aplicaTransport,
   treuCanco,
+  eliminaCanco: (id) => eliminaCanco(id),
   obreHistorial: () => obreHistorial(),
   // Estils
   canviaEstil(clau, prop, valor) {
@@ -2263,6 +2264,29 @@ async function aplicaTransport() {
   await api(urls.canco + canco.id, "PUT", { contingut });
   await canviaEntrada(entrada.id, { transport: 0 });
   pintaLlenc();
+}
+
+/**
+ * Elimina una cançó des del cançoner: en surt i va a la paperera, d'on es pot recuperar. Només si
+ * no és a cap altre cançoner (si hi és, només se'n pot treure).
+ */
+async function eliminaCanco(id = obert?.id) {
+  const c = K.cancons.find((x) => x.id === id);
+  if (!c) return;
+  const nom = c.titol || "Sense títol";
+  if (c.usos > 1) {
+    return avisaDialeg({ titol: "Aquesta cançó no es pot eliminar", text: `També és en ${c.usos - 1 === 1 ? "un altre cançoner" : `${c.usos - 1} cançoners més`}. Només la pots treure d'aquest; per eliminar-la, primer treu-la dels altres.` });
+  }
+  if (!await confirma({ titol: `Eliminar «${nom}»?`, text: "Surt d'aquest cançoner i va a la paperera, des d'on la pots recuperar o esborrar per sempre.", accepta: "Elimina-la", perill: true })) return;
+  await desa();
+  const r = await fetch(`${urls.entrada}${id}/paperera`, { method: "POST" });
+  if (!r.ok) return avisaDialeg({ titol: "No s'ha eliminat", text: (await r.json().catch(() => ({}))).error || "No s'ha pogut eliminar la cançó." });
+  [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
+  if (obert?.tipus === "canco" && obert.id === id) {
+    obert = null;
+    await obre(K.cancons[0] ? { tipus: "canco", id: K.cancons[0].id } : { tipus: "especial", id: "portada" });
+  } else pintaLlista();
+  mostraEstat(`«${nom}» és a la paperera`);
 }
 
 async function treuCanco() {

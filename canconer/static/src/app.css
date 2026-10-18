@@ -34,6 +34,7 @@
 @tailwind utilities;
 
 @layer base {
+  [hidden] { display: none !important; }
   html { -webkit-tap-highlight-color: transparent; }
   ::selection { @apply bg-vermello-100 text-ink-900; }
   :focus-visible { @apply outline-none ring-2 ring-vermello-500/60 ring-offset-1 ring-offset-paper-50; }
@@ -70,6 +71,21 @@
 
   /* Inici: els cançoners com a llibrets A5 sobre la taula, amb la portada real */
   .prestatge { @apply grid list-none gap-x-9 gap-y-12 p-0; grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr)); }
+  /* Biblioteca: llistat de cançons amb vista prèvia */
+  .llista-biblioteca { @apply grid items-center gap-4; grid-template-columns: minmax(0, 1fr) 6.5rem; }
+  @screen sm { .llista-biblioteca { grid-template-columns: minmax(0, 1fr) 6.5rem 7.5rem; } }
+  @screen md { .llista-biblioteca { grid-template-columns: minmax(0, 1fr) 13rem 6.5rem 7.5rem; } }
+  .fila-biblioteca { @apply relative transition-colors hover:bg-paper-50; }
+  .fila-biblioteca.actiu { @apply bg-paper-50; box-shadow: inset 3px 0 0 theme("colors.vermello.500"); }
+  .pagina-boto { @apply inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-transparent px-2 font-mono text-[13px] text-ink-700 transition hover:bg-paper-200; }
+  .pagina-boto[aria-current="page"] { @apply border-ink-900 bg-ink-900 font-semibold text-white hover:bg-ink-900; }
+  .pagina-previa {
+    @apply relative w-full overflow-hidden bg-white;
+    aspect-ratio: 148 / 210;
+    box-shadow: 0 14px 30px -14px rgb(27 26 23 / 0.35), 0 1px 2px rgb(27 26 23 / 0.12);
+  }
+  .pagina-previa > .pagina { position: absolute; left: 0; top: 0; }
+
   .llibret {
     @apply relative block overflow-hidden bg-white transition duration-200 ease-out;
     aspect-ratio: 148 / 210;

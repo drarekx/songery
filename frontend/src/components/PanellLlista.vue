@@ -42,7 +42,9 @@ function menuCanco(ev, c, i) {
     { text: "Mou avall", desactivat: i === n - 1, fes: () => store.crida("mouEntrada", c.id, 1) },
     { text: "Versions i historial…", fes: () => obreIFes("obreHistorial") },
     { separador: true },
-    { text: "Treu del cançoner…", perill: true, fes: () => obreIFes("treuCanco") },
+    { text: "Treu del cançoner…", fes: () => obreIFes("treuCanco") },
+    { text: c.usos > 1 ? "Elimina (també és en altres cançoners)" : "Elimina la cançó…", perill: true, desactivat: c.usos > 1,
+      fes: () => store.crida("eliminaCanco", c.id) },
   ]);
 }
 

@@ -195,9 +195,73 @@ def a_paperera(id_canconer: str) -> bool:
 
 
 def buida_paperera() -> int:
-    """Esborra per sempre els cançoners de la paperera (les cançons es queden a la biblioteca)."""
+    """Esborra per sempre els cançoners i les cançons de la paperera (les cançons dels cançoners
+    esborrats que no són a la paperera es queden a la biblioteca)."""
     with connexio() as con:
-        return con.execute("DELETE FROM canconer WHERE paperera IS NOT NULL").rowcount
+        n = con.execute("DELETE FROM canconer WHERE paperera IS NOT NULL").rowcount
+        return n + con.execute("DELETE FROM canco WHERE paperera IS NOT NULL").rowcount
+
+
+class CancoEnUs(ValueError):
+    """La cançó és en algun cançoner (a part del d'on es vol eliminar): només se'n pot treure."""
+
+    def __init__(self, canconers: list[str]):
+        self.canconers = canconers
+        on = ", ".join(f"«{t}»" for t in canconers)
+        super().__init__(f"Aquesta cançó també és a {on}. Només la pots treure d'aquest cançoner; "
+                         "per eliminar-la, primer treu-la dels altres.")
+
+
+def canco_a_paperera(id_canco: str, des_de: str | None = None) -> None:
+    """Envia una cançó (o pàgina lliure) a la paperera. Només si no és a cap cançoner, a part de
+    des_de (el cançoner des d'on s'elimina, d'on també es treu). Els cançoners de la paperera no compten."""
+    with connexio() as con:
+        if not con.execute("SELECT 1 FROM canco WHERE id = ? AND paperera IS NULL", (_valida(id_canco),)).fetchone():
+            raise KeyError(id_canco)
+        altres = con.execute("""
+            SELECT k.dades FROM entrada e JOIN canconer k ON k.id = e.canconer_id
+            WHERE e.canco_id = ? AND k.paperera IS NULL AND k.id IS NOT ?""", (id_canco, des_de)).fetchall()
+        if altres:
+            raise CancoEnUs([json.loads(f["dades"]).get("titol") or "Cançoner" for f in altres])
+        if des_de:
+            ids = [i for i in _ids_entrades(con, des_de) if i != id_canco]
+            con.execute("DELETE FROM entrada WHERE canconer_id = ? AND canco_id = ?", (des_de, id_canco))
+            _reordena(con, des_de, ids)
+            toca_canconer(con, des_de)
+        con.execute("UPDATE canco SET paperera = ?, paperera_de = ? WHERE id = ?", (ara(), des_de, id_canco))
+
+
+def recupera_canco(id_canco: str) -> str | None:
+    """Treu una cançó de la paperera i, si s'hi havia eliminat des d'un cançoner que encara hi és, la
+    hi torna a posar (al final). Torna l'id d'aquest cançoner, si n'hi ha."""
+    with connexio() as con:
+        fila = con.execute("SELECT paperera_de FROM canco WHERE id = ? AND paperera IS NOT NULL", (_valida(id_canco),)).fetchone()
+        if not fila:
+            raise KeyError(id_canco)
+        con.execute("UPDATE canco SET paperera = NULL, paperera_de = NULL WHERE id = ?", (id_canco,))
+        origen = fila["paperera_de"]
+        viu = origen and con.execute("SELECT 1 FROM canconer WHERE id = ? AND paperera IS NULL", (origen,)).fetchone()
+    if not viu:
+        return None
+    afegeix_entrada(origen, id_canco)
+    return origen
+
+
+def cancons_paperera() -> list[dict]:
+    with connexio() as con:
+        files = con.execute("""SELECT c.id, c.titol, c.autor, c.tipus, c.paperera, k.dades AS origen
+                               FROM canco c LEFT JOIN canconer k ON k.id = c.paperera_de
+                               WHERE c.paperera IS NOT NULL ORDER BY c.paperera DESC""").fetchall()
+    return [{"id": f["id"], "titol": f["titol"], "autor": f["autor"], "tipus": f["tipus"], "paperera": f["paperera"],
+             "origen": json.loads(f["origen"]).get("titol") if f["origen"] else None} for f in files]
+
+
+def a_paperera_canco(id_canco: str) -> bool:
+    with connexio() as con:
+        fila = con.execute("SELECT paperera FROM canco WHERE id = ?", (_valida(id_canco),)).fetchone()
+    if not fila:
+        raise KeyError(id_canco)
+    return fila["paperera"] is not None
 
 
 def crea_canconer(titol: str, **meta) -> str:
@@ -279,10 +343,11 @@ def carrega_canconer(id_canconer: str) -> dict:
                    (SELECT MAX(numero) FROM versio WHERE canco_id = c.id) AS ultima,
                    (SELECT doc = c.doc AND titol = c.titol AND autor = c.autor FROM versio
                      WHERE canco_id = c.id ORDER BY numero DESC LIMIT 1) AS sense_canvis,
-                   (SELECT COUNT(*) FROM entrada e2 WHERE e2.canco_id = c.id) AS usos
+                   (SELECT COUNT(*) FROM entrada e2 JOIN canconer k2 ON k2.id = e2.canconer_id
+                     WHERE e2.canco_id = c.id AND k2.paperera IS NULL) AS usos
             FROM entrada e JOIN canco c ON c.id = e.canco_id
             LEFT JOIN versio v ON v.id = e.versio_id
-            WHERE e.canconer_id = ? ORDER BY e.posicio""", (id_canconer,)).fetchall()
+            WHERE e.canconer_id = ? AND c.paperera IS NULL ORDER BY e.posicio""", (id_canconer,)).fetchall()
     cancons = []
     for f in files:
         fixada = f["versio_id"] is not None
@@ -506,10 +571,10 @@ def biblioteca(cerca: str = "", ordre: str = "titol") -> list[dict]:
                    (SELECT COUNT(*) FROM versio WHERE canco_id = c.id) AS n_versions,
                    COALESCE((SELECT NOT (doc = c.doc AND titol = c.titol AND autor = c.autor) FROM versio
                              WHERE canco_id = c.id ORDER BY numero DESC LIMIT 1), 1) AS modificat
-            FROM canco c WHERE c.tipus = 'canco'
+            FROM canco c WHERE c.tipus = 'canco' AND c.paperera IS NULL
             ORDER BY {ORDRES_BIBLIOTECA.get(ordre, ORDRES_BIBLIOTECA["titol"])}""").fetchall()
         usos = con.execute("SELECT e.canco_id, k.id, k.dades FROM entrada e "
-                           "JOIN canconer k ON k.id = e.canconer_id").fetchall()
+                           "JOIN canconer k ON k.id = e.canconer_id WHERE k.paperera IS NULL").fetchall()
     per_canco: dict[str, list] = {}
     for u in usos:
         per_canco.setdefault(u["canco_id"], []).append({"id": u["id"], "titol": json.loads(u["dades"]).get("titol") or "Cançoner"})
@@ -524,7 +589,7 @@ def usos_canco(id_canco: str) -> list[dict]:
         files = con.execute("""
             SELECT k.id, k.dades, e.versio_id, v.numero FROM entrada e
             JOIN canconer k ON k.id = e.canconer_id LEFT JOIN versio v ON v.id = e.versio_id
-            WHERE e.canco_id = ?""", (_valida(id_canco),)).fetchall()
+            WHERE e.canco_id = ? AND k.paperera IS NULL""", (_valida(id_canco),)).fetchall()
     return [{"id": f["id"], "titol": json.loads(f["dades"]).get("titol") or "Cançoner",
              "versio_id": f["versio_id"], "versio_numero": f["numero"]} for f in files]
 
@@ -787,8 +852,17 @@ def _afegeix_paperera(con) -> None:
         con.execute("ALTER TABLE canconer ADD COLUMN paperera TEXT")
 
 
+def _afegeix_paperera_cancons(con) -> None:
+    columnes = {f[1] for f in con.execute("PRAGMA table_info(canco)")}
+    if "paperera" not in columnes:
+        con.execute("ALTER TABLE canco ADD COLUMN paperera TEXT")
+    if "paperera_de" not in columnes:
+        con.execute("ALTER TABLE canco ADD COLUMN paperera_de TEXT")
+
+
 MIGRACIONS = [
     _afegeix_columnes,  # 1: canco.tipus i entrada.inici
     _sembra_marges,  # 2: mestres de marges predefinides
     _afegeix_paperera,  # 3: canconer.paperera (data en què s'hi ha enviat)
+    _afegeix_paperera_cancons,  # 4: canco.paperera i canco.paperera_de (cançoner d'on s'ha eliminat)
 ]

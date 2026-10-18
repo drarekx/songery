@@ -7,67 +7,140 @@
 </a>
 {% endmacro %}
 
+{% macro pagina_url(n) %}{{ url_for('biblioteca', q=q or None, ordre=ordre, pagina=n) }}{% endmacro %}
+
 {% block contingut %}
-<div class="flex flex-col gap-8">
+<div class="flex flex-col gap-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="font-display text-4xl font-medium tracking-tight">Biblioteca</h1>
-      <p class="mt-1 max-w-2xl text-ink-500">Totes les cançons, de tots els cançoners (també les que no són a cap). Una mateixa cançó pot ser a diversos cançoners: cadascun tria quina versió fa servir. Obre'n una per veure'n l'historial.</p>
+      <p class="mt-1 max-w-2xl text-ink-500">Totes les cançons, siguin o no a algun cançoner. Passa el ratolí per sobre d'una cançó per veure-la; obre-la per veure'n l'historial.</p>
     </div>
-    <form method="get" class="w-full sm:w-72">
-      <label class="sr-only" for="q">Cerca</label>
-      <input type="hidden" name="ordre" value="{{ ordre }}">
-      <input id="q" name="q" type="search" value="{{ q }}" class="camp" placeholder="Cerca per títol o autor…">
-    </form>
+    <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+      <form method="get" class="flex-1 sm:w-72 sm:flex-none">
+        <label class="sr-only" for="q">Cerca</label>
+        <input type="hidden" name="ordre" value="{{ ordre }}">
+        <input id="q" name="q" type="search" value="{{ q }}" class="camp" placeholder="Cerca per títol o autor…">
+      </form>
+      <button type="button" id="obre-nova" class="btn btn-primari" aria-expanded="false" aria-controls="nova-canco">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+        Nova cançó
+      </button>
+    </div>
   </div>
 
+  <form id="nova-canco" method="post" action="{{ url_for('biblioteca_nova') }}" hidden
+        class="targeta flex flex-wrap items-end gap-4 p-5">
+    <label class="flex min-w-[14rem] flex-[2] flex-col"><span class="etiqueta">Títol</span>
+      <input name="titol" class="camp font-display" value="Nova cançó" required maxlength="200"></label>
+    <label class="flex min-w-[10rem] flex-1 flex-col"><span class="etiqueta">Autor</span>
+      <input name="autor" class="camp" placeholder="Opcional" maxlength="200"></label>
+    <label class="flex min-w-[12rem] flex-1 flex-col"><span class="etiqueta">Afegeix-la a</span>
+      <select name="canconer" class="camp">
+        <option value="">Només a la biblioteca</option>
+        {% for k in canconers %}<option value="{{ k.id }}">{{ k.titol }}</option>{% endfor %}
+      </select></label>
+    <div class="flex gap-2">
+      <button type="button" id="tanca-nova" class="btn btn-fantasma">Cancel·la</button>
+      <button class="btn btn-primari">Crea i obre</button>
+    </div>
+  </form>
+
+  {% if error %}<p class="avis"><span aria-hidden="true">⚠</span><span>{{ error }}</span></p>{% endif %}
+  {% if enviada %}
+  <div role="status" class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-ink-900 px-4 py-3 text-[14px] text-white">
+    <span>«{{ enviada.titol or "Sense títol" }}» és a la paperera.</span>
+    <form method="post" action="{{ url_for('canco_recupera', id_canco=enviada.id) }}">
+      <input type="hidden" name="torna" value="{{ pagina_url(pagina) }}">
+      <button class="font-semibold underline underline-offset-4 hover:text-paper-300">Desfés</button>
+    </form>
+    <a href="{{ url_for('paperera') }}" class="ml-auto text-paper-300 underline underline-offset-4 hover:text-white">Obre la paperera</a>
+  </div>
+  {% endif %}
+
   {% if cancons %}
-  <div class="targeta overflow-x-auto">
-    <table class="w-full text-left text-[14px]">
-      <thead class="border-b border-paper-300 bg-paper-100 text-[12px] uppercase tracking-[0.08em] text-ink-500">
-        <tr>
-          <th class="px-4 py-2.5 font-semibold">{{ capcalera_ordenable("titol", "Cançó") }} · {{ capcalera_ordenable("autor", "Autor") }}</th>
-          <th class="hidden px-4 py-2.5 font-semibold md:table-cell">Cançoners</th>
-          <th class="px-4 py-2.5 font-semibold">Versions</th>
-          <th class="hidden px-4 py-2.5 font-semibold sm:table-cell">{{ capcalera_ordenable("data", "Modificada") }}</th>
-          <th class="px-4 py-2.5"><span class="sr-only">Accions</span></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-paper-200">
-      {% for s in cancons %}
-        <tr class="hover:bg-paper-100/60">
-          <td class="px-4 py-3">
-            <a href="{{ url_for('biblioteca_canco', id_canco=s.id) }}" class="font-medium hover:text-vermello-700">{{ s.titol or "Sense títol" }}</a>
-            {% if s.autor %}<p class="text-[13px] italic text-ink-500">{{ s.autor }}</p>{% endif %}
-          </td>
-          <td class="hidden px-4 py-3 md:table-cell">
-            <div class="flex flex-wrap gap-1">
-            {% for k in s.canconers %}<a href="{{ url_for('canconer', id_canconer=k.id, canco=s.id) }}" class="xip hover:bg-paper-300">{{ k.titol }}</a>{% else %}<span class="text-[13px] text-ink-400">Cap</span>{% endfor %}
+  <div class="flex flex-wrap items-start gap-7">
+    <section aria-label="Llistat de cançons" class="flex min-w-0 flex-[999_1_560px] flex-col gap-3">
+      <div class="targeta overflow-hidden">
+        <div class="llista-biblioteca border-b border-paper-300 bg-paper-100 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-500">
+          <span>{{ capcalera_ordenable("titol", "Cançó") }} · {{ capcalera_ordenable("autor", "Autor") }}</span>
+          <span class="hidden md:block">Cançoners</span>
+          <span>Versions</span>
+          <span class="hidden text-right sm:block">{{ capcalera_ordenable("data", "Modificada") }}</span>
+        </div>
+        <ul class="divide-y divide-paper-200">
+        {% for s in cancons %}
+          <li class="fila-biblioteca llista-biblioteca px-5 py-3" data-canco="{{ s.id }}">
+            <div class="flex min-w-0 flex-col">
+              <a href="{{ url_for('biblioteca_canco', id_canco=s.id) }}" class="truncate font-display text-[17px] font-medium hover:text-vermello-700">{{ s.titol or "Sense títol" }}</a>
+              <span class="truncate text-[13px] italic text-ink-500">{{ s.autor or "Sense autor" }}</span>
             </div>
-          </td>
-          <td class="px-4 py-3 text-[13px] text-ink-500">
-            <span class="font-mono">{{ s.n_versions }}</span>
-            {% if s.modificat %}<span class="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900" title="L'esborrany té canvis que encara no són a cap versió">canvis sense versió</span>{% endif %}
-          </td>
-          <td class="hidden px-4 py-3 text-[13px] text-ink-500 sm:table-cell" title="{{ s.actualitzada }}">{{ s.actualitzada[:10] }} {{ s.actualitzada[11:16] }}</td>
-          <td class="px-4 py-3 text-right">
-            <div class="flex items-center justify-end gap-1">
-              <a href="{{ url_for('biblioteca_canco', id_canco=s.id) }}" class="btn btn-fantasma btn-petit">Historial</a>
+            <div class="hidden flex-wrap items-center gap-1 md:flex">
+              {% for k in s.canconers %}<a href="{{ url_for('canconer', id_canconer=k.id, canco=s.id) }}" class="xip hover:bg-paper-300">{{ k.titol }}</a>{% else %}<span class="text-[13px] text-ink-400">Cap</span>{% endfor %}
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-[13px] text-ink-700">{{ s.n_versions }}</span>
+              {% if s.modificat %}<span class="h-[7px] w-[7px] rounded-full bg-amber-500" title="L'esborrany té canvis que encara no són a cap versió"><span class="sr-only">Canvis sense versió</span></span>{% endif %}
               {% if not s.canconers %}
-              <form method="post" action="{{ url_for('biblioteca_esborra', id_canco=s.id) }}" data-confirma-titol="Esborrar «{{ s.titol }}»?" data-confirma-accepta="Esborra-la per sempre"
-                    data-confirma="S'esborra de la biblioteca amb totes les seves versions. No es pot desfer.">
-                <button class="btn btn-perill btn-petit">Esborra</button>
+              <form method="post" action="{{ url_for('biblioteca_a_paperera', id_canco=s.id) }}" class="ml-auto">
+                {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+                <input type="hidden" name="ordre" value="{{ ordre }}">
+                <input type="hidden" name="pagina" value="{{ pagina }}">
+                <button class="eina h-8 w-8 hover:bg-vermello-50 hover:text-vermello-700" aria-label="Envia «{{ s.titol }}» a la paperera" data-tooltip="A la paperera">
+                  <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.7 8.5h5.6l.7-8.5"/></svg>
+                </button>
               </form>
               {% endif %}
             </div>
-          </td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+            <span class="hidden text-right font-mono text-[12px] text-ink-500 sm:block" title="{{ s.actualitzada }}">{{ s.actualitzada[8:10] }}/{{ s.actualitzada[5:7] }}/{{ s.actualitzada[2:4] }} {{ s.actualitzada[11:16] }}</span>
+          </li>
+        {% endfor %}
+        </ul>
+      </div>
+
+      <nav aria-label="Paginació" class="flex flex-wrap items-center justify-between gap-3">
+        <span class="text-[13px] text-ink-500">{{ desde }}–{{ desde + cancons|length - 1 }} de <strong class="font-semibold text-ink-900">{{ total }}</strong> cançons</span>
+        {% if pagines > 1 %}
+        <div class="flex items-center gap-1">
+          {% if pagina > 1 %}<a href="{{ pagina_url(pagina - 1) }}" class="pagina-boto" aria-label="Pàgina anterior">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg></a>{% endif %}
+          {% set estat = namespace(punts=false) %}
+          {% for n in range(1, pagines + 1) %}
+            {% if n == 1 or n == pagines or (n - pagina)|abs <= 1 %}
+              {% set estat.punts = false %}
+              <a href="{{ pagina_url(n) }}" class="pagina-boto" {% if n == pagina %}aria-current="page"{% endif %}>{{ n }}</a>
+            {% elif not estat.punts %}
+              {% set estat.punts = true %}
+              <span class="w-7 text-center text-ink-400" aria-hidden="true">…</span>
+            {% endif %}
+          {% endfor %}
+          {% if pagina < pagines %}<a href="{{ pagina_url(pagina + 1) }}" class="pagina-boto" aria-label="Pàgina següent">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></a>{% endif %}
+        </div>
+        {% endif %}
+      </nav>
+    </section>
+
+    <aside aria-label="Vista prèvia" class="sticky top-6 hidden w-[340px] flex-col gap-3 lg:flex">
+      <div class="flex items-baseline justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-500">Vista prèvia</span>
+        <span id="previa-pagines" class="font-mono text-[12px] text-ink-400"></span>
+      </div>
+      <div class="flex justify-center rounded-xl bg-taula p-6">
+        <div id="previa" class="pagina-previa" aria-live="polite"></div>
+      </div>
+      <p id="previa-titol" class="sr-only"></p>
+    </aside>
   </div>
   {% else %}
-  <p class="text-ink-500">{% if q %}No hi ha cap cançó que coincideixi amb «{{ q }}».{% else %}Encara no hi ha cap cançó.{% endif %}</p>
+  <p class="text-ink-500">{% if q %}No hi ha cap cançó que coincideixi amb «{{ q }}».{% else %}Encara no hi ha cap cançó. Crea'n una amb «Nova cançó».{% endif %}</p>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="{{ url_for('fonts_css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<script id="fonts-biblioteca" type="application/json">{{ tipografies_navegador() | tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='biblioteca.js') }}"></script>
 {% endblock %}
