@@ -106,7 +106,7 @@ def _actualitza() -> None:
     # 2. Baixada
     _passa("baixada", "Buscant l'última versió…")
     try:
-        release = requests.get(API_ULTIMA, timeout=10, headers={"Accept": "application/vnd.github+json"}).json()
+        release = requests.get(API_ULTIMA, timeout=10, headers={"Accept": "application/vnd.github+json", **SENSE_COMPRESSIO}).json()
     except (requests.RequestException, ValueError) as e:
         raise ErrorActualitzacio(f"No es pot connectar amb GitHub ({e}).") from e
     nova = str(release.get("tag_name", "")).lstrip("v")
@@ -117,17 +117,15 @@ def _actualitza() -> None:
     temporal = Path(tempfile.mkdtemp(prefix="canconers-"))
     zip_ = temporal / "Canconers.zip"
     _passa("baixada", f"Baixant Cançoners {nova}…")
-    try:
-        with requests.get(actiu["browser_download_url"], stream=True, timeout=30) as r:
-            r.raise_for_status()
-            estat["total"] = int(r.headers.get("content-length") or actiu.get("size") or 0)
-            with open(zip_, "wb") as f:
-                for tros in r.iter_content(256 * 1024):
-                    f.write(tros)
-                    estat["baixat"] += len(tros)
-    except requests.RequestException as e:
-        shutil.rmtree(temporal, ignore_errors=True)
-        raise ErrorActualitzacio(f"La baixada s'ha interromput ({e}). No s'ha tocat res.") from e
+    for intent in (1, 2):
+        try:
+            baixa(actiu["browser_download_url"], zip_, int(actiu.get("size") or 0))
+            break
+        except (requests.RequestException, OSError, ErrorActualitzacio) as e:
+            if intent == 2:
+                shutil.rmtree(temporal, ignore_errors=True)
+                raise ErrorActualitzacio(f"La baixada s'ha interromput ({e}). No s'ha tocat res.") from e
+            _passa("baixada", f"La baixada ha fallat ({e}). Es torna a provar…")
     _passa("baixada", f"Baixada completa ({estat['baixat'] / 1e6:.1f} MB)")
 
     # 3. Verificació
@@ -144,6 +142,26 @@ def _actualitza() -> None:
     # 5. Reinici
     _passa("reinici", "Tancant aquesta versió i obrint la nova…")
     estat["sortir"] = True
+
+
+# Les dades es demanen sense compressió HTTP i es desen tal com arriben: alguns proxies, antivirus o
+# xarxes marquen la resposta com a comprimida sense ser-ho, i descomprimir-la donava «Error -3 while
+# decompressing data: incorrect header check». El paquet ja és un .zip; la mida es comprova.
+SENSE_COMPRESSIO = {"Accept-Encoding": "identity"}
+
+
+def baixa(url: str, desti: Path, mida: int = 0) -> None:
+    """Baixa el paquet de l'app a `desti` (comptant el progrés) i en comprova la mida."""
+    estat["baixat"] = 0
+    with requests.get(url, stream=True, timeout=30, headers=SENSE_COMPRESSIO) as r:
+        r.raise_for_status()
+        estat["total"] = mida or int(r.headers.get("content-length") or 0)
+        with open(desti, "wb") as f:
+            for tros in r.raw.stream(256 * 1024, decode_content=False):
+                f.write(tros)
+                estat["baixat"] += len(tros)
+    if mida and desti.stat().st_size != mida:
+        raise ErrorActualitzacio(f"s'han rebut {desti.stat().st_size} bytes de {mida}")
 
 
 def verifica(zip_: Path, desti: Path) -> Path:

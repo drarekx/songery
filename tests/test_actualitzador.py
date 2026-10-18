@@ -65,3 +65,44 @@ def test_verifica_la_signatura(tmp_path):
     subprocess.run(["ditto", "-c", "-k", "--keepParent", str(retocada / "Cançoners.app"), str(zip2)], check=True)
     with pytest.raises(actualitzador.ErrorActualitzacio, match="signatura"):
         actualitzador.verifica(zip2, tmp_path / "dolenta")
+
+
+def test_baixada_ignora_una_compressio_http_falsa(tmp_path):
+    """Una xarxa que marca la resposta com a gzip sense ser-ho donava «Error -3 while decompressing
+    data: incorrect header check». Ara el paquet es desa tal com arriba i se'n comprova la mida."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    import requests
+
+    from canconer import actualitzador
+
+    contingut = b"PK\x03\x04" + bytes(range(256)) * 400
+
+    class Servidor(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Encoding", "gzip")  # mentida: no està comprimit
+            self.send_header("Content-Length", str(len(contingut)))
+            self.end_headers()
+            self.wfile.write(contingut)
+
+        def log_message(self, *a):
+            pass
+
+    servidor = HTTPServer(("127.0.0.1", 0), Servidor)
+    threading.Thread(target=servidor.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{servidor.server_port}/Canconers.zip"
+    try:
+        with pytest.raises(requests.exceptions.ContentDecodingError):  # el que passava abans
+            with requests.get(url, stream=True) as r:
+                for _ in r.iter_content(1024):
+                    pass
+        desti = tmp_path / "Canconers.zip"
+        actualitzador.baixa(url, desti, len(contingut))
+        assert desti.read_bytes() == contingut
+        with pytest.raises(actualitzador.ErrorActualitzacio):
+            actualitzador.baixa(url, tmp_path / "b.zip", len(contingut) + 1)
+    finally:
+        servidor.shutdown()
