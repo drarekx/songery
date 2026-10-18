@@ -177,3 +177,48 @@ def test_tipografies_cataleg_i_importades(client):
     assert dolent.status_code == 415
     assert client.delete(f"/api/fonts/{id_font}").status_code == 200
     assert client.get("/api/fonts").get_json()["importades"] == []
+
+
+def _canconer_amb_acords(client):
+    id_canconer = client.post("/canconer/nou", data={"titol": "Acords"}).headers["Location"].rsplit("/", 1)[-1]
+    client.post(f"/canconer/{id_canconer}/opcions", data={"titol": "Acords", "pagina_acords": "on", "instrument": "guitarra"})
+    client.post(f"/api/canconer/{id_canconer}/canco", json={"titol": "C", "text": "C   G   Am\nhola"})
+    return id_canconer
+
+
+def test_instrument_a_l_hora_d_imprimir(client):
+    """#1: l'instrument es tria a Imprimir i no canvia el cançoner desat."""
+    import re
+    from canconer import maquetacio
+    id_canconer = _canconer_amb_acords(client)
+    html = client.get(f"/canconer/{id_canconer}/imprimir?instrument=ukulele").get_data(as_text=True)
+    assert re.search(r'instrument=ukulele"[^>]*\n?[^>]*aria-pressed="true"', html)
+    assert "instrument=ukulele" in html
+    assert bd.meta_canconer(id_canconer)["instrument"] == "guitarra"  # no s'ha desat res
+
+    c = bd.carrega_canconer(id_canconer)
+    def cordes(instrument):
+        pla = maquetacio.pla({**c, "instrument": instrument})
+        svg = next(p for p in pla["pagines"] if p["tipus"] == "acords")["diagrames"][0]
+        return len([m for m in re.finditer(r'<line x1="([\d.]+)" y1="[\d.]+" x2="([\d.]+)"', svg) if m[1] == m[2]])
+    assert (cordes("guitarra"), cordes("ukulele")) == (6, 4)
+    assert pdf.empremta({**c, "instrument": "guitarra"}) != pdf.empremta({**c, "instrument": "ukulele"})
+
+
+@pytest.mark.skipif(not _navegador_local(), reason="No hi ha cap Chrome/Edge instal·lat")
+def test_pdf_per_instrument(monkeypatch):
+    """#1: cada instrument genera el seu PDF (sense barrejar la memòria cau) i el nom ho indica."""
+    monkeypatch.setattr(pdf, "GOTENBERG", "")
+    app = crea_app()
+    servidor = make_server("127.0.0.1", 0, app, threaded=True)
+    threading.Thread(target=servidor.serve_forever, daemon=True).start()
+    try:
+        client = app.test_client()
+        id_canconer = _canconer_amb_acords(client)
+        base = f"http://127.0.0.1:{servidor.server_port}/canconer/{id_canconer}/pdf/a5"
+        guitarra = requests.get(f"{base}?instrument=guitarra", timeout=120)
+        ukulele = requests.get(f"{base}?instrument=ukulele&baixa=1", timeout=120)
+        assert guitarra.content != ukulele.content
+        assert "ukulele.pdf" in ukulele.headers["Content-Disposition"]
+    finally:
+        servidor.shutdown()

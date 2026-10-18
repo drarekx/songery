@@ -69,6 +69,16 @@ def crea_app() -> Flask:
         """Llista de tipografies per al motor de dibuix (editor i pàgina d'impressió)."""
         return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts())}
 
+    def canconer_impressio(id_canconer: str) -> dict:
+        """Cançoner per imprimir. L'instrument dels diagrames es pot triar a l'hora d'imprimir
+        (?instrument=guitarra|ukulele) sense canviar el cançoner desat. Com que forma part de les
+        dades, la memòria cau del PDF distingeix cada versió."""
+        c = canconer_o_404(id_canconer)
+        instrument = request.args.get("instrument")
+        if instrument in ("guitarra", "ukulele"):
+            c = {**c, "instrument": instrument}
+        return c
+
     def url_interna(ruta: str) -> str:
         """URL amb què el motor de PDF arriba a aquesta aplicació.
 
@@ -128,8 +138,9 @@ def crea_app() -> Flask:
 
     @app.get("/canconer/<id_canconer>/imprimir")
     def canconer_imprimir(id_canconer):
-        c = canconer_o_404(id_canconer)
-        return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.empremta(c))
+        c = canconer_impressio(id_canconer)
+        return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.empremta(c),
+                               instrument=c["instrument"])
 
     @app.get("/canconer/<id_canconer>/previsualitzacio")
     def canconer_previsualitzacio(id_canconer):
@@ -157,12 +168,12 @@ def crea_app() -> Flask:
     @app.get("/canconer/<id_canconer>/imprimible")
     def canconer_imprimible(id_canconer):
         """Tot el llibret dibuixat amb el mateix motor que l'editor (per convertir-lo en PDF)."""
-        c = canconer_o_404(id_canconer)
+        c = canconer_impressio(id_canconer)
         return render_template("imprimible.html", c=c, pla=maquetacio.pla(c))
 
     @app.get("/canconer/<id_canconer>/instruccions")
     def canconer_instruccions(id_canconer):
-        c = canconer_o_404(id_canconer)
+        c = canconer_impressio(id_canconer)
         return render_template("instruccions.html", c=c, pla=maquetacio.pla(c))
 
     # ------------------------------------------------------------ API: cançoner, entrades i disseny
@@ -405,18 +416,22 @@ def crea_app() -> Flask:
     def canconer_pdf(id_canconer, tipus):
         if tipus not in TIPUS_PDF:
             abort(404)
-        c = canconer_o_404(id_canconer)
+        c = canconer_impressio(id_canconer)
+        instrument = c["instrument"]
         try:
             if tipus == "instruccions":
                 contingut = pdf.instruccions(url_interna(url_for("canconer_instruccions", id_canconer=id_canconer)))
             else:
                 total = maquetacio.pla(c)["total"]
-                url = url_interna(url_for("canconer_imprimible", id_canconer=id_canconer, v=pdf.empremta(c)))
+                url = url_interna(url_for("canconer_imprimible", id_canconer=id_canconer, v=pdf.empremta(c),
+                                          instrument=instrument))
                 contingut = pdf.genera(c, tipus, url, total)
         except pdf.GotenbergNoDisponible as e:
             return Response(str(e), status=503, mimetype="text/plain; charset=utf-8")
         pdf.neteja_cau()
-        nom = f"{_nom_fitxer(c['titol'])}-{TIPUS_PDF[tipus]}.pdf"
+        # Si hi ha pàgina de diagrames, el nom del fitxer diu per a quin instrument és.
+        sufix = f"-{instrument}" if c.get("pagina_acords") and tipus != "instruccions" else ""
+        nom = f"{_nom_fitxer(c['titol'])}-{TIPUS_PDF[tipus]}{sufix}.pdf"
         mode = "attachment" if request.args.get("baixa") else "inline"
         cau = "private, max-age=86400" if request.args.get("v") else "no-cache"
         return Response(contingut, mimetype="application/pdf",
