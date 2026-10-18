@@ -38,6 +38,9 @@ const compte = computed(() => {
 });
 
 const actiu = (clau) => store.llista.obert === clau;
+// La portada i la contraportada hi són sempre; l'índex, la pàgina d'acords i l'índex de vídeos, només si
+// estan activats (a Opcions o a Imprimir). Desactivar-los no n'esborra el disseny.
+const especials = computed(() => ESPECIALS.filter(([nom]) => store.llista.especials?.[nom] !== false));
 const pagines = (c) => (c.pagines.length > 1 ? `pàg. ${c.pagines[0]}–${c.pagines.at(-1)}` : `pàg. ${c.pagines[0]}`);
 const obre = (tipus, id) => store.crida("obre", tipus === "llibre" ? { tipus } : { tipus, id });
 
@@ -110,7 +113,7 @@ function deixa() {
     </div>
     <h2 class="titol-seccio-llista">Pàgines del llibret</h2>
     <div class="flex flex-col gap-0.5 px-2">
-      <button v-for="[nom, text] in ESPECIALS" :key="nom" type="button" class="item-llista" :aria-current="String(actiu(`especial:${nom}`))" @click="obre('especial', nom)">
+      <button v-for="[nom, text] in especials" :key="nom" type="button" class="item-llista" :aria-current="String(actiu(`especial:${nom}`))" @click="obre('especial', nom)">
         <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-300" aria-hidden="true"></span><span class="flex-1 text-left">{{ text }}</span>
       </button>
     </div>

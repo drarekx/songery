@@ -122,3 +122,27 @@ describe("cerca a la llista de cançons", () => {
     w.unmount();
   });
 });
+
+describe("pàgines especials de la llista", () => {
+  it("només mostra l'índex, els acords i l'índex de vídeos si estan activats", async () => {
+    const { mount } = await import("@vue/test-utils");
+    const { createPinia, setActivePinia } = await import("pinia");
+    const { useEditorStore } = await import("@/stores/editor.js");
+    const PanellLlista = (await import("@/components/PanellLlista.vue")).default;
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useEditorStore();
+    store.sincronitza({ llista: { obert: null, total: 4, cancons: [], especials: { index: false, acords: true, index_qr: false } } });
+    const w = mount(PanellLlista, { global: { plugins: [pinia] } });
+    const text = w.text();
+    expect(text).toContain("Portada");
+    expect(text).toContain("Contraportada");
+    expect(text).toContain("Pàgina d'acords");
+    expect(text).not.toContain("Índex de vídeos");
+    expect([...w.findAll("button")].some((b) => b.text() === "Índex")).toBe(false);
+    store.sincronitza({ llista: { ...store.llista, especials: { index: true, acords: true, index_qr: false } } });
+    await w.vm.$nextTick();
+    expect([...w.findAll("button")].some((b) => b.text() === "Índex")).toBe(true);
+    w.unmount();
+  });
+});

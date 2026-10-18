@@ -2324,6 +2324,8 @@ function pintaLlista() {
     llista: {
       obert: obert?.tipus === "llibre" ? "llibre" : obert ? `${obert.tipus}:${obert.id}` : null,
       total: PLA?.total ?? null,
+      // Pàgines especials que surten al llibret (les desactivades s'amaguen; el disseny es conserva).
+      especials: { index: K.pagina_index !== false, acords: !!K.pagina_acords, index_qr: !!K.pagina_qr },
       cancons: K.cancons.map((c) => ({
         id: c.id, titol: c.titol, autor: c.autor, tipus: c.tipus, inclosa: c.inclosa, inici: c.inici, usos: c.usos,
         versio_numero: c.versio_id ? c.versio_numero : null,

@@ -274,3 +274,21 @@ def test_l_index_es_tria_a_opcions():
     assert "Índex de cançons: no" in client.get(f"/canconer/{k}/imprimir").get_data(as_text=True)
     client.post(f"/canconer/{k}/opcions", data={"titol": "Prova", "pagina_index": "on"})
     assert bd.meta_canconer(k)["pagina_index"] is True
+
+
+def test_desactivar_l_index_no_n_esborra_el_disseny():
+    """Desactivar l'índex l'amaga del llibret; tornar-lo a activar el fa sortir amb el disseny que tenia."""
+    from canconer import basedades as bd, exemple, maquetacio
+    from canconer.web import crea_app
+
+    k = exemple.crea_exemple()
+    especials = bd.meta_canconer(k)["especials"]
+    especials["index"]["elements"].append({"id": "meu", "tipus": "text", "text": "Retoc a mà", "x": 10, "y": 10,
+                                           "w": 50, "h": 8, "estil": "text", "rotacio": 0, "opacitat": 1})
+    bd.desa_meta(k, {"especials": especials})
+    client = crea_app().test_client()
+    client.post(f"/canconer/{k}/opcions", data={"titol": "Cançoner d'exemple"})  # sense índex
+    assert "index" not in [p["tipus"] for p in maquetacio.pla(bd.carrega_canconer(k))["pagines"]]
+    client.post(f"/canconer/{k}/opcions", data={"titol": "Cançoner d'exemple", "pagina_index": "on"})
+    index = next(p for p in maquetacio.pla(bd.carrega_canconer(k))["pagines"] if p["tipus"] == "index")
+    assert any(e.get("id") == "meu" for e in index["elements"])
