@@ -620,6 +620,10 @@ llenc.addEventListener("pointermove", (ev) => {
       e.rotacio = final(o);
     });
   } else if (gest.tipus === "mou") {
+    // Si el punter és sobre una altra pàgina, els elements s'hi mouran en deixar-los anar (#6).
+    const desti = paginaSota(ev);
+    if (desti !== null && desti !== gest.p) return arrossegaAPagina(ev, desti);
+    treuFantasma(gest);
     let mx = dx;
     let my = dy;
     if (ambGuies) {
@@ -678,10 +682,102 @@ llenc.addEventListener("pointermove", (ev) => {
   pintaPropietatsPosicio();
 });
 
+// ------------------------------------------------------------ Moure elements a una altra pàgina
+
+/** Índex de la pàgina que hi ha sota el punter (o null). */
+function paginaSota(ev) {
+  for (const caixa of llenc.querySelectorAll(".pagina-editor[data-pagina]")) {
+    const r = caixa.getBoundingClientRect();
+    if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) return Number(caixa.dataset.pagina);
+  }
+  return null;
+}
+
+const caixaPagina = (p) => llenc.querySelector(`.pagina-editor[data-pagina="${p}"]`);
+
+/** Mentre s'arrossega sobre una altra pàgina: fantasma dels elements a la pàgina de destí. */
+function arrossegaAPagina(ev, desti) {
+  const g = gest;
+  const caixa = caixaPagina(desti);
+  const pt = puntMm(ev, caixa);
+  const mobils = g.originals.filter((o) => !o.bloquejat); // els bloquejats no canvien de pàgina
+  let mx = pt.x - g.inici.x;
+  let my = pt.y - g.inici.y;
+  let lx = [];
+  let ly = [];
+  if (!ev.altKey && mobils.length) {
+    const b = requadre(mobils);
+    const { xs, ys } = guies(desti, []);
+    const gx = enganxa([b.x + mx, b.x + mx + b.w / 2, b.x + mx + b.w], xs);
+    const gy = enganxa([b.y + my, b.y + my + b.h / 2, b.y + my + b.h], ys);
+    if (gx) { mx += gx.d; lx = [gx.linia]; }
+    if (gy) { my += gy.d; ly = [gy.linia]; }
+  }
+  if (g.desti?.p !== desti) {
+    treuFantasma(g);
+    // A l'origen, els elements tornen al lloc i es veuen esvaïts.
+    for (const o of g.originals) {
+      const e = elementDe(g.p, o.id);
+      Object.assign(e, { x: o.x, y: o.y });
+      const node = nodeElement(g.p, o.id);
+      if (node) { reposiciona(node, e); node.classList.add("origen-arrossegat"); }
+    }
+    caixa.classList.add("desti-arrossegament");
+    const capa = caixa.querySelector(".pagina .capa-elements");
+    g.fantasmes = mobils.map((o) => {
+      const clon = nodeElement(g.p, o.id)?.cloneNode(true);
+      if (!clon) return null;
+      clon.removeAttribute("data-id");
+      clon.classList.remove("origen-arrossegat", "ressaltat");
+      clon.classList.add("fantasma-arrossegament");
+      capa.append(clon);
+      return clon;
+    });
+    $$(".capa-seleccio").forEach((c) => c.replaceChildren());
+  }
+  mobils.forEach((o, i) => { if (g.fantasmes[i]) reposiciona(g.fantasmes[i], { ...o, x: o.x + mx, y: o.y + my }); });
+  g.desti = { p: desti, mx, my, copia: ev.altKey };
+  pintaGuies(desti, lx, ly);
+}
+
+function treuFantasma(g) {
+  if (!g?.desti) return;
+  g.fantasmes?.forEach((f) => f?.remove());
+  g.fantasmes = null;
+  caixaPagina(g.desti.p)?.classList.remove("desti-arrossegament");
+  pintaGuies(g.desti.p, [], []);
+  for (const o of g.originals) nodeElement(g.p, o.id)?.classList.remove("origen-arrossegat");
+  g.desti = null;
+}
+
+/** Passa els elements seleccionats d'una pàgina a una altra (o els hi copia), amb els desplaçaments donats. */
+function passaAPagina(origen, desti, originals, { mx = 0, my = 0, copia: copiar = false } = {}) {
+  const mobils = originals.filter((o) => !o.bloquejat);
+  if (!mobils.length || !pagines[desti]) return false;
+  const ids = mobils.map((o) => o.id);
+  const nous = copiar ? clona(mobils.map((o) => elementDe(origen, o.id)), 0) : ids.map((id) => elementDe(origen, id));
+  if (!copiar) pagines[origen].elements = pagines[origen].elements.filter((e) => !ids.includes(e.id));
+  nous.forEach((e, i) => {
+    e.x = arrodoneix(mobils[i].x + mx);
+    e.y = arrodoneix(mobils[i].y + my);
+    pagines[desti].elements.push(e);
+  });
+  seleccio = { p: desti, id: nous[0].id, ids: nous.map((e) => e.id) };
+  canviat();
+  repintaPagina(origen).then(() => repintaPagina(desti)).then(() => { pintaSeleccio(); pintaPropietats(); });
+  return true;
+}
+
 function acabaGest() {
   if (!gest) return;
   const g = gest;
   gest = null;
+  if (g.tipus === "mou" && g.desti) {
+    const { p: desti, mx, my, copia: copiar } = g.desti;
+    treuFantasma(g);
+    if (!passaAPagina(g.p, desti, g.originals, { mx, my, copia: copiar })) pintaSeleccio();
+    return;
+  }
   if (g.tipus === "rectangle") {
     llenc.querySelector(".rectangle-seleccio")?.remove();
     if (!g.mogut || !g.rect) return;
@@ -1211,6 +1307,13 @@ function accio(nom) {
     pagines[p].elements = [...llista.filter((e) => !ids.includes(e.id)), ...ordenats];
   } else if (nom === "darrere") {
     pagines[p].elements = [...ordenats, ...llista.filter((e) => !ids.includes(e.id))];
+  } else if (nom === "a-pagina-anterior" || nom === "a-pagina-seguent") {
+    const desti = p + (nom === "a-pagina-anterior" ? -1 : 1);
+    if (!passaAPagina(p, desti, ordenats.map(copia))) {
+      pilaActual().enrere.pop();
+      mostraEstat(pagines[desti] ? "Els elements bloquejats no es mouen" : "No hi ha cap pàgina en aquella direcció");
+    }
+    return;
   } else if (nom === "agrupa") {
     if (els.length < 2) return;
     const grup = nouId();
@@ -1355,6 +1458,14 @@ function omplenaEstils(select) {
 }
 
 function pintaPropietats() {
+  pintaPropietatsElement();
+  // Botons per passar la selecció a la pàgina anterior o següent (alternativa a arrossegar).
+  $$("[data-moure-pagina]").forEach((d) => d.classList.toggle("hidden", pagines.length < 2 || obert?.tipus === "llibre"));
+  $$('[data-accio="a-pagina-anterior"]').forEach((b) => (b.disabled = !editable || !seleccio || seleccio.p === 0));
+  $$('[data-accio="a-pagina-seguent"]').forEach((b) => (b.disabled = !editable || !seleccio || seleccio.p >= pagines.length - 1));
+}
+
+function pintaPropietatsElement() {
   pintaCapes();
   const multi = idsSel().length > 1;
   $("#props-multi").classList.toggle("hidden", !multi);
