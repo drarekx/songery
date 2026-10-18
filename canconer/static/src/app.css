@@ -179,6 +179,7 @@
   .pagina-buida { @apply invisible shrink-0; }
   .peu-pagina-editor { @apply text-[11px] text-ink-500; }
   .capa-seleccio { @apply pointer-events-none absolute inset-0; }
+  .guia-marges { @apply pointer-events-none absolute border border-dashed border-sky-500/70; }
   .marc-seleccio { @apply pointer-events-none absolute border-2 border-vermello-500; }
   .marc-seleccio.editant { @apply border-dashed border-vermello-500/70; }
   .marc-seleccio.multiple { @apply border-vermello-500/80; }

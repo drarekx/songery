@@ -24,7 +24,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from . import document, plantilles
+from . import document, marges as marges_, plantilles
 
 DIRECTORI = Path(os.environ.get("CANCONER_DADES", Path(__file__).resolve().parent.parent / "data"))
 
@@ -100,6 +100,11 @@ CREATE TABLE IF NOT EXISTS imatge (
     nom TEXT NOT NULL DEFAULT '',
     creada TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS marge (
+    id TEXT PRIMARY KEY,
+    dades TEXT NOT NULL,
+    creat TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_versio_canco ON versio (canco_id, numero);
 CREATE INDEX IF NOT EXISTS idx_entrada_canco ON entrada (canco_id);
 """
@@ -138,6 +143,7 @@ def connexio():
             _afegeix_columnes(con)
             _migra_json(con)
             _migra_a_pagines(con)
+            _sembra_marges(con)
         yield con
         con.commit()
     except Exception:
@@ -665,3 +671,54 @@ def _migra_json(con) -> None:
             con.execute("INSERT INTO entrada (canconer_id, canco_id, posicio, transport) VALUES (?, ?, ?, ?)",
                         (id_canconer, id_canco, posicio, int(c.get("transport") or 0)))
         fitxer.rename(desti / fitxer.name)
+
+
+# ---------------------------------------------------------------- Mestres de marges (globals)
+
+
+def _sembra_marges(con) -> None:
+    """La primera vegada, crea les mestres de marges predefinides."""
+    if con.execute("SELECT 1 FROM marge LIMIT 1").fetchone():
+        return
+    for i, m in enumerate(marges_.PREDEFINIDES):
+        con.execute("INSERT INTO marge (id, dades, creat) VALUES (?, ?, ?)",
+                    (m["id"], json.dumps(m, ensure_ascii=False), f"{ara()}.{i:03d}"))
+
+
+def llista_marges() -> list[dict]:
+    with connexio() as con:
+        files = con.execute("SELECT id, dades FROM marge ORDER BY id != ?, creat", (marges_.SENSE_MARGES,)).fetchall()
+    return [marges_.normalitza(json.loads(f["dades"]), f["id"]) for f in files]
+
+
+def carrega_marge(id_marge: str | None) -> dict:
+    """Mestra de marges; si no existeix (o no se'n tria cap), «Sense marges»."""
+    with connexio() as con:
+        fila = con.execute("SELECT dades FROM marge WHERE id = ?", (str(id_marge or ""),)).fetchone()
+    if not fila:
+        return marges_.normalitza(marges_.PREDEFINIDES[0], marges_.SENSE_MARGES)
+    return marges_.normalitza(json.loads(fila["dades"]), id_marge)
+
+
+def desa_marge(dades: dict, id_marge: str | None = None) -> str:
+    """Crea (sense id) o actualitza una mestra de marges. «Sense marges» no es pot canviar."""
+    if id_marge == marges_.SENSE_MARGES:
+        raise ValueError("La mestra «Sense marges» no es pot modificar.")
+    with connexio() as con:
+        if id_marge:
+            if not con.execute("SELECT 1 FROM marge WHERE id = ?", (_valida(id_marge),)).fetchone():
+                raise KeyError(id_marge)
+            con.execute("UPDATE marge SET dades = ? WHERE id = ?",
+                        (json.dumps(marges_.normalitza(dades, id_marge), ensure_ascii=False), id_marge))
+            return id_marge
+        id_marge = nou_id()
+        con.execute("INSERT INTO marge (id, dades, creat) VALUES (?, ?, ?)",
+                    (id_marge, json.dumps(marges_.normalitza(dades, id_marge), ensure_ascii=False), ara()))
+        return id_marge
+
+
+def esborra_marge(id_marge: str) -> None:
+    if id_marge == marges_.SENSE_MARGES:
+        raise ValueError("La mestra «Sense marges» no es pot esborrar.")
+    with connexio() as con:
+        con.execute("DELETE FROM marge WHERE id = ?", (_valida(id_marge),))

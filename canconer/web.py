@@ -9,7 +9,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import disseny, document, exemple, intercanvi, maquetacio, pdf, plantilles, tipografies
+from . import disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, tipografies
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -65,6 +65,9 @@ def crea_app() -> Flask:
     def fonts() -> list[dict]:
         return tipografies.llista(bd.tipografies_importades())
 
+    # Números a la catalana, sense decimals sobrers: 14 → «14», 2.5 → «2,5».
+    app.jinja_env.filters["num"] = lambda v, decimals=1: f"{round(float(v), decimals):g}".replace(".", ",")
+
     @app.context_processor
     def fonts_per_a_les_plantilles():
         """Llista de tipografies per al motor de dibuix (editor i pàgina d'impressió)."""
@@ -78,7 +81,8 @@ def crea_app() -> Flask:
         instrument = request.args.get("instrument")
         if instrument in ("guitarra", "ukulele"):
             c = {**c, "instrument": instrument}
-        return c
+        # Mestra de marges per a l'enquadernació: la desada al cançoner (o «Sense marges»).
+        return {**c, "marge": bd.carrega_marge(c.get("marges"))}
 
     def url_interna(ruta: str) -> str:
         """URL amb què el motor de PDF arriba a aquesta aplicació.
@@ -137,8 +141,10 @@ def crea_app() -> Flask:
     def canconer(id_canconer):
         """Editor de pàgines: és la pàgina principal de cada cançoner."""
         c = meta_o_404(id_canconer)
+        marge = bd.carrega_marge(c.get("marges"))
         return render_template("editor.html", c=c, seccio="editor",
-                               actual=request.args.get("canco"), especial=request.args.get("especial"))
+                               actual=request.args.get("canco"), especial=request.args.get("especial"),
+                               marge={**marge, "escala": marges.escala(marge)} if marges.actiu(marge) else None)
 
     @app.route("/canconer/<id_canconer>/opcions", methods=["GET", "POST"])
     def canconer_opcions(id_canconer):
@@ -164,8 +170,47 @@ def crea_app() -> Flask:
     @app.get("/canconer/<id_canconer>/imprimir")
     def canconer_imprimir(id_canconer):
         c = canconer_impressio(id_canconer)
-        return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.empremta(c),
-                               instrument=c["instrument"])
+        return render_template("imprimir.html", c=c, seccio="imprimir", pla=maquetacio.pla(c), v=pdf.clau(c),
+                               instrument=c["instrument"], marges=bd.llista_marges(),
+                               escala_marges=marges.escala(c["marge"]))
+
+    @app.post("/canconer/<id_canconer>/marges")
+    def canconer_tria_marges(id_canconer):
+        meta_o_404(id_canconer)
+        bd.desa_meta(id_canconer, {"marges": bd.carrega_marge(request.form.get("marges"))["id"]})
+        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
+                                instrument=request.form.get("instrument") or None))
+
+    def plantilla_marge() -> dict:
+        return {k: v for k, v in marges.PREDEFINIDES[1].items() if k not in ("id", "nom")}
+
+    def _torna_segura(url: str | None) -> str | None:
+        """Només s'accepten rutes internes per tornar enrere."""
+        return url if url and url.startswith("/") and not url.startswith("//") else None
+
+    @app.get("/marges")
+    def marges_llista():
+        return render_template("marges.html", marges=bd.llista_marges(), torna=_torna_segura(request.args.get("torna")),
+                               sense_marges=marges.SENSE_MARGES, posicions=marges.posicions_forats, escala=marges.escala)
+
+    @app.post("/marges")
+    def marges_nova():
+        bd.desa_marge({**plantilla_marge(), **request.form.to_dict(), "nom": request.form.get("nom") or "Marges nous"})
+        return redirect(url_for("marges_llista", torna=request.form.get("torna") or None))
+
+    @app.post("/marges/<id_marge>")
+    def marges_desa(id_marge):
+        try:
+            if request.form.get("accio") == "esborra":
+                bd.esborra_marge(id_marge)
+            else:
+                bd.desa_marge(request.form.to_dict(), id_marge)
+        except ValueError:
+            abort(400)
+        except KeyError:
+            abort(404)
+        return redirect(url_for("marges_llista", torna=request.form.get("torna") or None) + f"#marge-{id_marge}")
+
 
     @app.get("/canconer/<id_canconer>/previsualitzacio")
     def canconer_previsualitzacio(id_canconer):
@@ -506,6 +551,8 @@ def crea_app() -> Flask:
         pdf.neteja_cau()
         # Si hi ha pàgina de diagrames, el nom del fitxer diu per a quin instrument és.
         sufix = f"-{instrument}" if c.get("pagina_acords") and tipus != "instruccions" else ""
+        if marges.actiu(c["marge"]) and tipus != "instruccions":
+            sufix += f"-marges-{_nom_fitxer(c['marge']['nom'])}"
         nom = f"{_nom_fitxer(c['titol'])}-{TIPUS_PDF[tipus]}{sufix}.pdf"
         mode = "attachment" if request.args.get("baixa") else "inline"
         cau = "private, max-age=86400" if request.args.get("v") else "no-cache"

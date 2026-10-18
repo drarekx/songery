@@ -59,6 +59,28 @@
       {% endif %}
     </section>
 
+    {# Mestra de marges per a l'enquadernació (globals; el cançoner recorda la triada) #}
+    <section class="targeta flex flex-col gap-3 p-4">
+      <form method="post" action="{{ url_for('canconer_tria_marges', id_canconer=c.id) }}" class="flex items-center justify-between gap-3">
+        <input type="hidden" name="instrument" value="{{ request.args.get('instrument', '') }}">
+        <label for="tria-marges" class="text-[14px] font-semibold">Marges d'enquadernació</label>
+        <select id="tria-marges" name="marges" class="camp w-auto py-1.5 text-[14px]" onchange="this.form.requestSubmit()">
+          {% for m in marges %}<option value="{{ m.id }}" {{ "selected" if m.id == c.marge.id }}>{{ m.nom }}</option>{% endfor %}
+        </select>
+        <noscript><button class="btn btn-petit">Aplica</button></noscript>
+      </form>
+      <p class="text-[13px] leading-snug text-ink-500">
+        {% if escala_marges < 1 or c.marge.forats %}
+        {{ c.marge.interior | num }} mm al plec{% if c.marge.exterior or c.marge.superior or c.marge.inferior %}, {{ c.marge.exterior | num }} a fora, {{ c.marge.superior | num }} a dalt i {{ c.marge.inferior | num }} a baix{% endif %}.
+        Les pàgines s'imprimeixen al <strong class="text-ink-900">{{ (escala_marges * 100) | num }} %</strong> perquè hi càpiguen. A l'editor, una línia blava discontínua marca la zona de seguretat.
+        {% if c.marge.forats %}Porta marques per a {{ c.marge.forats }} forats. Per a anelles, imprimeix el llibret A5 a doble cara (o els fulls A4 i talla'ls pel mig).{% endif %}
+        {% else %}
+        El PDF surt exactament com el dissenyes, a vora plena.
+        {% endif %}
+        <a class="text-vermello-600 underline" href="{{ url_for('marges_llista', torna=request.full_path) }}">Gestiona les mestres de marges</a>
+      </p>
+    </section>
+
     <p id="error-pdf" class="avis hidden"></p>
 
     <section class="flex flex-col gap-3">

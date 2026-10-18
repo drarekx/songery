@@ -246,6 +246,21 @@ function opcionsDibuix() {
   };
 }
 
+/** Zona de seguretat de la mestra de marges triada a «Imprimir» (no s'imprimeix). */
+function guiaMarges(numero) {
+  const m = dades.marge;
+  if (!m) return "";
+  const esquerra = numero % 2 === 0; // a l'esquerra, el plec és a la dreta
+  const guia = el("div", { classe: "guia-marges", atributs: {
+    title: `Marges «${m.nom}»: en imprimir, la pàgina es redueix al ${Math.round(m.escala * 1000) / 10} % per deixar ${m.interior} mm al plec. Deixa el contingut important dins de la línia.` } });
+  const mm = (v) => `${v * PX_MM * escala}px`;
+  Object.assign(guia.style, {
+    top: mm(m.superior), bottom: mm(m.inferior),
+    left: mm(esquerra ? m.exterior : m.interior), right: mm(esquerra ? m.interior : m.exterior),
+  });
+  return guia;
+}
+
 /** Embolcall d'una pàgina: la pàgina real (en mm, escalada) + la capa de selecció (en píxels). */
 function embolcall(i, numero) {
   const caixa = el("div", { classe: "pagina-editor", atributs: { "data-pagina": i } });
@@ -255,7 +270,7 @@ function embolcall(i, numero) {
   pagina.style.transform = `scale(${escala})`;
   pagina.style.transformOrigin = "0 0";
   const capa = el("div", { classe: "capa-seleccio" });
-  caixa.append(pagina, capa);
+  caixa.append(pagina, guiaMarges(numero), capa);
   const peu = el("div", { classe: "peu-pagina-editor", text: obert.tipus === "mestra" ? (numero % 2 === 0 ? "Pàgines parells (esquerra)" : "Pàgines senars (dreta)") : `Pàgina ${numero}` });
   const columna = el("div", { classe: "flex flex-col items-center gap-2" });
   columna.append(caixa, peu);

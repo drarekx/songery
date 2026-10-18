@@ -2,9 +2,11 @@
 "use strict";
 
 // Confirmació abans d'accions que no es poden desfer.
-document.querySelectorAll("form[data-confirma]").forEach((form) => {
+// El missatge pot ser del formulari o només del botó que l'envia.
+document.querySelectorAll("form").forEach((form) => {
   form.addEventListener("submit", (e) => {
-    if (!confirm(form.dataset.confirma)) e.preventDefault();
+    const missatge = e.submitter?.dataset.confirma ?? form.dataset.confirma;
+    if (missatge && !confirm(missatge)) e.preventDefault();
   });
 });
 

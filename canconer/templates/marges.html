@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block titol %}Marges d'enquadernació{% endblock %}
+
+{# Esquema d'una doble pàgina A5 amb els marges (zona ratllada), la pàgina escalada i els forats #}
+{% macro esquema(m) %}
+{% set e = escala(m) %}
+<svg viewBox="-4 -4 304 218" class="h-auto w-full max-w-[15rem]" role="img" aria-label="Esquema de la doble pàgina amb els marges">
+  <defs>
+    <pattern id="ratlles-{{ m.id }}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="4" stroke="#e8b4ae" stroke-width="2"/>
+    </pattern>
+  </defs>
+  {% for esquerra in [true, false] %}
+  {% set x0 = 0 if esquerra else 148 %}
+  {% set zona_x = x0 + (m.exterior if esquerra else m.interior) %}
+  {% set lliure_w = 148 - m.interior - m.exterior %}
+  {% set lliure_h = 210 - m.superior - m.inferior %}
+  <rect x="{{ x0 }}" y="0" width="148" height="210" fill="url(#ratlles-{{ m.id }})" stroke="#c9c1b1" stroke-width="0.8"/>
+  <rect x="{{ zona_x + (lliure_w - 148 * e) / 2 }}" y="{{ m.superior + (lliure_h - 210 * e) / 2 }}" width="{{ 148 * e }}" height="{{ 210 * e }}" fill="#fff" stroke="#9a9283" stroke-width="0.6"/>
+  {% for y in posicions(m) %}
+  <circle cx="{{ (148 - m.distancia) if esquerra else (148 + m.distancia) }}" cy="{{ y }}" r="{{ m.diametre / 2 }}" fill="#fff" stroke="#6b6458" stroke-width="0.8"/>
+  {% endfor %}
+  {% endfor %}
+  <line x1="148" y1="-4" x2="148" y2="214" stroke="#b3261e" stroke-width="0.8" stroke-dasharray="3 2"/>
+</svg>
+<p class="text-[12px] text-ink-500">{% if e < 1 %}Pàgines al {{ (e * 100) | num }} % de la mida.{% else %}Sense reducció.{% endif %}</p>
+{% endmacro %}
+
+{% macro camps(m, editable) %}
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  {% for clau, text in [("interior", "Interior (plec)"), ("exterior", "Exterior"), ("superior", "Superior"), ("inferior", "Inferior")] %}
+  <label><span class="etiqueta">{{ text }}</span>
+    <span class="relative block"><input name="{{ clau }}" type="number" min="0" max="40" step="0.5" value="{{ m[clau] }}" class="camp pr-9 tabular-nums" {{ "disabled" if not editable }}>
+    <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-ink-400">mm</span></span></label>
+  {% endfor %}
+</div>
+<fieldset class="grid grid-cols-2 gap-3 rounded-md border border-paper-300 p-3 sm:grid-cols-4" {{ "disabled" if not editable }}>
+  <legend class="px-1 text-[13px] font-semibold text-ink-700">Forats per a anelles</legend>
+  <label><span class="etiqueta">Nombre</span><input name="forats" type="number" min="0" max="4" value="{{ m.forats }}" class="camp tabular-nums"></label>
+  <label><span class="etiqueta">Diàmetre (mm)</span><input name="diametre" type="number" min="1" max="12" step="0.5" value="{{ m.diametre }}" class="camp tabular-nums"></label>
+  <label><span class="etiqueta">Des del plec (mm)</span><input name="distancia" type="number" min="2" max="40" step="0.5" value="{{ m.distancia }}" class="camp tabular-nums"></label>
+  <label><span class="etiqueta">Separació (mm)</span><input name="separacio" type="number" min="10" max="190" step="1" value="{{ m.separacio }}" class="camp tabular-nums"></label>
+</fieldset>
+{% endmacro %}
+
+{% block contingut %}
+<div class="flex flex-col gap-8">
+  {% if torna %}<a href="{{ torna }}" class="text-[13px] text-ink-500 hover:text-ink-900">← Torna a imprimir</a>{% endif %}
+  <div>
+    <h1 class="font-display text-4xl font-medium tracking-tight">Marges d'enquadernació</h1>
+    <p class="mt-1 max-w-2xl text-ink-500">Espai que es deixa a les vores de cada pàgina A5 per cosir, encolar o posar anelles. El marge interior va sempre al costat del plec. En imprimir, les pàgines es redueixen (sense deformar-les) perquè hi càpiguen. Aquestes mestres serveixen per a tots els cançoners: cadascun tria la seva a «Imprimir».</p>
+  </div>
+
+  <ul class="flex flex-col gap-4">
+    {% for m in marges %}
+    {% set editable = m.id != sense_marges %}
+    <li id="marge-{{ m.id }}" class="targeta grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_15rem]">
+      <form method="post" action="{{ url_for('marges_desa', id_marge=m.id) }}" class="flex flex-col gap-4">
+        <input type="hidden" name="torna" value="{{ torna or '' }}">
+        <label><span class="etiqueta">Nom</span><input name="nom" value="{{ m.nom }}" class="camp font-medium" maxlength="60" {{ "disabled" if not editable }}></label>
+        {{ camps(m, editable) }}
+        {% if editable %}
+        <div class="flex gap-2">
+          <button class="btn btn-primari btn-petit" name="accio" value="desa">Desa</button>
+          <button class="btn btn-perill btn-petit" name="accio" value="esborra" formnovalidate
+                  data-confirma="Vols esborrar la mestra de marges «{{ m.nom }}»? Els cançoners que la facin servir passaran a «Sense marges».">Esborra</button>
+        </div>
+        {% else %}
+        <p class="text-[13px] text-ink-500">El PDF surt exactament com el dissenyes. No es pot modificar.</p>
+        {% endif %}
+      </form>
+      <div class="flex flex-col items-center gap-1">{{ esquema(m) }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <form method="post" action="{{ url_for('marges_nova') }}" class="flex flex-wrap items-end gap-2">
+    <input type="hidden" name="torna" value="{{ torna or '' }}">
+    <label class="w-64"><span class="etiqueta">Mestra de marges nova</span><input name="nom" class="camp" placeholder="Per exemple: Espiral" maxlength="60"></label>
+    <button class="btn">Crea-la</button>
+  </form>
+</div>
+{% endblock %}

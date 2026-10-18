@@ -18,7 +18,7 @@ from pathlib import Path
 import requests
 from pypdf import PdfReader
 
-from . import basedades, imposicio, motor_pdf
+from . import basedades, imposicio, marges, motor_pdf
 
 GOTENBERG = os.environ.get("GOTENBERG_URL", "").rstrip("/")
 # Adreça amb què Gotenberg (dins de Docker) arriba a aquesta aplicació.
@@ -43,9 +43,17 @@ def empremta(canconer: dict) -> str:
     """Hash del contingut i del codi de dibuix: si no canvia res, es reaprofiten els PDF."""
     # Les tipografies importades també compten: si se n'importa una que ja es feia servir, el PDF canvia.
     fonts = basedades.tipografies_importades()
+    # La mestra de marges no canvia el dibuix de les pàgines (s'aplica després): no compta aquí.
+    canconer = {k: v for k, v in canconer.items() if k != "marge"}
     dades = json.dumps([canconer, fonts], sort_keys=True, ensure_ascii=False).encode()
     codi = b"".join(f.read_bytes() for f in (_ESTATIC / "pagines.css", _ESTATIC / "dist" / "canconer.js") if f.exists())
     return hashlib.sha256(dades + codi).hexdigest()[:20]
+
+
+def clau(canconer: dict) -> str:
+    """Empremta dels PDF finals: la del contingut més la de la mestra de marges, si n'hi ha."""
+    marge = canconer.get("marge")
+    return empremta(canconer) + (f"-m{marges.empremta(marge)}" if marges.actiu(marge) else "")
 
 
 def _directori_cau() -> Path:
@@ -108,11 +116,22 @@ def genera_a5(canconer: dict, url_imprimible: str, total_esperat: int | None = N
 
 
 def genera(canconer: dict, tipus: str, url_imprimible: str, total_esperat: int | None = None) -> bytes:
-    """tipus: a5, a4, a4-vora-llarga, davant, darrere, darrere-girat, darrere-invers."""
+    """tipus: a5, a4, a4-vora-llarga, davant, darrere, darrere-girat, darrere-invers.
+
+    Si el cançoner porta una mestra de marges ("marge"), s'aplica al PDF A5 abans d'imposar-lo.
+    """
     dades_a5 = genera_a5(canconer, url_imprimible, total_esperat)
+    marge = canconer.get("marge")
+    if marges.actiu(marge):
+        cami_a5 = _directori_cau() / f"{clau(canconer)}-a5.pdf"
+        if cami_a5.exists():
+            dades_a5 = cami_a5.read_bytes()
+        else:
+            dades_a5 = marges.aplica(dades_a5, marge)
+            _escriu(cami_a5, dades_a5)
     if tipus == "a5":
         return dades_a5
-    cami = _directori_cau() / f"{empremta(canconer)}-{tipus}.pdf"
+    cami = _directori_cau() / f"{clau(canconer)}-{tipus}.pdf"
     if cami.exists():
         return cami.read_bytes()
     opcions = {"a4": {}, "a4-vora-llarga": {"gira_darrere": True},
