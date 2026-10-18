@@ -39,7 +39,11 @@ mv "$tmp/$APP" "$desti/"
 xattr -dr com.apple.quarantine "$desti/$APP" 2>/dev/null || true
 negreta "Instal·lat a $desti/$APP"
 
-if ! ls "/Applications/Google Chrome.app" "/Applications/Microsoft Edge.app" "/Applications/Brave Browser.app" >/dev/null 2>&1; then
+navegador=0
+for app in "Google Chrome" "Microsoft Edge" "Brave Browser" "Chromium"; do
+    [[ -d "/Applications/$app.app" || -d "$HOME/Applications/$app.app" ]] && navegador=1
+done
+if (( ! navegador )); then
     echo
     echo "Per generar els PDF, Cançoners fa servir Chrome, Edge o Brave. Com que no n'hi ha cap,"
     echo "la primera vegada baixarà el motor de PDF de Google (uns 90 MB)."
