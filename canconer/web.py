@@ -16,7 +16,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, send_from_directory, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, cmyk, copies, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, copies, diagrames, disseny, document, exemple, imposicio, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -595,7 +595,9 @@ def crea_app() -> Flask:
     @app.get("/canconer/<id_canconer>/instruccions")
     def canconer_instruccions(id_canconer):
         c = canconer_impressio(id_canconer)
-        return render_template("instruccions.html", c=c, pla=maquetacio.pla(c))
+        pla = maquetacio.pla(c)
+        cares = (imposicio.ordre_talla_i_apila if pla["fulls_solts"] else imposicio.ordre_imposicio)(pla["total"])
+        return render_template("instruccions.html", c=c, pla=pla, cares=cares)
 
     # ------------------------------------------------------------ API: cançoner, entrades i disseny
 

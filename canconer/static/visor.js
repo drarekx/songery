@@ -17,6 +17,18 @@ export function caresImposicio(n) {
   return cares;
 }
 
+/** Cares per a fulls solts (anelles): talla i apila, com ordre_talla_i_apila d'imposicio.py (0: en blanc). */
+export function caresTallaIApila(n) {
+  const fulls = Math.ceil(n / 4);
+  const pagina = (p) => (p <= n ? p : 0);
+  const cares = [];
+  for (let i = 0; i < fulls; i++) {
+    cares.push({ full: i + 1, costat: "davant", esquerra: pagina(1 + 2 * i), dreta: pagina(1 + 2 * (fulls + i)) });
+    cares.push({ full: i + 1, costat: "darrere", esquerra: pagina(2 + 2 * (fulls + i)), dreta: pagina(2 + 2 * i) });
+  }
+  return cares;
+}
+
 export class Visor {
   /**
    * @param {HTMLElement} contenidor element on es dibuixen les pàgines
@@ -26,6 +38,7 @@ export class Visor {
    *   titols: funció (numPagina) => text per a la llegenda d'una doble pàgina
    *   clicPagina: funció (numPagina) cridada en clicar una pàgina A5
    *   canviZoom: funció (zoom) cridada quan canvia el zoom
+   *   fullsSolts: nombre de pàgines A5 si els fulls A4 van per tallar i apilar (anelles); si no, null
    *   marges: marges d'enquadernació en mm ({interior, exterior, superior, inferior}) per dibuixar-ne
    *           les guies (només a la pantalla; es mostren amb la classe .amb-marges)
    */
@@ -37,6 +50,7 @@ export class Visor {
     this.clicPagina = opcions.clicPagina || null;
     this.canviZoom = opcions.canviZoom || (() => {});
     this.marges = opcions.marges || null;
+    this.fullsSolts = opcions.fullsSolts || null;
     this.zoom = 1;
     this.document = null;
     this.url = null;
@@ -172,8 +186,10 @@ export class Visor {
         pagina.append(llenc);
         if (this.mode === "dobles") pagina.append(capaOrdre([{ numero: n, text: `pàgina ${n}` }]));
         if (this.marges) {
-          // En una doble A5, la pàgina n; en un full A4, les dues A5 de la cara (parell a l'esquerra).
-          const a5 = this.mode === "dobles" ? [[n % 2 === 0, 0, 1]] : [[true, 0, 0.5], [false, 0.5, 0.5]];
+          // En una doble A5, la pàgina n; en un full A4, les dues A5 de la cara. Una pàgina parella té el
+          // plec (marge interior) a la dreta; les mitges cares en blanc (fulls solts) no en porten.
+          const a5 = this.mode === "dobles" ? [[n % 2 === 0, 0, 1]]
+            : [[grup.cara.esquerra, 0], [grup.cara.dreta, 0.5]].filter(([p]) => p).map(([p, x0]) => [p % 2 === 0, x0, 0.5]);
           for (const [esquerra, x0, ample] of a5) pagina.append(guiaMarges(this.marges, esquerra, x0, ample));
         }
         fulls.append(pagina);
@@ -182,8 +198,8 @@ export class Visor {
       if (grup.cara) {
         const c = grup.cara;
         const capa = capaOrdre([
-          { numero: c.esquerra, text: "esquerra" },
-          { numero: c.dreta, text: "dreta" },
+          { numero: c.esquerra || "–", text: c.esquerra ? "esquerra" : "en blanc" },
+          { numero: c.dreta || "–", text: c.dreta ? "dreta" : "en blanc" },
         ], `Full ${c.full} · ${c.costat === "davant" ? "cara davantera" : "cara del darrere"}`);
         capa.classList.add("ordre-full");
         fulls.append(capa);
@@ -272,12 +288,13 @@ export class Visor {
 
   _fulls() {
     // El PDF A4 té les cares en ordre: davant full 1, darrere full 1, davant full 2...
-    const cares = caresImposicio(this.total * 2);
+    const cares = this.fullsSolts ? caresTallaIApila(this.fullsSolts) : caresImposicio(this.total * 2);
+    const num = (n) => n || "–";
     return cares.map((c, i) => ({
       pagines: [i + 1],
       cara: c,
       llegenda: `Full ${c.full} · ${c.costat === "davant" ? "cara davantera" : "cara del darrere"}: ` +
-        `<strong>${c.esquerra} | ${c.dreta}</strong>`,
+        `<strong>${num(c.esquerra)} | ${num(c.dreta)}</strong>`,
     }));
   }
 

@@ -69,6 +69,12 @@ def actiu(marge: dict | None) -> bool:
     return bool(marge) and marge.get("forats", 0) > 0
 
 
+def fulls_solts(marge: dict | None) -> bool:
+    """Enquadernació amb fulls solts (anelles, volanderes): la mestra té forats. Llavors el llibret no
+    es plega, i n'hi ha prou que tingui un nombre parell de pàgines (no cal múltiple de 4)."""
+    return actiu(marge)
+
+
 def empremta(marge: dict) -> str:
     """Hash de la mestra (sense el nom): per a la memòria cau dels PDF."""
     dades = {k: v for k, v in normalitza(marge).items() if k not in ("id", "nom")}

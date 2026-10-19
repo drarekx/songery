@@ -7,7 +7,8 @@ seqüència i es resolen les dades que cada pàgina necessita per dibuixar-se:
                al principi
   ...          cançons i pàgines lliures en ordre. Una cançó comença a l'esquerra (pàgina parella),
                amb una pàgina en blanc al davant si cal, tret que s'hagi marcat «on toqui».
-  ...          pàgines en blanc fins arribar a un múltiple de 4
+  ...          pàgines en blanc fins arribar a un múltiple de 4 (o de 2 si els fulls van solts, amb
+               anelles: vegeu marges.fulls_solts)
   ...          pàgina d'acords i índex de QR, si van al final
   N            contraportada
 """
@@ -17,7 +18,17 @@ from __future__ import annotations
 import copy
 import math
 
-from . import colors, diagrames, document, parser, plantilles, videos
+from . import colors, diagrames, document, marges, parser, plantilles, videos
+
+
+def marge_de(canconer: dict) -> dict | None:
+    """Mestra de marges del cançoner: la que ja porta (canconer["marge"]) o la desada a la base de dades."""
+    if "marge" in canconer:
+        return canconer["marge"]
+    if not canconer.get("marges"):
+        return None
+    from . import basedades  # aquí per evitar una importació circular
+    return basedades.carrega_marge(canconer["marges"])
 
 
 def _transporta_pagines(pagines: list[dict], semitons: int) -> list[dict]:
@@ -167,7 +178,8 @@ def pla(canconer: dict) -> dict:
 
     finals = (1 + (pagines_acords if canconer.get("posicio_acords") == "final" else 0)
               + (pagines_qr if canconer.get("posicio_qr") != "inici" else 0))
-    while (len(seq) + finals) % 4:
+    solts = marges.fulls_solts(marge_de(canconer))
+    while (len(seq) + finals) % (2 if solts else 4):
         afegeix("blanc", {"mestra": "estandard", "elements": []})
     if canconer.get("posicio_acords") == "final":
         afegeix_acords()
@@ -194,7 +206,8 @@ def pla(canconer: dict) -> dict:
     return {
         "pagines": seq,
         "total": len(seq),
-        "fulls": len(seq) // 4,
+        "fulls": math.ceil(len(seq) / 4),
+        "fulls_solts": solts,
         "cancons": cancons,
         "estils": canconer["estils"],
         "instrument": instrument,

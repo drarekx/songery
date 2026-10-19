@@ -76,7 +76,11 @@ td.p { font-family: "JetBrains Mono", monospace; }
   </li>
   <li class="pas">
     <span class="num">6</span>
+    {% if pla.fulls_solts %}
+    <div class="text"><b>Talla i apila</b>Talla els fulls pel mig i posa la pila de les meitats esquerres a sobre de la de les dretes, sense girar-les: les pàgines queden en ordre. Fes-hi els forats on marquen les creuetes.</div>
+    {% else %}
     <div class="text"><b>Plega i cus</b>Posa els fulls un dins de l'altre en ordre (el full 1 a fora), doblega'ls pel mig i cus-los pel plec. Cada cançó començarà a la pàgina de l'esquerra.</div>
+    {% endif %}
     <div class="dibuix"><svg viewBox="0 0 120 70"><path d="M60 10 18 18v44l42-8 42 8V18z" fill="#fff" stroke="#141414"/><path d="M60 10v44" stroke="#141414"/><path d="M60 18v4m0 6v4m0 6v4m0 6v4" stroke="#c4321f" stroke-width="2.5"/></svg></div>
     <span class="casella"></span>
   </li>
@@ -85,8 +89,8 @@ td.p { font-family: "JetBrains Mono", monospace; }
 <table>
   <thead><tr><th>Full</th><th>Cara davantera (esquerra | dreta)</th><th>Cara del darrere (esquerra | dreta)</th></tr></thead>
   <tbody>
-  {% for i in range(pla.fulls) %}
-  <tr><td>{{ i + 1 }}</td><td class="p">{{ pla.total - 2 * i }} | {{ 1 + 2 * i }}</td><td class="p">{{ 2 + 2 * i }} | {{ pla.total - 1 - 2 * i }}</td></tr>
+  {% for davant, darrere in cares | batch(2) %}
+  <tr><td>{{ davant.full }}</td><td class="p">{{ davant.esquerra or "–" }} | {{ davant.dreta or "–" }}</td><td class="p">{{ darrere.esquerra or "–" }} | {{ darrere.dreta or "–" }}</td></tr>
   {% endfor %}
   </tbody>
 </table>

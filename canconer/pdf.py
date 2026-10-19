@@ -18,7 +18,7 @@ from pathlib import Path
 import requests
 from pypdf import PdfReader
 
-from . import basedades, cmyk, imposicio, marges, motor_pdf
+from . import basedades, cmyk, imposicio, maquetacio, marges, motor_pdf
 
 GOTENBERG = os.environ.get("GOTENBERG_URL", "").rstrip("/")
 # Adreça amb què Gotenberg (dins de Docker) arriba a aquesta aplicació.
@@ -44,7 +44,9 @@ def empremta(canconer: dict) -> str:
     # Les tipografies importades també compten: si se n'importa una que ja es feia servir, el PDF canvia.
     fonts = basedades.tipografies_importades()
     # La mestra de marges no canvia el dibuix de les pàgines (s'aplica després): no compta aquí.
-    canconer = {k: v for k, v in canconer.items() if k != "marge"}
+    # Però sí si els fulls van solts (anelles): llavors el llibret pot tenir menys pàgines en blanc.
+    canconer = {**{k: v for k, v in canconer.items() if k != "marge"},
+                "fulls_solts": marges.fulls_solts(maquetacio.marge_de(canconer))}
     dades = json.dumps([canconer, fonts], sort_keys=True, ensure_ascii=False).encode()
     # Tot el codi del motor de dibuix: canconer.js i els trossos que comparteix amb altres entrades.
     fitxers = [_ESTATIC / "pagines.css", _ESTATIC / "dist" / "canconer.js", *sorted((_ESTATIC / "dist" / "trossos").glob("*.js"))]
@@ -158,7 +160,7 @@ def genera(canconer: dict, tipus: str, url_imprimible: str, total_esperat: int |
                "darrere-invers": {"costat": "darrere", "invers": True}}
     if tipus_base not in opcions:
         raise ValueError(tipus)
-    dades = imposicio.imposa(dades_a5, **opcions[tipus_base])
+    dades = imposicio.imposa(dades_a5, **opcions[tipus_base], fulls_solts=marges.fulls_solts(marge))
     _escriu(cami, dades)
     return dades
 

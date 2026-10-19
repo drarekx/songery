@@ -102,3 +102,28 @@ def test_amb_dades_de_la_base_de_dades():
     k = basedades.carrega_canconer(exemple.crea_exemple())
     pla = maquetacio.pla(k)
     assert pla["total"] % 4 == 0 and len(pla["cancons"]) == 4
+
+
+ANELLES = {"id": "anelles", "nom": "Anelles", "interior": 14, "exterior": 3, "superior": 3, "inferior": 3,
+           "forats": 2, "diametre": 6, "distancia": 7, "separacio": 80}
+
+
+@pytest.mark.parametrize("n", range(0, 7))
+def test_amb_anelles_n_hi_ha_prou_amb_un_nombre_parell(n):
+    cancons = [_canco(i, pagines=1 + i % 3) for i in range(n)]
+    plegat = maquetacio.pla(_canconer(copy.deepcopy(cancons)))
+    solts = maquetacio.pla({**_canconer(cancons), "marge": ANELLES})
+    assert solts["fulls_solts"] and not plegat["fulls_solts"]
+    assert solts["total"] % 2 == 0 and solts["total"] <= plegat["total"]
+    assert plegat["total"] - solts["total"] in (0, 2)
+    assert solts["fulls"] == -(-solts["total"] // 4)
+    assert all(c["pagina_inici"] % 2 == 0 for c in solts["cancons"])
+    assert tipus(solts)[-1] == "contraportada"
+
+
+def test_amb_anelles_5_pagines_en_fan_6_i_no_8():
+    # Portada, una cançó de 2 pàgines, pàgina d'acords al final i contraportada: 5 pàgines.
+    k = _canconer([_canco(0)], pagina_acords=True, posicio_acords="final", pagina_index=False)
+    assert maquetacio.pla(k)["total"] == 8
+    pla = maquetacio.pla({**k, "marge": ANELLES})
+    assert pla["total"] == 6 and tipus(pla).count("blanc") == 1

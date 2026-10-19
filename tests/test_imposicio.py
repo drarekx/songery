@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 from pypdf import PdfReader, PdfWriter
 
-from canconer.imposicio import A4_ALT, A4_AMPLE, A5_ALT, A5_AMPLE, imposa, ordre_imposicio, parelles
+from canconer.imposicio import A4_ALT, A4_AMPLE, A5_ALT, A5_AMPLE, imposa, ordre_imposicio, ordre_talla_i_apila, parelles
 
 
 def test_n4():
@@ -69,3 +69,41 @@ def test_vora_llarga_gira_nomes_les_cares_del_darrere():
     girades = [bool(re.search(rb"(^|\s)-1 [-\d.e]+ [-\d.e]+ -1 ", p.get_contents().get_data())) for p in lector.pages]
     assert girades == [False, True, False, True]  # davant, darrere, davant, darrere
     assert all(round(float(p.mediabox.width)) == round(A4_AMPLE) for p in lector.pages)
+
+
+# ---------------------------------------------------------------- Talla i apila (fulls solts, anelles)
+
+def _talla_i_apila(n: int) -> list[int]:
+    """Simula el que fa la persona: talla cada full pel mig i posa la pila de l'esquerra sobre la de la
+    dreta. Torna les pàgines de cada fulla A5 en ordre (davant, darrere), amb 0 si és en blanc."""
+    cares = ordre_talla_i_apila(n)
+    davant = cares[0::2]
+    darrere = cares[1::2]
+    # Girant per la vora curta, darrere de la meitat esquerra hi ha la meitat dreta de la cara del darrere.
+    esquerres = [(d.esquerra, r.dreta) for d, r in zip(davant, darrere)]
+    dretes = [(d.dreta, r.esquerra) for d, r in zip(davant, darrere)]
+    return [p for fulla in esquerres + dretes for p in fulla]
+
+
+@pytest.mark.parametrize("n", [2, 4, 6, 8, 10, 14, 40])
+def test_talla_i_apila_queda_en_ordre(n):
+    pagines = _talla_i_apila(n)
+    assert [p for p in pagines if p] == list(range(1, n + 1))
+    assert all(p == 0 for p in pagines[n:])  # el que sobra, al final i en blanc
+    assert len(ordre_talla_i_apila(n)) == 2 * -(-n // 4)
+
+
+def test_talla_i_apila_n6():
+    assert [(c.esquerra, c.dreta) for c in ordre_talla_i_apila(6)] == [(1, 5), (6, 2), (3, 0), (0, 4)]
+
+
+@pytest.mark.parametrize("n", [0, 3, 7])
+def test_talla_i_apila_rebutja_un_nombre_senar(n):
+    with pytest.raises(ValueError):
+        ordre_talla_i_apila(n)
+
+
+def test_pdf_talla_i_apila_amb_mitges_cares_en_blanc():
+    lector = PdfReader(BytesIO(imposa(_pdf_a5(6), fulls_solts=True)))
+    assert len(lector.pages) == 4
+    assert float(lector.pages[0].mediabox.width) == pytest.approx(A4_AMPLE, abs=0.5)

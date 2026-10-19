@@ -28,7 +28,7 @@
   <div class="flex flex-col gap-6">
     <div>
       <h1 class="font-display text-3xl font-medium tracking-tight sm:text-4xl">Imprimir</h1>
-      <p class="mt-1 text-ink-500">Fulls A4 en horitzontal, a doble cara, per plegar i cosir pel mig.</p>
+      <p class="mt-1 text-ink-500">{% if pla.fulls_solts %}Fulls A4 en horitzontal, a doble cara, per tallar pel mig i enquadernar amb anelles.{% else %}Fulls A4 en horitzontal, a doble cara, per plegar i cosir pel mig.{% endif %}</p>
     </div>
 
     <dl class="grid grid-cols-3 divide-x divide-paper-300 rounded-lg border border-paper-300 bg-paper-50">
@@ -41,8 +41,10 @@
     </dl>
     {% set blancs = pla.pagines | selectattr("tipus", "equalto", "blanc") | list | length %}
     {% if blancs %}
-    <p class="-mt-3 text-[13px] leading-snug text-ink-500">Inclou {{ blancs }} pàgin{{ "es" if blancs != 1 else "a" }} en blanc: cada full plegat
-      fa 4 pàgines, així que el llibret ha de tenir un múltiple de 4. Les pots omplir des de l'editor (vista de tot el llibret).</p>
+    <p class="-mt-3 text-[13px] leading-snug text-ink-500">Inclou {{ blancs }} pàgin{{ "es" if blancs != 1 else "a" }} en blanc:
+      {% if pla.fulls_solts %}amb anelles cada full té 2 pàgines, així que el llibret ha de tenir un nombre parell (i les cançons comencen a l'esquerra).
+      {% else %}cada full plegat fa 4 pàgines, així que el llibret ha de tenir un múltiple de 4. Amb anelles (marges a Opcions) n'hi caldrien menys.
+      {% endif %}Les pots omplir des de l'editor (vista de tot el llibret).</p>
     {% endif %}
 
     {# Instrument dels diagrames: es tria aquí, sense canviar el cançoner (el de les Opcions és el de defecte) #}
@@ -121,7 +123,7 @@
         <p class="leading-snug text-ink-500">Els colors que hagis triat en CMYK a l'editor surten amb el valor exacte. La resta (colors en RGB i imatges) es converteix a CMYK. Les marques dels forats d'enquadernació, si n'hi ha, també.</p>
         {% if gs %}
         {{ descarrega("a5-cmyk", "Llibret A5 en CMYK", "Pàgines en ordre de lectura: el que acostumen a demanar les impremtes") }}
-        {{ descarrega("a4-cmyk", "Fulls A4 en CMYK, ja imposats", "Doble cara per la vora curta, per plegar i cosir") }}
+        {{ descarrega("a4-cmyk", "Fulls A4 en CMYK, ja imposats", "Doble cara per la vora curta, " ~ ("per tallar i apilar" if pla.fulls_solts else "per plegar i cosir")) }}
         <p class="text-[12px] leading-snug text-ink-500">Tarda una mica més que els altres: la primera vegada pot trigar uns segons.</p>
         {% else %}
         <p class="avis">Per fer el PDF en CMYK cal Ghostscript. L'app de Mac el porta a dins; des del codi font, executa <code>eines/app/ghostscript.sh</code>.</p>
@@ -137,7 +139,11 @@
       <ol class="flex flex-col gap-3 border-t border-paper-300 px-4 py-4 text-[14px]">
         {{ pas(1, "Imprimeix a mida real (100 %), sense «ajusta a la pàgina».") }}
         {{ pas(2, "Tria doble cara girant per la vora curta, en horitzontal.") }}
+        {% if pla.fulls_solts %}
+        {{ pas(3, "Talla els fulls pel mig i posa la pila de les meitats esquerres a sobre de la de les dretes, sense girar-les: les pàgines queden en ordre. Fes-hi els forats on marquen les creuetes.") }}
+        {% else %}
         {{ pas(3, "Posa els fulls un dins de l'altre tal com surten (el full 1 a fora), doblega'ls pel mig i cus-los pel plec.") }}
+        {% endif %}
       </ol>
       <div class="flex flex-col gap-2 border-t border-paper-300 px-4 py-4 text-[14px]">
         <p class="font-semibold">Les pàgines del darrere surten del revés?</p>
@@ -225,6 +231,7 @@
     desplacament: document.getElementById("desplacament-visor"),
     titols: (n) => titols[inicis.indexOf(n)] || "",
     marges: {{ marges_guia | tojson }},
+    fullsSolts: {{ (pla.total if pla.fulls_solts else none) | tojson }},
   });
   connectaZoom(visor, document.getElementById("barra-visor"));
 

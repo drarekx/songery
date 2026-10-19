@@ -1,9 +1,16 @@
-"""Imposició per a enquadernació a cavallet (fulls plegats un dins l'altre i cosits pel plec).
+"""Imposició dels fulls A4: cada full horitzontal té dues cares i cada cara porta dues pàgines A5 una
+al costat de l'altra. Les cares del darrere van per a doble cara girant per la vora curta.
 
-Cada full A4 horitzontal té dues cares i cada cara porta dues pàgines A5 una al costat de l'altra.
-Amb N pàgines (múltiple de 4) hi ha F = N/4 fulls. Per al full i (0..F-1):
+A cavallet (fulls plegats un dins l'altre i cosits pel plec). Amb N pàgines (múltiple de 4) hi ha
+F = N/4 fulls. Per al full i (0..F-1):
   - cara davantera: esquerra = N - 2i,   dreta = 1 + 2i
   - cara del darrere: esquerra = 2 + 2i, dreta = N - 1 - 2i
+
+Talla i apila (fulls solts, per a anelles). Amb N pàgines (parell) hi ha F = ⌈N/4⌉ fulls. Es tallen
+pel mig i la pila de les meitats esquerres va a sobre de la de les dretes: queden en ordre. Per al full i:
+  - cara davantera: esquerra = 1 + 2i,     dreta = 1 + 2(F + i)
+  - cara del darrere: esquerra = 2 + 2(F + i), dreta = 2 + 2i
+Les pàgines més grans que N queden en blanc (0).
 """
 
 from __future__ import annotations
@@ -39,6 +46,19 @@ def ordre_imposicio(n: int) -> list[Cara]:
     return cares
 
 
+def ordre_talla_i_apila(n: int) -> list[Cara]:
+    """Cares per a fulls solts (anelles), en l'ordre d'impressió; 0 vol dir mitja cara en blanc."""
+    if n <= 0 or n % 2 != 0:
+        raise ValueError(f"El nombre de pàgines ha de ser parell (és {n}).")
+    fulls = -(-n // 4)
+    pagina = lambda p: p if p <= n else 0  # noqa: E731
+    cares: list[Cara] = []
+    for i in range(fulls):
+        cares.append(Cara(i + 1, "davant", pagina(1 + 2 * i), pagina(1 + 2 * (fulls + i))))
+        cares.append(Cara(i + 1, "darrere", pagina(2 + 2 * (fulls + i)), pagina(2 + 2 * i)))
+    return cares
+
+
 def parelles(n: int) -> list[tuple[int, int]]:
     """Només les parelles (esquerra, dreta), p. ex. N=12: (12,1), (2,11), (10,3)..."""
     return [(c.esquerra, c.dreta) for c in ordre_imposicio(n)]
@@ -51,6 +71,8 @@ def _cara_a4(lector: PdfReader, esquerra: int, dreta: int, girada: bool = False)
     """
     cara = PageObject.create_blank_page(width=A4_AMPLE, height=A4_ALT)
     for numero, desplacament in ((esquerra, 0), (dreta, A4_AMPLE / 2)):
+        if not numero:  # mitja cara en blanc (fulls solts)
+            continue
         origen = lector.pages[numero - 1]
         caixa = origen.mediabox
         # Centra la pàgina dins la seva meitat per si la mida no és exactament A5.
@@ -71,7 +93,8 @@ def _escriu(lector: PdfReader, cares: list[Cara], gira_darrere: bool = False) ->
     return sortida.getvalue()
 
 
-def imposa(pdf_a5: bytes, costat: str | None = None, invers: bool = False, gira_darrere: bool = False) -> bytes:
+def imposa(pdf_a5: bytes, costat: str | None = None, invers: bool = False, gira_darrere: bool = False,
+           fulls_solts: bool = False) -> bytes:
     """Genera el PDF A4 imposat a partir del PDF A5 en ordre de lectura.
 
     costat=None: totes les cares (per imprimir a doble cara girant per la vora curta).
@@ -79,9 +102,10 @@ def imposa(pdf_a5: bytes, costat: str | None = None, invers: bool = False, gira_
     invers=True: inverteix l'ordre dels fulls (útil per a les cares del darrere segons la impressora).
     gira_darrere=True: gira 180° les cares del darrere. Serveix quan la impressora fa la doble cara
     per la vora llarga (en lloc de la curta) i les pàgines del darrere surten del revés.
+    fulls_solts=True: talla i apila (anelles) en lloc de cavallet.
     """
     lector = PdfReader(BytesIO(pdf_a5))
-    cares = ordre_imposicio(len(lector.pages))
+    cares = (ordre_talla_i_apila if fulls_solts else ordre_imposicio)(len(lector.pages))
     if costat:
         cares = [c for c in cares if c.costat == costat]
     if invers:
