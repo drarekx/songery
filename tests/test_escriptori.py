@@ -73,17 +73,15 @@ def test_s_obre_en_una_pestanya_de_chrome_o_al_navegador(escriptori, monkeypatch
     assert crides[-1] == ["open", "http://127.0.0.1:48650/"]  # sense Chrome, Edge ni Brave
 
 
-def test_l_applescript_compila_i_no_obre_un_navegador_tancat(escriptori, tmp_path):
-    """El guió per buscar la pestanya és correcte i, amb un navegador que no és obert, no l'obre."""
-    import shutil
-    import subprocess
-
-    if not shutil.which("osacompile") or not escriptori.navegador():
-        pytest.skip("Cal macOS amb Chrome, Edge o Brave")
-    guio = escriptori._BUSCA_PESTANYA.replace("IDENTIFICADOR", escriptori.navegador()[1])
-    sortida = tmp_path / "guio.scpt"
-    r = subprocess.run(["osacompile", "-o", str(sortida), "-e", guio], capture_output=True, text=True)
-    assert r.returncode == 0, r.stderr
+def test_es_parla_amb_el_chrome_de_l_usuari_i_no_amb_el_dels_pdf(escriptori):
+    """Amb el mateix identificador hi pot haver el Chrome invisible que fa els PDF o un amb un perfil a
+    part (no tenen les pestanyes de la persona): la pestanya s'ha de buscar al de la persona."""
+    chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    assert escriptori.es_el_de_l_usuari(chrome)
+    assert escriptori.es_el_de_l_usuari(chrome + " --flag-switches-begin --flag-switches-end")
+    assert not escriptori.es_el_de_l_usuari(chrome + " --headless=new --user-data-dir=/tmp/canconer-pdf-x")
+    assert not escriptori.es_el_de_l_usuari(chrome + " --user-data-dir=/Users/x/.cache/eines/chrome-profile")
+    # Sense cap navegador obert amb aquest identificador, no se'n busca la pestanya (ni s'obre).
     assert escriptori._pestanya_oberta("com.exemple.no-existeix", "http://127.0.0.1:48650/") is False
 
 

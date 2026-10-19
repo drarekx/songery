@@ -19,7 +19,7 @@ a = Analysis(
     ],
     # Ghostscript, per fer el PDF en CMYK per a impremta (el compila eines/app/ghostscript.sh)
     binaries=[(str(ARREL / "eines" / "ghostscript" / "gs"), "eines/ghostscript")],
-    hiddenimports=["canconer.web", "canconer.motor_pdf", "rumps"],
+    hiddenimports=["canconer.web", "canconer.motor_pdf", "rumps", "ScriptingBridge"],
     excludes=["tkinter", "pytest", "weasyprint", "PIL", "IPython", "numpy"],
     noarchive=False,
 )

@@ -24,6 +24,8 @@ if [ ! -x .venv-app/bin/python ]; then
 fi
 .venv-app/bin/pip install -q --upgrade pip
 .venv-app/bin/pip install -q -r requirements.txt pyinstaller rumps pillow
+# ScriptingBridge (de la mateixa versió que el PyObjC de rumps): per trobar la pestanya de Cançoners a Chrome.
+.venv-app/bin/pip install -q "pyobjc-framework-ScriptingBridge==$(.venv-app/bin/python -m pip show pyobjc-core | awk '/^Version/{print $2}')"
 
 echo "▸ Icones…"
 .venv-app/bin/python eines/app/icones.py >/dev/null

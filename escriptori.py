@@ -60,46 +60,52 @@ def navegador() -> tuple[str, str] | None:
     return None
 
 
-# Busca la pestanya de Cançoners (per l'adreça) en un navegador que ja és obert: la porta al davant i,
-# si se li passa una adreça, hi navega. No obre el navegador si no ho és. Escriu «ok» si l'ha trobada.
-# L'identificador del navegador hi va escrit (no com a paràmetre): és el que fa que AppleScript en
-# conegui les paraules (tabs, URL…).
-_BUSCA_PESTANYA = """
-on run {origen, desti}
-  if application id "IDENTIFICADOR" is not running then return "no"
-  tell application id "IDENTIFICADOR"
-    repeat with finestra in windows
-      set i to 0
-      repeat with pestanya in tabs of finestra
-        set i to i + 1
-        if (URL of pestanya) starts with origen then
-          if desti is not "" then set URL of pestanya to desti
-          set active tab index of finestra to i
-          set index of finestra to 1
-          activate
-          return "ok"
-        end if
-      end repeat
-    end repeat
-  end tell
-  return "no"
-end run
-"""
+def es_el_de_l_usuari(ordre: str) -> bool:
+    """Si un procés del navegador (per la seva línia d'ordres) és el que fa servir la persona. Amb el
+    mateix identificador n'hi pot haver d'altres: el que genera els PDF (invisible) o d'altres programes
+    amb un perfil a part. Aquests no tenen les pestanyes de la persona."""
+    return "--headless" not in ordre and "--user-data-dir" not in ordre
+
+
+def _proces_de_l_usuari(identificador: str):
+    """El navegador obert de la persona (NSRunningApplication), si n'hi ha."""
+    from AppKit import NSRunningApplication
+
+    for app in NSRunningApplication.runningApplicationsWithBundleIdentifier_(identificador):
+        pid = app.processIdentifier()
+        ordre = subprocess.run(["ps", "-ww", "-o", "args=", "-p", str(pid)], capture_output=True, text=True).stdout
+        if es_el_de_l_usuari(ordre):
+            return app
+    return None
 
 
 def _pestanya_oberta(identificador: str, url: str) -> bool:
-    """Si ja hi ha una pestanya de Cançoners en aquest navegador, hi va (i, si es demana una pàgina
-    concreta, hi navega). La primera vegada, macOS demana permís per controlar el navegador; si no es
-    dona, cada vegada s'obre una pestanya nova."""
+    """Si ja hi ha una pestanya de Cançoners al navegador de la persona, la porta al davant (i, si es
+    demana una pàgina concreta, hi navega). S'hi parla pel número de procés (ScriptingBridge): pel nom,
+    macOS podria triar un altre procés del mateix navegador (el dels PDF). La primera vegada, macOS
+    demana permís per controlar el navegador; si no es dona, cada vegada s'obre una pestanya nova."""
     origen = "/".join(url.split("/", 3)[:3]) + "/"
     desti = url if url.rstrip("/") + "/" != origen else ""
     try:
-        guio = _BUSCA_PESTANYA.replace("IDENTIFICADOR", identificador)
-        r = subprocess.run(["osascript", "-e", guio, origen, desti],
-                           capture_output=True, text=True, timeout=60)  # la primera vegada, macOS demana permís
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return r.stdout.strip() == "ok"
+        from AppKit import NSApplicationActivateIgnoringOtherApps
+        from ScriptingBridge import SBApplication
+
+        app = _proces_de_l_usuari(identificador)
+        if app is None:
+            return False
+        nav = SBApplication.applicationWithProcessIdentifier_(app.processIdentifier())
+        for finestra in nav.windows() or []:
+            for i, pestanya in enumerate(finestra.tabs() or [], start=1):
+                if str(pestanya.URL() or "").startswith(origen):
+                    if desti:
+                        pestanya.setURL_(desti)
+                    finestra.setActiveTabIndex_(i)
+                    finestra.setIndex_(1)
+                    app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
+                    return True
+    except Exception as e:  # noqa: BLE001 - sense permís o sense ScriptingBridge: s'obre una pestanya nova
+        print(f"No s'ha pogut buscar la pestanya de Cançoners: {e!r}", file=sys.stderr)
+    return False
 
 
 def obre_navegador(url: str) -> None:
