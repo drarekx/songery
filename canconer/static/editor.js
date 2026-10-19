@@ -286,6 +286,7 @@ store.connecta({
   format: (nom) => edicio?.editor && FORMATS[nom]?.(edicio.editor),
   midaMarc: (mida) => canviaMidaMarc(mida),
   ajustaMarc: (ajusta) => canviaMidaMarc(undefined, ajusta),
+  midaSeleccio: (punts) => canviaMidaSeleccio(punts),
   // Llista
   obre: (desti) => obre(desti),
   canviaEntrada: (id, canvis) => (typeof id === "string" ? canviaEntrada(id, canvis) : obert?.tipus === "canco" && canviaEntrada(obert.id, id)),
@@ -1273,10 +1274,14 @@ function pintaMidaMarc() {
   const desborda = edicio.node.classList.contains("desborda");
   const ed = edicio.editor;
   const ajustada = e.ajusta !== false && escala < 0.999;
+  // Amb text seleccionat, la mida que es mostra (i que canvien − i +) és la d'aquell text.
+  const seleccionat = !ed.state.selection.empty;
+  const real = mida * (e.ajusta !== false ? escala : 1);
   store.sincronitza({
     edicio: {
       actius: Object.fromEntries(["tonica", "bold", "italic", "cor", "seccio", "nota"].map((nom) => [nom, ed.isActive(nom)])),
-      mida: ajustada ? Math.round(mida * escala * 10) / 10 : mida, ajusta: e.ajusta !== false,
+      mida: ajustada ? Math.round(real * 10) / 10 : mida, ajusta: e.ajusta !== false, seleccionat,
+      midaSeleccio: Math.round(real * (Number(ed.getAttributes("mida").valor) || 1) * 2) / 2,
       efectiva: { alerta: desborda, text: desborda ? "no hi cap!" : ajustada ? `(reduïda des de ${mida} pt perquè hi càpiga)` : "" },
     },
   });
@@ -1309,6 +1314,19 @@ function fixaMidaAjustada() {
     if (node) node.style.fontSize = `calc(${mida}pt * var(--escala, 1))`;
   }
   return canvi;
+}
+
+/** Mida en punts del text seleccionat (una marca «mida» relativa a la del marc). */
+function canviaMidaSeleccio(punts) {
+  const ed = edicio?.editor;
+  if (edicio?.tipus !== "lletra" || !ed || ed.state.selection.empty || !Number.isFinite(punts)) return;
+  if (fixaMidaAjustada()) {
+    reajusta();
+    canviat();
+  }
+  const marc = midaMarc(elementDe(edicio.p, edicio.id));
+  const valor = Math.round(Math.max(3, Math.min(60, punts)) / marc * 1000) / 1000;
+  posaMida(ed, Math.abs(valor - 1) < 0.001 ? 1 : valor);
 }
 
 /**

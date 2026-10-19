@@ -1,9 +1,11 @@
 <!--
   Barra de format mentre s'edita un marc de lletra: acord, marques (tònica, negreta, cursiva, cor),
-  secció i nota, imatge, importar text, tallar, i la mida de la lletra de tot el marc.
+  secció i nota, imatge, importar text, tallar, i la mida: la del text seleccionat o, si no n'hi ha, la
+  de tota la lletra.
   Els botons no prenen el focus (mousedown.prevent) perquè el cursor es quedi on és a la lletra.
 -->
 <script setup>
+import { computed } from "vue";
 import { GRUPS_LLETRA, tooltip } from "@/eines.js";
 import { useEditorStore } from "@/stores/editor.js";
 
@@ -12,6 +14,10 @@ const store = useEditorStore();
 const GRUPS = GRUPS_LLETRA;
 
 const format = (nom) => store.crida("format", nom);
+
+// Amb text seleccionat, la mida és la d'aquell text; si no, la de tota la lletra de la cançó.
+const midaActual = computed(() => (store.edicio.seleccionat ? store.edicio.midaSeleccio : store.edicio.mida));
+const canviaMida = (punts) => store.crida(store.edicio.seleccionat ? "midaSeleccio" : "midaMarc", punts);
 </script>
 
 <template>
@@ -30,15 +36,18 @@ const format = (nom) => store.crida("format", nom);
       </button>
     </template>
     <span class="separador" aria-hidden="true"></span>
-    <div class="flex items-center gap-1.5" title="Mida de la lletra de tota la cançó (a totes les pàgines)">
-      <span class="text-[12px] font-medium text-accent-700">Mida</span>
+    <div class="flex items-center gap-1.5" :title="store.edicio.seleccionat ? 'Mida del text seleccionat' : 'Mida de la lletra de tota la cançó (a totes les pàgines)'">
+      <span class="text-[12px] font-medium text-accent-700">{{ store.edicio.seleccionat ? "Mida del text seleccionat" : "Mida" }}</span>
       <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
-        <button type="button" class="w-7 rounded-l-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més petita"
-                @mousedown.prevent @click="store.crida('midaMarc', store.edicio.mida - 0.5)">−</button>
-        <input type="number" step="0.5" min="5" max="40" class="w-14 border-x border-paper-300 bg-transparent text-center font-mono text-[12px] font-semibold tabular-nums outline-none"
-               aria-label="Mida de la lletra (pt)" :value="store.edicio.mida" @change="store.crida('midaMarc', Number($event.target.value))">
-        <button type="button" class="w-7 rounded-r-md text-[15px] leading-none text-ink-500 hover:bg-paper-100" aria-label="Lletra més gran"
-                @mousedown.prevent @click="store.crida('midaMarc', store.edicio.mida + 0.5)">+</button>
+        <button type="button" class="w-7 rounded-l-md text-[15px] leading-none text-ink-500 hover:bg-paper-100"
+                :aria-label="store.edicio.seleccionat ? 'Text seleccionat més petit' : 'Lletra més petita'"
+                @mousedown.prevent @click="canviaMida(midaActual - 0.5)">−</button>
+        <input type="number" step="0.5" min="3" max="60" class="w-14 border-x border-paper-300 bg-transparent text-center font-mono text-[12px] font-semibold tabular-nums outline-none"
+               :aria-label="store.edicio.seleccionat ? 'Mida del text seleccionat (pt)' : 'Mida de la lletra (pt)'" :value="midaActual"
+               @change="canviaMida(Number($event.target.value))">
+        <button type="button" class="w-7 rounded-r-md text-[15px] leading-none text-ink-500 hover:bg-paper-100"
+                :aria-label="store.edicio.seleccionat ? 'Text seleccionat més gran' : 'Lletra més gran'"
+                @mousedown.prevent @click="canviaMida(midaActual + 0.5)">+</button>
       </div>
       <span class="text-[11px] text-ink-500">pt</span>
       <label class="ml-1 flex items-center gap-1.5 text-[12px] text-ink-700" title="Si no hi cap, la lletra es fa més petita automàticament">

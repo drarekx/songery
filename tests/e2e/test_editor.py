@@ -379,3 +379,22 @@ def test_mida_d_un_tros_i_repartir_la_lletra_des_del_boto_dret(pagina, servidor)
     pagina.avalua("[...document.querySelectorAll('.menu-context button')].find((b) => b.textContent.startsWith('Reparteix')).click()")
     pagina.espera(f"document.querySelectorAll('.pagina-editor').length > {pagines}", 15)
     pagina.espera("![...document.querySelectorAll('.capa-elements .marc-lletra')].some((m) => m.classList.contains('desborda'))", 15)
+
+
+def test_la_mida_de_la_barra_canvia_nomes_el_text_seleccionat(pagina, servidor):
+    obre_editor(pagina, servidor)
+    pagina.avalua("""(() => { const marc = document.querySelector('.marc-lletra'); const r = marc.getBoundingClientRect();
+      marc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: r.left + 40, clientY: r.top + 60 })); })()""")
+    pagina.espera("document.querySelector('.marc-lletra.editant')")
+    linia = "parseFloat(getComputedStyle(document.querySelectorAll('.marc-lletra.editant p.linia')[2]).fontSize)"
+    abans = pagina.avalua(linia)
+    boto = "document.querySelector('[aria-label=\"Text seleccionat més gran\"]')"
+    assert pagina.avalua(f"!{boto}")  # sense selecció, és la mida de tota la lletra
+    pagina.avalua("document.querySelector('.marc-lletra.editant')._editor.commands.setTextSelection({ from: 3, to: 12 })")
+    pagina.espera(boto)
+    for _ in range(6):
+        pagina.avalua(f"{boto}.click()")
+    pagina.espera("document.querySelector('.marc-lletra.editant [data-mida]')")
+    tros = pagina.avalua("parseFloat(getComputedStyle(document.querySelector('.marc-lletra.editant [data-mida]')).fontSize)")
+    assert tros > abans * 1.2, (tros, abans)
+    assert abs(pagina.avalua(linia) - abans) < 0.05  # la resta, igual
