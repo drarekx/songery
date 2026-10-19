@@ -39,6 +39,11 @@
       </div>
       {% endfor %}
     </dl>
+    {% set blancs = pla.pagines | selectattr("tipus", "equalto", "blanc") | list | length %}
+    {% if blancs %}
+    <p class="-mt-3 text-[13px] leading-snug text-ink-500">Inclou {{ blancs }} pàgin{{ "es" if blancs != 1 else "a" }} en blanc: cada full plegat
+      fa 4 pàgines, així que el llibret ha de tenir un múltiple de 4. Les pots omplir des de l'editor (vista de tot el llibret).</p>
+    {% endif %}
 
     {# Instrument dels diagrames: es tria aquí, sense canviar el cançoner (el de les Opcions és el de defecte) #}
     <section class="targeta flex flex-col gap-3 p-4">
@@ -170,19 +175,20 @@
       <div class="segmentat" role="group" aria-label="Tipus de vista">
         <button type="button" data-mode="fulls" aria-pressed="true">Fulls A4</button>
         <button type="button" data-mode="dobles" aria-pressed="false">Llibret A5</button>
+        <button type="button" data-mode="llibret" aria-pressed="false">Llibret 3D</button>
       </div>
-      <div class="zoom" role="group" aria-label="Zoom">
+      <div class="zoom" data-nomes-visor role="group" aria-label="Zoom">
       <button type="button" data-zoom="-1" aria-label="Allunya" title="Allunya (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 8h9"/></svg></button>
       <span data-zoom-valor aria-live="polite">100 %</span>
       <button type="button" data-zoom="1" aria-label="Apropa" title="Apropa (Ctrl/⌘ + roda)"><svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></button>
       <button type="button" data-zoom="ajusta" title="Ajusta a l'amplada">Ajusta</button>
     </div>
-      <label class="flex items-center gap-2 text-[13px] font-medium text-ink-700" title="Mostra el número de cada pàgina a sobre (no s'imprimeix)">
+      <label data-nomes-visor class="flex items-center gap-2 text-[13px] font-medium text-ink-700" title="Mostra el número de cada pàgina a sobre (no s'imprimeix)">
         <span class="interruptor"><input class="peer sr-only" type="checkbox" id="mostra-ordre" checked><span></span></span>
         Mostra l'ordre
       </label>
       {% if marges_guia %}
-      <label class="flex items-center gap-2 text-[13px] font-medium text-ink-700" title="Guies dels marges d'enquadernació «{{ c.marge.nom }}» (no s'imprimeixen)">
+      <label data-nomes-visor class="flex items-center gap-2 text-[13px] font-medium text-ink-700" title="Guies dels marges d'enquadernació «{{ c.marge.nom }}» (no s'imprimeixen)">
         <span class="interruptor"><input class="peer sr-only" type="checkbox" id="mostra-marges" checked><span></span></span>
         Mostra els marges
       </label>
@@ -192,6 +198,7 @@
     <div id="desplacament-visor" class="h-[75dvh] overflow-auto overscroll-contain lg:h-[calc(100dvh-10rem)]">
       <div id="visor"><p class="p-8 text-center text-ink-500">Carregant el PDF…</p></div>
     </div>
+    <div id="llibret3d" class="hidden h-[70dvh] lg:h-[calc(100dvh-13rem)]"></div>
   </section>
 </div>
 {% endblock %}
@@ -199,6 +206,7 @@
 {% block scripts %}
 <script type="module">
   import { Visor, connectaZoom } from "{{ estatic('visor.js') }}";
+  import { Llibret3D } from "{{ estatic('llibret3d.js') }}";
 
   const urls = {
     dobles: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a5', v=v, instrument=instrument) }}",
@@ -207,6 +215,7 @@
   const explicacions = {
     dobles: "Com es llegirà el llibret plegat, obert per cada doble pàgina.",
     fulls: "Ordre d'impressió: cada full té una cara davantera i una del darrere.",
+    llibret: "El llibret muntat: clica a la dreta o a l'esquerra (o fes servir les fletxes) per passar pàgina.",
   };
   const inicis = {{ pla.cancons | map(attribute="pagina_inici") | list | tojson }};
   const titols = {{ pla.cancons | map(attribute="titol") | list | tojson }};
@@ -242,14 +251,24 @@
   }
 
   const botons = document.querySelectorAll("[data-mode]");
+  let llibret = null;
   async function mostra(mode) {
     botons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
     document.getElementById("explicacio-mode").textContent = explicacions[mode];
+    const es3d = mode === "llibret";
+    document.getElementById("desplacament-visor").classList.toggle("hidden", es3d);
+    document.getElementById("llibret3d").classList.toggle("hidden", !es3d);
+    document.querySelectorAll("[data-nomes-visor]").forEach((x) => x.classList.toggle("hidden", es3d));
     try {
-      await visor.canviaMode(mode, urls[mode]);
+      if (es3d) {
+        llibret ||= new Llibret3D(document.getElementById("llibret3d"), { titols: (n) => titols[inicis.indexOf(n)] || "" });
+        await llibret.carrega(urls.dobles);
+      } else {
+        await visor.canviaMode(mode, urls[mode]);
+      }
     } catch (e) {
       // El servidor retorna un 503 amb l'explicació si Gotenberg no està en marxa.
-      const r = await fetch(urls[mode]);
+      const r = await fetch(urls[mode] || urls.dobles);
       const error = document.getElementById("error-pdf");
       error.textContent = r.ok ? "No s'ha pogut mostrar el PDF." : await r.text();
       error.classList.remove("hidden");

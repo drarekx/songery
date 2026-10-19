@@ -313,3 +313,25 @@ def test_selector_d_autor_i_filtre_de_la_biblioteca(pagina, servidor):
     pagina.obre(f"{servidor}/biblioteca?autor={autors[0]['id']}", "document.querySelector('.fila-biblioteca')")
     files = pagina.avalua("document.querySelectorAll('.fila-biblioteca').length")
     assert files == 1 and "Enric Morera" in pagina.avalua("document.querySelector('.fila-biblioteca').textContent")
+
+
+def test_llibret_3d_a_la_pagina_d_imprimir(pagina, servidor):
+    """El llibret en 3D: comença tancat per la portada, es passa pàgina amb les fletxes i amb els botons."""
+    id_canconer = obre_editor(pagina, servidor).split("/canconer/")[1].split("/")[0].split("?")[0]
+    pagina.obre(f"{servidor}/canconer/{id_canconer}/imprimir", "document.querySelector('[data-mode=llibret]')")
+    pagina.avalua("document.querySelector('[data-mode=llibret]').click()")
+    pagina.espera("document.querySelectorAll('.llibret3d-full').length > 1", 20)
+    pagina.espera("document.querySelector('.llibret3d-llegenda').textContent === 'Portada'")
+    assert pagina.avalua("document.getElementById('desplacament-visor').classList.contains('hidden')")
+    pagina.avalua("document.querySelector('.llibret3d').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))")
+    pagina.espera("document.querySelector('.llibret3d-llegenda').textContent.startsWith('Pàgines 2 i 3')")
+    assert pagina.avalua("document.querySelectorAll('.llibret3d-full.girat').length") == 1
+    pagina.avalua("document.querySelector('.llibret3d').dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }))")
+    pagina.espera("document.querySelector('.llibret3d-llegenda').textContent === 'Contraportada'")
+    pagina.avalua("document.querySelector('.llibret3d-barra button').click()")  # enrere
+    pagina.espera("document.querySelector('.llibret3d-llegenda').textContent.startsWith('Pàgines')")
+    # La pàgina visible s'ha dibuixat del PDF.
+    pagina.espera("[...document.querySelectorAll('.llibret3d-full.girat .darrere canvas')].at(-1).width > 0", 15)
+    # Tornant a la vista de fulls, es torna a veure el visor.
+    pagina.avalua("document.querySelector('[data-mode=fulls]').click()")
+    pagina.espera("!document.getElementById('desplacament-visor').classList.contains('hidden')")
