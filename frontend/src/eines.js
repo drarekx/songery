@@ -106,6 +106,7 @@ export const DRECERES = [
   ["⌥ arrossega", "Mou sense que s'enganxi a les guies"],
   ["Supr", "Esborra l'element seleccionat"],
   ["clic dret", "Menú amb totes les opcions de l'element o de la pàgina"],
+  ["⌥ clic dret", "Dins la lletra que edites, el menú del navegador (corrector, copiar…)"],
   ["doble clic", "Edita la lletra o el text"],
   ["?", "Obre aquesta ajuda"],
 ];

@@ -335,3 +335,47 @@ def test_llibret_3d_a_la_pagina_d_imprimir(pagina, servidor):
     # Tornant a la vista de fulls, es torna a veure el visor.
     pagina.avalua("document.querySelector('[data-mode=fulls]').click()")
     pagina.espera("!document.getElementById('desplacament-visor').classList.contains('hidden')")
+
+
+
+LLETRA_LLARGA = "\n\n".join(f"G       D\nEstrofa {i} primera línia llarga de la cançó\nEm      C\nsegona línia de l'estrofa {i} amb més text"
+                              for i in range(30))
+
+
+def test_mida_d_un_tros_i_repartir_la_lletra_des_del_boto_dret(pagina, servidor):
+    """Fer gran un tros de lletra no queda desfet per l'ajust automàtic (la resta es queda com està), i
+    amb el botó dret dins la lletra que s'edita es pot repartir el que no hi cap a les pàgines següents."""
+    obre_editor(pagina, servidor)
+    pagina.avalua("""(async () => {
+      const marc = document.querySelector('.marc-lletra');
+      const r = marc.getBoundingClientRect();
+      marc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: r.left + 40, clientY: r.top + 60 }));
+    })()""")
+    pagina.espera("document.querySelector('.marc-lletra.editant')")
+    pagina.avalua(f"""(() => {{ document.getElementById('dialeg-text').showModal(); document.getElementById('text-importa').value = {LLETRA_LLARGA!r};
+      document.getElementById('substitueix-text').checked = true; document.querySelector('#form-text button[value=importa]').click(); }})()""")
+    # L'ajust automàtic la fa petita perquè hi càpiga.
+    pagina.espera("Number(document.querySelector('.marc-lletra.editant').dataset.escala) < 0.9")
+    escala = pagina.avalua("Number(document.querySelector('.marc-lletra.editant').dataset.escala)")
+    mida_linia = "parseFloat(getComputedStyle(document.querySelectorAll('.marc-lletra.editant p.linia')[3]).fontSize)"
+    abans = pagina.avalua(mida_linia)
+
+    # Un tros més gran: la resta de la lletra es queda igual (ja no s'ajusta) i el tros es fa gran de debò.
+    pagina.avalua("""(() => { const m = document.querySelector('.marc-lletra.editant'); m._editor.commands.setTextSelection({ from: 3, to: 12 });
+      const s = document.getElementById('mida-seleccio'); s.value = '1.5'; s.dispatchEvent(new Event('change')); })()""")
+    pagina.espera("document.querySelector('.marc-lletra.editant [data-mida]')")
+    assert abs(pagina.avalua(mida_linia) - abans) < 0.05
+    tros = pagina.avalua("parseFloat(getComputedStyle(document.querySelector('.marc-lletra.editant [data-mida]')).fontSize)")
+    assert tros > abans * 1.4, (tros, abans, escala)
+    pagina.espera("document.querySelector('.marc-lletra.editant').classList.contains('desborda')")
+
+    # Botó dret dins la lletra: «Reparteix» la passa a pàgines noves.
+    pagines = pagina.avalua("document.querySelectorAll('.pagina-editor').length")
+    pagina.avalua("""(() => { const p = document.querySelector('.marc-lletra.editant p.linia'); const r = p.getBoundingClientRect();
+      p.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 5, clientY: r.top + 5, button: 2 })); })()""")
+    pagina.espera("document.querySelector('.menu-context')")
+    opcions = pagina.avalua("[...document.querySelectorAll('.menu-context button')].map((b) => [b.textContent.trim(), b.disabled])")
+    assert ["Reparteix la lletra que no hi cap", False] in opcions, opcions
+    pagina.avalua("[...document.querySelectorAll('.menu-context button')].find((b) => b.textContent.startsWith('Reparteix')).click()")
+    pagina.espera(f"document.querySelectorAll('.pagina-editor').length > {pagines}", 15)
+    pagina.espera("![...document.querySelectorAll('.capa-elements .marc-lletra')].some((m) => m.classList.contains('desborda'))", 15)

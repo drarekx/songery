@@ -1251,7 +1251,12 @@ bombolla.querySelectorAll("[data-bombolla]").forEach((b) => b.addEventListener("
   if (ed) FORMATS[b.dataset.bombolla]?.(ed);
 }));
 $("#mida-seleccio").addEventListener("change", (ev) => {
-  if (edicio?.editor) posaMida(edicio.editor, ev.target.value);
+  if (!edicio?.editor) return;
+  if (edicio.tipus === "lletra" && fixaMidaAjustada()) {
+    reajusta();
+    canviat();
+  }
+  posaMida(edicio.editor, ev.target.value);
 });
 
 // Mida de la lletra de tot el marc que s'edita.
@@ -1267,31 +1272,58 @@ function pintaMidaMarc() {
   const escala = Number(edicio.node.dataset.escala || 1);
   const desborda = edicio.node.classList.contains("desborda");
   const ed = edicio.editor;
+  const ajustada = e.ajusta !== false && escala < 0.999;
   store.sincronitza({
     edicio: {
       actius: Object.fromEntries(["tonica", "bold", "italic", "cor", "seccio", "nota"].map((nom) => [nom, ed.isActive(nom)])),
-      mida, ajusta: e.ajusta !== false,
-      efectiva: { alerta: desborda, text: desborda ? "no hi cap!" : escala < 0.999 ? `→ ${(mida * escala).toFixed(1)} pt perquè hi càpiga` : "" },
+      mida: ajustada ? Math.round(mida * escala * 10) / 10 : mida, ajusta: e.ajusta !== false,
+      efectiva: { alerta: desborda, text: desborda ? "no hi cap!" : ajustada ? `(reduïda des de ${mida} pt perquè hi càpiga)` : "" },
     },
   });
 }
 
+/** Marcs de lletra que comparteixen la mida amb el que s'edita: en una cançó, tots els seus (la lletra
+ *  ha de tenir la mateixa mida a totes les pàgines); fora d'una cançó, només aquest. [[pàgina, marc]] */
+function marcsDeLletra() {
+  return obert?.tipus === "canco"
+    ? pagines.flatMap((pagina, p) => pagina.elements.filter((x) => x.tipus === "lletra").map((x) => [p, x]))
+    : [[edicio.p, elementDe(edicio.p, edicio.id)]];
+}
+
 /**
- * Mida de la lletra (i si s'ajusta perquè hi càpiga) del marc que s'edita. En una cançó, de tots els
- * seus marcs de lletra: la lletra ha de tenir la mateixa mida a totes les pàgines, i fer-ne gran
- * només un no serviria de res (l'ajust la igualaria a la dels altres).
+ * Treu l'ajust automàtic dels marcs de lletra deixant-hi la mida que tenen ara (la ja reduïda). Es fa
+ * quan es canvia la mida a mà: si no, l'ajust ho desfaria (fer gran un tros faria petita tota la resta).
+ * Si llavors la lletra no hi cap, el marc es marca i es pot repartir a la pàgina següent.
+ * Torna si ha canviat algun marc.
+ */
+function fixaMidaAjustada() {
+  let canvi = false;
+  for (const [p, marc] of marcsDeLletra()) {
+    if (marc.ajusta === false) continue;
+    if (!canvi) foto();
+    canvi = true;
+    const node = nodeElement(p, marc.id);
+    const mida = Math.round(midaMarc(marc) * Number(node?.dataset.escala || 1) * 100) / 100;
+    marc.format = { ...(marc.format || {}), mida };
+    marc.ajusta = false;
+    if (node) node.style.fontSize = `calc(${mida}pt * var(--escala, 1))`;
+  }
+  return canvi;
+}
+
+/**
+ * Mida de la lletra (i si s'ajusta perquè hi càpiga) de tots els marcs de lletra de la cançó (vegeu
+ * marcsDeLletra). Triar una mida a mà treu l'ajust: la mida triada és la que surt.
  */
 function canviaMidaMarc(mida, ajusta) {
   if (edicio?.tipus !== "lletra") return;
-  const e = elementDe(edicio.p, edicio.id);
-  const marcs = obert?.tipus === "canco"
-    ? pagines.flatMap((pagina, p) => pagina.elements.filter((x) => x.tipus === "lletra").map((x) => [p, x]))
-    : [[edicio.p, e]];
   foto();
   if (mida !== undefined && Number.isFinite(mida)) mida = Math.max(5, Math.min(40, Math.round(mida * 2) / 2));
-  for (const [p, marc] of marcs) {
-    if (mida !== undefined && Number.isFinite(mida)) {
+  else mida = undefined;
+  for (const [p, marc] of marcsDeLletra()) {
+    if (mida !== undefined) {
       marc.format = { ...(marc.format || {}), mida };
+      marc.ajusta = false;
       const node = nodeElement(p, marc.id);
       if (node) node.style.fontSize = `calc(${mida}pt * var(--escala, 1))`;
     }
@@ -1665,6 +1697,19 @@ function afegeixA(tipus, p, punt) {
   afegeix(element);
 }
 
+/** Menú del botó dret dins la lletra que s'edita. «Talla aquí» talla on s'ha clicat. */
+function menuLletraEditada(ev) {
+  const { editor, p, id } = edicio;
+  const pos = editor.view.posAtCoords({ left: ev.clientX, top: ev.clientY })?.pos;
+  return [
+    { text: "Reparteix la lletra que no hi cap", desactivat: !editable || !noHiCap(p, id), fes: () => reparteix(p, id) },
+    { text: "Talla aquí: passa la resta a la pàgina següent", desactivat: !editable || pos === undefined,
+      fes: () => { editor.commands.setTextSelection(pos); tallaAqui(); } },
+    separador,
+    { text: "Acaba d'editar", drecera: "Esc", fes: () => sortEdicio() },
+  ];
+}
+
 /** Opcions per a la selecció (un element o diversos). */
 function menuSeleccio() {
   const els = elementsSel();
@@ -1756,7 +1801,12 @@ function menuLlenc(p, punt) {
 }
 
 llenc.addEventListener("contextmenu", (ev) => {
-  // Mentre s'escriu, el menú del navegador (corrector, copiar i enganxar).
+  // Dins la lletra que s'edita: talla o reparteix-la. Amb ⌥, el menú del navegador (corrector, copiar…).
+  if (!ev.altKey && edicio?.tipus === "lletra" && obert?.tipus === "canco" && edicio.node.contains(ev.target)) {
+    ev.preventDefault();
+    return store.obreMenu(ev.clientX, ev.clientY, menuLletraEditada(ev));
+  }
+  // Mentre s'escriu un text, el menú del navegador (corrector, copiar i enganxar).
   if (ev.target.closest(".editant, [contenteditable='true'], [contenteditable='plaintext-only']")) return;
   if (!obert || obert.tipus === "llibre") return;
   ev.preventDefault();
