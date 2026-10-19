@@ -129,6 +129,10 @@ dades».) El peu de cada pàgina diu de quina carpeta llegeix les dades, i el se
   - `tests/test_actualitzador.py` (inclou un servidor que fingeix compressió gzip) i
     `tests/test_copies_i_actualitzacions.py` (còpies, comparació de versions i certificats).
   - Per simular una versió antiga: `CANCONER_VERSIO=1.0.0`.
+  - Amb un `HOME` fals, Chrome no arriba a dibuixar la pàgina d'impressió: el PDF dona 503 («no s'ha acabat
+    de dibuixar a temps») encara que l'app estigui bé. Si les dades copiades porten `cau/`, el PDF pot sortir
+    de la memòria cau i semblar que funciona. Per provar la generació de PDF de debò, fes-ho amb el `HOME`
+    normal i unes dades a part (`CANCONER_DADES=… python app.py --port …`).
   - Per provar el procés sencer sense tocar l'app de debò: un `HOME` temporal i un `open` fals al `PATH`.
 - Després de publicar, comprova que la baixada real funciona:
   `actualitzador.baixa(<browser_download_url>, desti, mida)` amb l'actiu de la release nova. L'API
