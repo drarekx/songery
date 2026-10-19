@@ -185,12 +185,35 @@ export class Llibret3D {
       cara.dibuixada = true;
       const pagina = await this.document.getPage(cara.n);
       if (generacio !== this.generacio) return;
-      const base = pagina.getViewport({ scale: 1 });
-      const vista = pagina.getViewport({ scale: (this.ample / base.width) * Math.min(2, window.devicePixelRatio || 1) });
-      cara.llenc.width = Math.floor(vista.width);
-      cara.llenc.height = Math.floor(vista.height);
-      await pagina.render({ canvasContext: cara.llenc.getContext("2d"), viewport: vista }).promise;
+      await this.dibuixaCara(cara, pagina);
     }
+  }
+
+  /**
+   * Dibuixa una pàgina en un llenç a part i, quan està acabada, la copia al de la cara. Si mentrestant
+   * se'n demana un altre dibuix (canvi de mida), aquest es cancel·la: dos dibuixos sobre el mateix
+   * llenç es trepitgen (canviar-ne la mida en treu la transformació) i la pàgina surt cap per avall.
+   */
+  async dibuixaCara(cara, pagina) {
+    cara.tasca?.cancel();
+    const torn = (cara.torn || 0) + 1;
+    cara.torn = torn;
+    const base = pagina.getViewport({ scale: 1 });
+    const vista = pagina.getViewport({ scale: (this.ample / base.width) * Math.min(2, window.devicePixelRatio || 1) });
+    const fora = document.createElement("canvas");
+    fora.width = Math.floor(vista.width);
+    fora.height = Math.floor(vista.height);
+    cara.tasca = pagina.render({ canvasContext: fora.getContext("2d"), viewport: vista });
+    try {
+      await cara.tasca.promise;
+    } catch {
+      return; // cancel·lat: ja n'hi ha un de més nou
+    }
+    if (torn !== cara.torn) return;
+    cara.tasca = null;
+    cara.llenc.width = fora.width;
+    cara.llenc.height = fora.height;
+    cara.llenc.getContext("2d").drawImage(fora, 0, 0);
   }
 }
 
