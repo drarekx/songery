@@ -83,7 +83,10 @@ def test_actualitzar_des_d_una_versio_antiga_no_perd_res(tmp_path, monkeypatch, 
     assert [c["id"] for c in k1["cancons"]] == ["c1", "c2"] and [c["id"] for c in k2["cancons"]] == ["c2"]
     assert k1["cancons"][0]["versio_id"] == "v1"
     assert k1["especials"]["portada"]["elements"][0]["text"] == "La meva portada"
-    assert len(k2["especials"]["portada"]["elements"]) == 4  # la portada que tenia (no la nova per defecte)
+    # La portada que tenia: fins a l'esquema 4, la completa (la migració 5 l'hi desa); des de l'esquema 5
+    # (versió 1.4.5), un cançoner sense portada desada ja tenia la nova, només amb el títol.
+    versio = int(esquema.stem.split("-")[1])
+    assert len(k2["especials"]["portada"]["elements"]) == (4 if versio < 5 else 1)
     assert maquetacio.pla(k1)["total"] >= 4
 
     with sqlite3.connect(tmp_path / "canconers.sqlite3") as con:

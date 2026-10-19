@@ -254,3 +254,25 @@ def test_editar_una_canco_des_de_la_biblioteca_sense_canconer(pagina, servidor):
     assert "EDITADA DES DE LA BIBLIOTECA" in json_.dumps(desada["contingut"], ensure_ascii=False)
     k = json_.loads(urllib.request.urlopen(url.replace("/canconer/", "/api/canconer/")).read())
     assert "EDITADA DES DE LA BIBLIOTECA" in json_.dumps(k["cancons"][0]["contingut"], ensure_ascii=False)
+
+
+def test_selector_d_autor_i_filtre_de_la_biblioteca(pagina, servidor):
+    """#14: a la pestanya Cançó, l'autor es tria o es crea amb el selector; la biblioteca hi filtra."""
+    import json as json_
+    import urllib.request
+
+    obre_editor(pagina, servidor)
+    pagina.avalua("document.querySelector('[data-pestanya=canco]').click()")
+    pagina.espera("document.getElementById('autor-canco')")
+    pagina.avalua("""(async () => {
+      const i = document.getElementById('autor-canco');
+      i.focus(); i.value = 'Enric Morera'; i.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 400));
+      [...document.querySelectorAll('[role=option]')].find((o) => o.textContent.includes('Crea')).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    })()""")
+    pagina.espera("document.getElementById('text-estat').textContent.includes('Tot desat')", 10)
+    autors = json_.loads(urllib.request.urlopen(f"{servidor}/api/autors?q=morera").read())
+    assert [a["nom"] for a in autors] == ["Enric Morera"] and autors[0]["cancons"] == 1
+    pagina.obre(f"{servidor}/biblioteca?autor={autors[0]['id']}", "document.querySelector('.fila-biblioteca')")
+    files = pagina.avalua("document.querySelectorAll('.fila-biblioteca').length")
+    assert files == 1 and "Enric Morera" in pagina.avalua("document.querySelector('.fila-biblioteca').textContent")

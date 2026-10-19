@@ -434,7 +434,9 @@ def crea_app() -> Flask:
     def biblioteca():
         ordre = request.args.get("ordre", "titol")
         q = request.args.get("q", "")
-        totes = bd.biblioteca(q, ordre)
+        id_autor = request.args.get("autor") or None
+        autor = next((a for a in bd.autors() if a["id"] == id_autor), None) if id_autor else None
+        totes = bd.biblioteca(q, ordre, autor["id"] if autor else None)
         pagines = max(1, -(-len(totes) // PER_PAGINA))
         pagina = min(max(1, request.args.get("pagina", 1, type=int) or 1), pagines)
         inici = (pagina - 1) * PER_PAGINA
@@ -445,7 +447,8 @@ def crea_app() -> Flask:
             except (KeyError, ValueError):
                 pass
         return render_template("biblioteca.html", cancons=totes[inici:inici + PER_PAGINA], total=len(totes),
-                               pagina=pagina, pagines=pagines, desde=inici + 1, q=q, ordre=ordre,
+                               pagina=pagina, pagines=pagines, desde=inici + 1, q=q, ordre=ordre, autor=autor,
+                               autors=bd.autors(),
                                canconers=bd.llista_canconers(), enviada=enviada,
                                error=request.args.get("error"), seccio="biblioteca")
 
@@ -526,7 +529,7 @@ def crea_app() -> Flask:
     @app.post("/biblioteca/<id_canco>/paperera")
     def biblioteca_a_paperera(id_canco):
         # Es torna a la mateixa pàgina del llistat (cerca, ordre i pàgina).
-        llistat = {k: request.form[k] for k in ("q", "ordre", "pagina") if request.form.get(k)}
+        llistat = {k: request.form[k] for k in ("q", "ordre", "pagina", "autor") if request.form.get(k)}
         try:
             bd.canco_a_paperera(id_canco)
         except KeyError:
@@ -698,6 +701,44 @@ def crea_app() -> Flask:
     @app.get("/api/canco/<id_canco>")
     def api_canco(id_canco):
         return jsonify(o_404(bd.carrega_canco, id_canco))
+
+    # ------------------------------------------------------------ Autors
+
+    @app.get("/autors")
+    def autors_llista():
+        return render_template("autors.html", autors=bd.autors(), seccio="biblioteca", error=request.args.get("error"))
+
+    @app.get("/api/autors")
+    def api_autors():
+        """Autors que coincideixen amb q (sense accents ni majúscules), amb el nombre de cançons."""
+        return jsonify(bd.autors(request.args.get("q", ""), limit=request.args.get("limit", 20, type=int)))
+
+    @app.post("/api/autors")
+    def api_autor_nou():
+        try:
+            return jsonify(bd.crea_autor(str((request.get_json(silent=True) or {}).get("nom", ""))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.put("/api/autors/<id_autor>")
+    def api_autor_reanomena(id_autor):
+        """Reanomena un autor (i les seves cançons); si el nom ja és d'un altre autor, s'hi fusiona."""
+        try:
+            return jsonify(bd.reanomena_autor(id_autor, str((request.get_json(silent=True) or {}).get("nom", ""))))
+        except KeyError:
+            abort(404)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.delete("/api/autors/<id_autor>")
+    def api_autor_esborra(id_autor):
+        try:
+            bd.esborra_autor(id_autor)
+        except KeyError:
+            abort(404)
+        except bd.AutorEnUs as e:
+            return jsonify({"error": str(e)}), 409
+        return jsonify({"ok": True})
 
     @app.get("/api/identitat")
     def api_identitat():

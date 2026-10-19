@@ -58,6 +58,7 @@ def duplica(id_canconer: str, duplicar_cancons: bool = False) -> str:
             con.execute("INSERT INTO entrada (canconer_id, canco_id, posicio, versio_id, inclosa, transport, inici) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?)",
                         (nou, id_canco, e["posicio"], versio, e["inclosa"], e["transport"], e["inici"]))
+        bd.vincula_autors(con)
     return nou
 
 
@@ -279,6 +280,7 @@ def importa(dades: bytes) -> str:
                             (id_canconer, id_canco, posicio, versio, 1 if e.get("inclosa", True) else 0,
                              max(-11, min(11, int(e.get("transport") or 0))),
                              "qualsevol" if e.get("inici") == "qualsevol" else "esquerra"))
+            bd.vincula_autors(con)
         return id_canconer
     except Exception:
         for f in fitxers_nous:  # no deixar fitxers orfes si la importació falla

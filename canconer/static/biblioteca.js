@@ -1,6 +1,7 @@
 // Biblioteca de cançons: vista prèvia de la cançó que hi ha sota el ratolí (amb el mateix motor de
 // dibuix que l'editor i el PDF; amb ‹ › o la roda es passa de pàgina) i el formulari de cançó nova.
 import { AMPLE, acordsDePagines, ajustaMarcs, cssEstils, dibuixaPagina, esperaFonts, registraFonts } from "./dist/canconer.js";
+import { muntaSelectorAutor } from "./dist/vue.js";
 
 const $ = (s) => document.querySelector(s);
 const PX_MM = 96 / 25.4;
@@ -14,6 +15,8 @@ function mostraNova(si) {
   obreNova.setAttribute("aria-expanded", String(si));
   if (si) nova.querySelector("[name=titol]").select();
 }
+// L'autor es tria (o es crea) amb el selector d'autors.
+muntaSelectorAutor(document.getElementById("autor-nova"));
 obreNova.addEventListener("click", () => mostraNova(nova.hidden));
 $("#tanca-nova").addEventListener("click", () => mostraNova(false));
 nova.addEventListener("keydown", (ev) => { if (ev.key === "Escape") mostraNova(false); });

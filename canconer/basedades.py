@@ -19,6 +19,7 @@ import json
 import os
 import re
 import sqlite3
+import unicodedata
 import uuid
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta
@@ -146,6 +147,7 @@ def connexio():
             _aplica_migracions(con, existia)
             _migra_json(con)
             _migra_a_pagines(con)
+            vincula_autors(con)
             _inicialitzades.add(cami)
         yield con
         con.commit()
@@ -472,6 +474,113 @@ def actualitza_entrada(id_canconer: str, id_canco: str, **canvis) -> None:
 # ---------------------------------------------------------------- Cançons i versions
 
 
+# ---------------------------------------------------------------- Autors
+# Cada cançó té un autor (o cap). El nom que es mostra és canco.autor (el fan servir {autor}, l'índex,
+# les versions i la cerca); canco.autor_id el vincula a la taula d'autors, que permet triar-los,
+# reanomenar-los, fusionar-los i filtrar per autor. Un sol camí: _vincula_autor, a cada escriptura.
+
+
+def nom_autor(nom: str) -> str:
+    """Nom d'autor net: sense espais de més."""
+    return re.sub(r"\s+", " ", str(nom or "")).strip()[:300]
+
+
+def clau_autor(nom: str) -> str:
+    """Clau per comparar noms d'autor sense majúscules, accents ni espais de més."""
+    sense_accents = "".join(c for c in unicodedata.normalize("NFD", nom_autor(nom)) if not unicodedata.combining(c))
+    return sense_accents.casefold()
+
+
+def _autor(con, nom: str) -> str | None:
+    """Id de l'autor amb aquest nom (el crea si no existeix); None si el nom és buit."""
+    nom = nom_autor(nom)
+    if not nom:
+        return None
+    clau = clau_autor(nom)
+    fila = con.execute("SELECT id FROM autor WHERE clau = ?", (clau,)).fetchone()
+    if fila:
+        return fila["id"]
+    identificador = nou_id()
+    con.execute("INSERT INTO autor (id, nom, clau, creat) VALUES (?, ?, ?, ?)", (identificador, nom, clau, ara()))
+    return identificador
+
+
+def _vincula_autor(con, id_canco: str, unifica_nom: bool = True) -> None:
+    """Posa canco.autor_id d'acord amb canco.autor. Amb unifica_nom, el nom de la cançó passa a ser el de
+    l'autor (si «popular catalana» ja existia com a «Popular catalana»); la migració no ho fa, perquè
+    no canviï cap dada que ja hi era."""
+    fila = con.execute("SELECT autor FROM canco WHERE id = ?", (id_canco,)).fetchone()
+    if not fila:
+        return
+    id_autor = _autor(con, fila["autor"])
+    if unifica_nom:
+        nom = con.execute("SELECT nom FROM autor WHERE id = ?", (id_autor,)).fetchone()["nom"] if id_autor else ""
+        con.execute("UPDATE canco SET autor_id = ?, autor = ? WHERE id = ?", (id_autor, nom, id_canco))
+    else:
+        con.execute("UPDATE canco SET autor_id = ? WHERE id = ?", (id_autor, id_canco))
+
+
+def vincula_autors(con) -> None:
+    """Vincula les cançons que tenen autor però no autor_id (p. ex. importades)."""
+    for f in con.execute("SELECT id FROM canco WHERE autor != '' AND autor_id IS NULL").fetchall():
+        _vincula_autor(con, f["id"], unifica_nom=False)
+
+
+def autors(cerca: str = "", limit: int | None = None) -> list[dict]:
+    """Autors amb el nombre de cançons (fora de la paperera), per nom; filtrats sense accents."""
+    with connexio() as con:
+        files = con.execute("""
+            SELECT a.id, a.nom, a.clau, (SELECT COUNT(*) FROM canco c WHERE c.autor_id = a.id AND c.paperera IS NULL) AS cancons
+            FROM autor a ORDER BY a.clau""").fetchall()
+    q = clau_autor(cerca)
+    resultat = [{"id": f["id"], "nom": f["nom"], "cancons": f["cancons"]} for f in files if not q or q in f["clau"]]
+    return resultat[:limit] if limit else resultat
+
+
+def crea_autor(nom: str) -> dict:
+    if not nom_autor(nom):
+        raise ValueError("Cal un nom.")
+    with connexio() as con:
+        id_autor = _autor(con, nom)
+        fila = con.execute("SELECT id, nom FROM autor WHERE id = ?", (id_autor,)).fetchone()
+    return {"id": fila["id"], "nom": fila["nom"]}
+
+
+def reanomena_autor(id_autor: str, nom: str) -> dict:
+    """Canvia el nom d'un autor (i el de totes les seves cançons). Si ja n'hi ha un altre amb aquest nom,
+    s'hi fusiona: les cançons passen a l'altre i aquest s'esborra. Torna l'autor que queda."""
+    nom = nom_autor(nom)
+    if not nom:
+        raise ValueError("Cal un nom.")
+    with connexio() as con:
+        if not con.execute("SELECT 1 FROM autor WHERE id = ?", (_valida(id_autor),)).fetchone():
+            raise KeyError(id_autor)
+        altre = con.execute("SELECT id FROM autor WHERE clau = ? AND id != ?", (clau_autor(nom), id_autor)).fetchone()
+        if altre:
+            con.execute("UPDATE canco SET autor_id = ? WHERE autor_id = ?", (altre["id"], id_autor))
+            con.execute("DELETE FROM autor WHERE id = ?", (id_autor,))
+            id_autor = altre["id"]
+            nom = con.execute("SELECT nom FROM autor WHERE id = ?", (id_autor,)).fetchone()["nom"]
+        else:
+            con.execute("UPDATE autor SET nom = ?, clau = ? WHERE id = ?", (nom, clau_autor(nom), id_autor))
+        con.execute("UPDATE canco SET autor = ? WHERE autor_id = ?", (nom, id_autor))
+    return {"id": id_autor, "nom": nom}
+
+
+class AutorEnUs(ValueError):
+    """No es pot esborrar un autor que encara té cançons."""
+
+
+def esborra_autor(id_autor: str) -> None:
+    with connexio() as con:
+        if not con.execute("SELECT 1 FROM autor WHERE id = ?", (_valida(id_autor),)).fetchone():
+            raise KeyError(id_autor)
+        n = con.execute("SELECT COUNT(*) FROM canco WHERE autor_id = ?", (id_autor,)).fetchone()[0]
+        if n:
+            raise AutorEnUs(f"Té {n} {'cançó' if n == 1 else 'cançons'}: canvia'ls l'autor (o fusiona'l amb un altre) abans d'esborrar-lo.")
+        con.execute("DELETE FROM autor WHERE id = ?", (id_autor,))
+
+
 def crea_canco(titol: str = "", autor: str = "", contingut: dict | None = None, tipus: str = "canco") -> str:
     """Crea una cançó (o una pàgina lliure). El contingut pot ser de pàgines o un document sol."""
     identificador = nou_id()
@@ -481,7 +590,8 @@ def crea_canco(titol: str = "", autor: str = "", contingut: dict | None = None, 
     contingut = plantilles.normalitza_contingut(contingut)
     with connexio() as con:
         con.execute("INSERT INTO canco (id, titol, autor, doc, creada, actualitzada, tipus) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (identificador, titol, autor, json.dumps(contingut, ensure_ascii=False), ara(), ara(), tipus))
+                    (identificador, titol, nom_autor(autor), json.dumps(contingut, ensure_ascii=False), ara(), ara(), tipus))
+        _vincula_autor(con, identificador)
     return identificador
 
 
@@ -550,9 +660,11 @@ def desa_esborrany(id_canco: str, titol: str | None = None, autor: str | None = 
             _crea_versio(con, id_canco, "Desada automàticament")
         con.execute("UPDATE canco SET titol = ?, autor = ?, doc = ?, actualitzada = ? WHERE id = ?", (
             fila["titol"] if titol is None else titol,
-            fila["autor"] if autor is None else autor,
+            fila["autor"] if autor is None else nom_autor(autor),
             fila["doc"] if contingut is None else json.dumps(plantilles.normalitza_contingut(contingut), ensure_ascii=False),
             ara(), id_canco))
+        if autor is not None:
+            _vincula_autor(con, id_canco)
         for e in con.execute("SELECT canconer_id FROM entrada WHERE canco_id = ? AND versio_id IS NULL",
                              (id_canco,)).fetchall():
             toca_canconer(con, e["canconer_id"])
@@ -583,6 +695,7 @@ def restaura_versio(id_canco: str, id_versio: str) -> None:
         con.execute("UPDATE canco SET titol = ?, autor = ?, doc = ?, actualitzada = ? WHERE id = ?",
                     (versio["titol"], versio["autor"], json.dumps(versio["contingut"], ensure_ascii=False),
                      ara(), id_canco))
+        _vincula_autor(con, id_canco)
 
 
 ORDRES_BIBLIOTECA = {
@@ -592,7 +705,7 @@ ORDRES_BIBLIOTECA = {
 }
 
 
-def biblioteca(cerca: str = "", ordre: str = "titol") -> list[dict]:
+def biblioteca(cerca: str = "", ordre: str = "titol", autor: str | None = None) -> list[dict]:
     """Totes les cançons (també les que no són a cap cançoner), amb els cançoners on surten.
 
     Per a cada cançó: data de l'última modificació, nombre de versions, número de l'última i si
@@ -600,13 +713,13 @@ def biblioteca(cerca: str = "", ordre: str = "titol") -> list[dict]:
     """
     with connexio() as con:
         files = con.execute(f"""
-            SELECT c.id, c.titol, c.autor, c.actualitzada,
+            SELECT c.id, c.titol, c.autor, c.autor_id, c.actualitzada,
                    (SELECT MAX(numero) FROM versio WHERE canco_id = c.id) AS ultima,
                    (SELECT COUNT(*) FROM versio WHERE canco_id = c.id) AS n_versions,
                    COALESCE((SELECT NOT (doc = c.doc AND titol = c.titol AND autor = c.autor) FROM versio
                              WHERE canco_id = c.id ORDER BY numero DESC LIMIT 1), 1) AS modificat
-            FROM canco c WHERE c.tipus = 'canco' AND c.paperera IS NULL
-            ORDER BY {ORDRES_BIBLIOTECA.get(ordre, ORDRES_BIBLIOTECA["titol"])}""").fetchall()
+            FROM canco c WHERE c.tipus = 'canco' AND c.paperera IS NULL {"AND c.autor_id = ?" if autor else ""}
+            ORDER BY {ORDRES_BIBLIOTECA.get(ordre, ORDRES_BIBLIOTECA["titol"])}""", (autor,) if autor else ()).fetchall()
         usos = con.execute("SELECT e.canco_id, k.id, k.dades FROM entrada e "
                            "JOIN canconer k ON k.id = e.canconer_id WHERE k.paperera IS NULL").fetchall()
     per_canco: dict[str, list] = {}
@@ -927,10 +1040,23 @@ def _fixa_portades(con) -> None:
         con.execute("UPDATE canconer SET dades = ? WHERE id = ?", (json.dumps(dades, ensure_ascii=False), fila["id"]))
 
 
+def _afegeix_autors(con) -> None:
+    """Autors en una taula pròpia. Els noms de text lliure de les cançons passen a autors (els que
+    només es diferencien per majúscules, accents o espais es fusionen) i cada cançó s'hi vincula."""
+    con.execute("""CREATE TABLE IF NOT EXISTS autor (
+        id TEXT PRIMARY KEY, nom TEXT NOT NULL, clau TEXT NOT NULL UNIQUE, creat TEXT NOT NULL)""")
+    if "autor_id" not in {f[1] for f in con.execute("PRAGMA table_info(canco)")}:
+        con.execute("ALTER TABLE canco ADD COLUMN autor_id TEXT REFERENCES autor(id) ON DELETE SET NULL")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_canco_autor ON canco (autor_id)")
+    for f in con.execute("SELECT id FROM canco WHERE autor_id IS NULL ORDER BY creada").fetchall():
+        _vincula_autor(con, f["id"], unifica_nom=False)
+
+
 MIGRACIONS = [
     _afegeix_columnes,  # 1: canco.tipus i entrada.inici
     _sembra_marges,  # 2: mestres de marges predefinides
     _afegeix_paperera,  # 3: canconer.paperera (data en què s'hi ha enviat)
     _afegeix_paperera_cancons,  # 4: canco.paperera i canco.paperera_de (cançoner d'on s'ha eliminat)
     _fixa_portades,  # 5: els cançoners existents es queden la portada completa (la nova és només el títol)
+    _afegeix_autors,  # 6: taula d'autors i canco.autor_id (els noms de text lliure hi passen, fusionats)
 ]

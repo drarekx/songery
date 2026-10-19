@@ -13,6 +13,7 @@ import PanellEstils from "./components/PanellEstils.vue";
 import PanellLlista from "./components/PanellLlista.vue";
 import PanellPropietats from "./components/PanellPropietats.vue";
 import RedimensionaPanell from "./components/RedimensionaPanell.vue";
+import SelectorAutor from "./components/SelectorAutor.vue";
 import SelectorColor from "./components/SelectorColor.vue";
 import { TIPUS_ACORD, useEditorStore } from "./stores/editor.js";
 import { usePreferencies } from "./stores/preferencies.js";
@@ -79,6 +80,26 @@ export function muntaSelectorColor(input, opcions = {}) {
         input.value = valor;
         input.dispatchEvent(new Event("input", { bubbles: true }));
       },
+    }),
+  });
+  app.use(pinia);
+  app.mount(lloc);
+  return { app };
+}
+
+/**
+ * Selector d'autor sobre un <input> d'un formulari: l'input queda amagat amb el valor (el nom) i el
+ * formulari l'envia com sempre.
+ */
+export function muntaSelectorAutor(input) {
+  input.type = "hidden";
+  const estat = reactive({ valor: input.value });
+  const lloc = document.createElement("div");
+  input.after(lloc);
+  const app = createApp({
+    render: () => h(SelectorAutor, {
+      modelValue: estat.valor, id: `${input.name || "autor"}-selector`, placeholder: input.placeholder || "Sense autor",
+      "onUpdate:modelValue": (valor) => { estat.valor = valor; input.value = valor; },
     }),
   });
   app.use(pinia);

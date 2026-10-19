@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titol %}Autors{% endblock %}
+
+{% block contingut %}
+<div class="flex flex-col gap-6">
+  <a href="{{ url_for('biblioteca') }}" class="text-[13px] text-ink-500 hover:text-ink-900">← Biblioteca</a>
+  <div>
+    <h1 class="font-display text-4xl font-medium tracking-tight">Autors</h1>
+    <p class="mt-1 max-w-2xl text-ink-500">Els autors de les cançons. Canvia'n el nom i es canvia a totes les seves cançons;
+      si li poses el nom d'un altre autor, s'hi fusionen. Només es poden esborrar els que no tenen cap cançó.</p>
+  </div>
+  <p id="error-autors" class="avis {{ '' if error else 'hidden' }}" role="alert"><span aria-hidden="true">⚠</span><span>{{ error or "" }}</span></p>
+
+  {% if autors %}
+  <ul class="targeta divide-y divide-paper-200">
+    {% for a in autors %}
+    <li class="flex flex-wrap items-center gap-3 px-4 py-2.5" data-autor="{{ a.id }}">
+      <label class="min-w-[12rem] flex-1"><span class="sr-only">Nom de l'autor</span>
+        <input class="camp py-1.5 text-[15px]" value="{{ a.nom }}" maxlength="300" data-nom-original="{{ a.nom }}"></label>
+      <a href="{{ url_for('biblioteca', autor=a.id) }}" class="w-24 text-right text-[13px] text-ink-500 underline hover:text-ink-900">
+        {{ a.cancons }} {{ "cançó" if a.cancons == 1 else "cançons" }}</a>
+      <button type="button" class="btn btn-perill btn-petit" data-esborra {{ "disabled" if a.cancons }}
+              title="{{ 'Té cançons: no es pot esborrar' if a.cancons else 'Esborra l\'autor' }}">Esborra</button>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-ink-500">Encara no hi ha cap autor. Es creen sols quan poses l'autor a una cançó.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { confirma } from "{{ url_for('static', filename='dist/dialegs.js') }}";
+  const error = (text) => {
+    const p = document.getElementById("error-autors");
+    p.lastElementChild.textContent = text;
+    p.classList.toggle("hidden", !text);
+  };
+  async function api(url, metode, cos) {
+    const r = await fetch(url, { method: metode, headers: { "Content-Type": "application/json" }, body: cos ? JSON.stringify(cos) : undefined });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || "No s'ha pogut desar.");
+    return d;
+  }
+  for (const li of document.querySelectorAll("[data-autor]")) {
+    const input = li.querySelector("input");
+    input.addEventListener("change", async () => {
+      const nom = input.value.trim();
+      if (!nom || nom === input.dataset.nomOriginal) { input.value = input.dataset.nomOriginal; return; }
+      const existent = [...document.querySelectorAll("[data-nom-original]")].find((x) => x !== input &&
+        x.dataset.nomOriginal.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase() === nom.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase());
+      if (existent && !await confirma({ titol: `Fusionar amb «${existent.dataset.nomOriginal}»?`,
+        text: `Ja hi ha un autor amb aquest nom. Les cançons de «${input.dataset.nomOriginal}» passaran a «${existent.dataset.nomOriginal}».`, accepta: "Fusiona'ls" })) {
+        input.value = input.dataset.nomOriginal; return;
+      }
+      try {
+        await api(`/api/autors/${li.dataset.autor}`, "PUT", { nom });
+        location.reload();
+      } catch (e) { error(e.message); input.value = input.dataset.nomOriginal; }
+    });
+    li.querySelector("[data-esborra]").addEventListener("click", async () => {
+      if (!await confirma({ titol: `Esborrar «${input.dataset.nomOriginal}»?`, text: "No té cap cançó.", accepta: "Esborra'l", perill: true })) return;
+      try { await api(`/api/autors/${li.dataset.autor}`, "DELETE"); li.remove(); } catch (e) { error(e.message); }
+    });
+  }
+</script>
+{% endblock %}

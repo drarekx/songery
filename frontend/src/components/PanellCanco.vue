@@ -6,6 +6,7 @@
 import { computed } from "vue";
 import { useEditorStore } from "@/stores/editor.js";
 import PanellVideos from "./PanellVideos.vue";
+import SelectorAutor from "./SelectorAutor.vue";
 
 const store = useEditorStore();
 const transportText = computed(() => (store.transport > 0 ? `+${store.transport}` : String(store.transport)));
@@ -23,9 +24,9 @@ const etiquetaVersio = computed(() => {
     <label><span class="etiqueta">Títol</span>
       <input id="titol-ev" class="camp font-display text-lg" :value="store.canco.titol" :readonly="!store.editable"
              @input="store.canviaDadesCanco('titol', $event.target.value)"></label>
-    <label><span class="etiqueta">Autor</span>
-      <input class="camp" :value="store.canco.autor" :readonly="!store.editable"
-             @input="store.canviaDadesCanco('autor', $event.target.value)"></label>
+    <div><label class="etiqueta" for="autor-canco">Autor</label>
+      <SelectorAutor id="autor-canco" :model-value="store.canco.autor" :disabled="!store.editable"
+                     @update:model-value="store.canviaDadesCanco('autor', $event)" /></div>
 
     <template v-if="!store.modeCanco">
       <div class="flex items-center justify-between gap-2">
