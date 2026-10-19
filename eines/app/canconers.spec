@@ -37,7 +37,7 @@ app = BUNDLE(
         "CFBundleDisplayName": "Cançoners",
         "CFBundleShortVersionString": VERSIO,
         "CFBundleVersion": VERSIO,
-        "LSUIElement": True,  # només a la barra de menú, sense icona al Dock
+        "LSUIElement": False,  # icona al Dock (clicar-la obre Cançoners) i a la barra de menú
         "LSMinimumSystemVersion": "12.0",
         "NSHumanReadableCopyright": "Cançoners",
         "LSApplicationCategoryType": "public.app-category.music",

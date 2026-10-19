@@ -3,7 +3,8 @@
 Passos (l'estat es consulta a /api/actualitzacio/estat):
   1. copia        còpia de seguretat de les dades (si falla, no es continua)
   2. baixada      Canconers.zip de l'última release de GitHub, amb el progrés en bytes
-  3. verificacio  es descomprimeix i es comprova la signatura (Developer ID, Team ID)
+  3. verificacio  es descomprimeix i es comprova la signatura (Developer ID, Team ID); a l'usuari
+                  només se li diu que el paquet és correcte
   4. installacio  un script auxiliar espera que aquesta app es tanqui, la substitueix i obre la
                   nova; si la nova no arrenca en un minut, torna a posar l'anterior
   5. reinici      l'app es tanca (ho fa escriptori.py quan veu estat["sortir"])
@@ -129,9 +130,9 @@ def _actualitza() -> None:
     _passa("baixada", f"Baixada completa ({estat['baixat'] / 1e6:.1f} MB)")
 
     # 3. Verificació
-    _passa("verificacio", "Descomprimint i comprovant la signatura…")
+    _passa("verificacio", "Comprovant que el paquet és correcte…")
     nova_app = verifica(zip_, temporal)
-    _passa("verificacio", f"Signatura correcta (Developer ID {EQUIP}). Versió {nova}.")
+    _passa("verificacio", f"Paquet correcte. Versió {nova}.")
 
     # 4. Instal·lació (la fa un script quan aquesta app ja s'ha tancat)
     _passa("installacio", "Preparant la substitució de l'app…")
@@ -172,10 +173,10 @@ def verifica(zip_: Path, desti: Path) -> Path:
         raise ErrorActualitzacio("El paquet baixat està malmès.")
     r = subprocess.run(["codesign", "--verify", "--deep", "--strict", str(nova_app)], capture_output=True, text=True)
     if r.returncode:
-        raise ErrorActualitzacio("La signatura de l'app baixada no és vàlida. No s'ha instal·lat res.")
+        raise ErrorActualitzacio("El paquet baixat no és vàlid. No s'ha instal·lat res.")
     r = subprocess.run(["codesign", "-dv", str(nova_app)], capture_output=True, text=True)
     if f"TeamIdentifier={EQUIP}" not in r.stdout + r.stderr:
-        raise ErrorActualitzacio("L'app baixada no està signada per l'equip esperat. No s'ha instal·lat res.")
+        raise ErrorActualitzacio("El paquet baixat no és l'oficial de Cançoners. No s'ha instal·lat res.")
     return nova_app
 
 

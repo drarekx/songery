@@ -6,7 +6,8 @@ En obrir l'app:
     llista curta (mai es desa un port aleatori, perquè l'adreça no vagi canviant)
   - s'obre en una finestra pròpia de Chrome, Edge o Brave (sense barra d'adreces; és el mateix motor
     que genera el PDF), o al navegador per defecte si no n'hi ha cap o si s'ha triat així
-  - apareix una icona a la barra de menú per tornar a obrir-lo, anar a les dades o sortir
+  - té icona al Dock (clicar-la obre Cançoners) i a la barra de menú (obrir-lo, anar a les dades
+    o sortir)
   - es comprova (en obrir-la i cada dia) si hi ha una versió nova; si n'hi ha, es pregunta si
     es vol instal·lar. Abans d'actualitzar es fa sempre una còpia de seguretat de les dades.
 Si l'app ja està oberta, només s'obre una finestra nova del navegador.
@@ -175,6 +176,21 @@ def main() -> None:
     import rumps
 
     from canconer import actualitzacions, actualitzador, copies
+
+    # Clicar la icona del Dock (o tornar a obrir l'app des del Finder) obre la finestra de Cançoners.
+    # rumps no ho exposa: s'afegeix el mètode corresponent al delegat de l'aplicació.
+    try:
+        import objc
+        from rumps import rumps as _rumps
+
+        def torna_a_obrir(self, aplicacio, finestres_visibles):
+            obre_navegador(url)
+            return True
+
+        objc.classAddMethods(_rumps.NSApp, [objc.selector(
+            torna_a_obrir, selector=b"applicationShouldHandleReopen:hasVisibleWindows:", signature=b"Z@:@Z")])
+    except Exception:  # noqa: BLE001 - sense això, l'app funciona igual (des de la barra de menú)
+        pass
 
     versio = actualitzacions.versio_actual()
 

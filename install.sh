@@ -26,12 +26,12 @@ ditto -x -k "$tmp/Canconers.zip" "$tmp"
 [[ -d "$tmp/$APP" ]] || error "El fitxer descarregat no conté $APP"
 
 # Només s'instal·la si la signatura és vàlida i és la nostra.
-negreta "Comprovant la signatura…"
-codesign --verify --deep --strict "$tmp/$APP" 2>/dev/null || error "La signatura de l'app descarregada no és vàlida. No s'ha instal·lat res."
+negreta "Comprovant el paquet…"
+codesign --verify --deep --strict "$tmp/$APP" 2>/dev/null || error "El paquet descarregat no és vàlid. No s'ha instal·lat res."
 # (La sortida es desa abans de buscar-hi: amb «| grep -q» i pipefail, codesign rep SIGPIPE quan grep
 # acaba i la comprovació fallava a l'atzar encara que la signatura fos bona.)
 signatura=$(codesign -dv "$tmp/$APP" 2>&1 || true)
-[[ "$signatura" == *"TeamIdentifier=$EQUIP"* ]] || error "L'app descarregada no està signada per l'equip esperat. No s'ha instal·lat res."
+[[ "$signatura" == *"TeamIdentifier=$EQUIP"* ]] || error "El paquet descarregat no és l'oficial de Cançoners. No s'ha instal·lat res."
 
 # Tanca la còpia oberta perquè es pugui substituir (les dades no es toquen).
 if pgrep -f "$APP/Contents/MacOS/" >/dev/null; then

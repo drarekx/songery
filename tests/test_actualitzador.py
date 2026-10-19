@@ -63,7 +63,7 @@ def test_verifica_la_signatura(tmp_path):
     (retocada / "Cançoners.app" / "Contents" / "Resources" / "intrus.txt").write_text("hola")
     zip2 = tmp_path / "retocada.zip"
     subprocess.run(["ditto", "-c", "-k", "--keepParent", str(retocada / "Cançoners.app"), str(zip2)], check=True)
-    with pytest.raises(actualitzador.ErrorActualitzacio, match="signatura"):
+    with pytest.raises(actualitzador.ErrorActualitzacio, match="no és vàlid"):
         actualitzador.verifica(zip2, tmp_path / "dolenta")
 
 
