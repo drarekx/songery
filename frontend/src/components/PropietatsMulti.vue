@@ -26,6 +26,11 @@ const ALINEACIONS = [
       <button v-if="!multi.grup" type="button" class="btn btn-primari btn-petit" title="⌘G" :disabled="!store.editable" @click="store.crida('accio', 'agrupa')">Agrupa</button>
       <button v-if="multi.algunGrup" type="button" class="btn btn-petit" title="⇧⌘G" :disabled="!store.editable" @click="store.crida('accio', 'desagrupa')">Desagrupa</button>
     </div>
+    <label v-if="multi.ambEstil"><span class="etiqueta">Estil {{ multi.ambEstil < multi.n ? `(dels ${multi.ambEstil} textos)` : "" }}</span>
+      <select class="camp py-1.5 text-[14px]" :value="multi.estil" :disabled="!store.editable" @change="store.crida('posaEstil', $event.target.value)">
+        <option v-if="!multi.estil" value="" disabled>Estils diferents</option>
+        <option v-for="(s, clau) in store.estils" :key="clau" :value="clau">{{ s.nom }}</option>
+      </select></label>
     <div>
       <span class="etiqueta">Alinea</span>
       <div class="grid grid-cols-6 gap-1">

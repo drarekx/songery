@@ -30,7 +30,8 @@ function numero(clau, prop, valor) {
     <div class="flex items-start gap-3 px-4 pt-4">
       <p v-if="store.modeCanco" class="flex-1 text-[13px] leading-snug text-ink-500">Fora d'un cançoner, els estils són
         {{ store.dissenyDe ? `els del cançoner «${store.dissenyDe}»` : "els de per defecte" }} i aquí no es poden canviar.</p>
-      <p v-else class="flex-1 text-[13px] leading-snug text-ink-500">Els estils s'apliquen a tot el cançoner. Canvia'n un i s'actualitzen totes les pàgines.</p>
+      <p v-else class="flex-1 text-[13px] leading-snug text-ink-500">Els estils s'apliquen a tot el cançoner. Canvia'n un i s'actualitzen totes les pàgines.
+        Crea'n de propis i posa'ls a qualsevol text, marc de lletra o número des de la pestanya Disseny (Estil).</p>
       <button v-if="!store.modeCanco" type="button" class="btn btn-petit shrink-0" @click="store.crida('creaEstil', 'text')">+ Estil nou</button>
     </div>
     <ul class="flex flex-col gap-2 p-4">

@@ -207,6 +207,43 @@ def test_estils_propis_crear_aplicar_i_esborrar(pagina, servidor):
     pagina.espera("document.querySelector('dialog[open]')?.textContent.includes(\"s'està fent servir\")")
 
 
+
+def test_estil_a_partir_d_un_element_i_a_tota_la_seleccio(pagina, servidor):
+    """Un estil propi creat amb l'aspecte d'un element, i posat d'un cop a tots els textos seleccionats."""
+    obre_editor(pagina, servidor)
+    pagina.avalua("""(() => {
+      const text = document.querySelector('.capa-elements [data-tipus=text]');
+      const r = text.getBoundingClientRect();
+      text.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + 3, clientY: r.top + 3, button: 0, isPrimary: true }));
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: r.left + 3, clientY: r.top + 3, button: 0, isPrimary: true }));
+      document.querySelector('[data-pestanya=propietats]').click();
+    })()""")
+    pagina.espera("[...document.querySelectorAll('#panell-propietats button')].some((b) => b.textContent.includes('Crea un estil a partir'))")
+    pagina.avalua("""(() => {
+      const mida = document.querySelector('#panell-propietats input[placeholder=estil]');
+      mida.value = '23'; mida.dispatchEvent(new Event('input'));
+    })()""")
+    pagina.espera("document.querySelector('#panell-propietats input[placeholder=estil]').value === '23'")
+    pagina.avalua("[...document.querySelectorAll('#panell-propietats button')].find((b) => b.textContent.includes('Crea un estil a partir')).click()")
+    pagina.espera("document.querySelector('dialog[open] input')")
+    pagina.avalua("""(() => { const i = document.querySelector('dialog[open] input'); i.value = 'Gran'; i.dispatchEvent(new Event('input'));
+                     document.querySelector('dialog[open] button.btn-primari').click(); })()""")
+    # L'element passa a l'estil nou, sense format propi, i l'estil té la mida que li havíem posat.
+    pagina.espera("""(() => { const s = [...document.querySelectorAll('#panell-propietats select')].find((x) => [...x.options].some((o) => o.textContent === 'Gran'));
+                     return s && s.selectedOptions[0].textContent === 'Gran' && document.querySelector('#panell-propietats input[placeholder=estil]').value === ''; })()""")
+    pagina.avalua("document.querySelector('[data-pestanya=estils]').click()")
+    pagina.espera("[...document.querySelectorAll('#panell-estils li')].some((li) => li.textContent.includes('Gran') && li.textContent.includes('23 pt'))")
+
+    # Tota la pàgina seleccionada: un sol selector d'estil per a tots els textos.
+    pagina.avalua("document.querySelector('[data-pestanya=propietats]').click()")
+    pagina.avalua("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', metaKey: true, bubbles: true }))")
+    pagina.espera("[...document.querySelectorAll('#panell-propietats .etiqueta')].some((e) => e.textContent.startsWith('Estil'))")
+    pagina.avalua("""(() => { const s = [...document.querySelectorAll('#panell-propietats select')].find((x) => [...x.options].some((o) => o.textContent === 'Gran'));
+                     s.value = [...s.options].find((o) => o.textContent === 'Gran').value; s.dispatchEvent(new Event('change')); })()""")
+    pagina.espera("""(() => { const pag = document.querySelector('.marc-seleccio').closest('.pagina-editor');
+                     const els = [...pag.querySelectorAll('.capa-elements [data-tipus=text], .capa-elements [data-tipus=lletra], .capa-elements [data-tipus=numero]')];
+                     return els.length > 1 && els.every((e) => /estil-propi_/.test(e.className)); })()""")
+
 def test_ajuda_de_l_editor(pagina, servidor):
     """#12: el botó «?» (o la tecla ?) obre l'ajuda amb les eines i les dreceres; Esc la tanca."""
     obre_editor(pagina, servidor)

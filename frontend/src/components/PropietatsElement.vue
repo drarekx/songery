@@ -132,6 +132,9 @@ function insereixVariable(v) {
           <button type="button" class="btn btn-fantasma btn-petit col-span-2" @click="store.canviaPropietats({ format: {} })">Torna a l'estil</button>
         </div>
       </details>
+      <button v-if="!store.modeCanco" type="button" class="btn btn-fantasma btn-petit" :disabled="!store.editable"
+              title="Un estil propi amb l'aspecte d'aquest element, per posar-lo a altres elements"
+              @click="store.crida('estilDeLElement')">Crea un estil a partir d'aquest element</button>
       <div v-if="es('text', 'numero', 'index')" class="segmentat w-full" role="group" aria-label="Alineació">
         <button v-for="[v, t] in ALINEACIONS" :key="v" type="button" class="flex-1" :aria-pressed="String((e.alineacio || 'left') === v)"
                 :disabled="!store.editable" @click="store.canviaPropietats({ alineacio: v })">{{ t }}</button>

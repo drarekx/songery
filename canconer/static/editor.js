@@ -270,6 +270,8 @@ store.connecta({
     obreSelectorFont(boto, { actual: K.estils[clau]?.font, tria: (font) => store.canviaEstil(clau, "font", font) });
   },
   creaEstil: (base) => creaEstil(base),
+  posaEstil: (clau) => posaEstil(clau),
+  estilDeLElement: () => estilDeLElement(),
   reanomenaEstil(clau, nom) {
     if (!K.estils[clau] || !nom.trim()) return;
     K.estils[clau].nom = nom.trim().slice(0, 60);
@@ -1998,7 +2000,7 @@ function pintaPropietats() {
   if (ids.length > 1) {
     const els = elementsSel();
     const grup = !!els[0].grup && els.every((x) => x.grup === els[0].grup) && idsGrup(seleccio.p, els[0].id).length === els.length;
-    return store.sincronitza({ propietats: { mode: "multi", multi: { n: els.length, grup, algunGrup: els.some((x) => x.grup) }, element: null, pagina: null, moure } });
+    return store.sincronitza({ propietats: { mode: "multi", multi: { n: els.length, grup, algunGrup: els.some((x) => x.grup), ...estilDe(els) }, element: null, pagina: null, moure } });
   }
   const e = elementSel();
   if (e) {
@@ -2780,6 +2782,46 @@ async function esborraEstil(clau) {
   aplicaEstils(K.estils);
   desaEstils();
   pintaEstils();
+  sincronitzaStore();
+}
+
+// Elements que porten estil de text: als de la selecció se'ls pot posar el mateix estil d'un cop.
+const AMB_ESTIL = ["text", "numero", "index", "lletra"];
+
+/** Estil comú dels elements de la selecció que en porten ("" si en tenen de diferents). */
+function estilDe(els) {
+  const amb = els.filter((e) => AMB_ESTIL.includes(e.tipus));
+  const estils = new Set(amb.map((e) => e.estil));
+  return { ambEstil: amb.length, estil: estils.size === 1 ? [...estils][0] : "" };
+}
+
+/** Posa un estil a tots els elements seleccionats que en porten. */
+function posaEstil(clau) {
+  const els = elementsSel().filter((e) => AMB_ESTIL.includes(e.tipus));
+  if (!K.estils[clau] || !els.length || !editable) return;
+  foto();
+  for (const e of els) e.estil = clau;
+  canviat();
+  repintaPagina(seleccio.p).then(() => pintaPropietats());
+}
+
+/** Estil nou amb l'aspecte de l'element seleccionat (el seu estil més el que s'hi ha canviat a mà),
+ *  que passa a ser l'estil de l'element. */
+async function estilDeLElement() {
+  const e = elementSel();
+  if (!e || !AMB_ESTIL.includes(e.tipus) || !editable) return;
+  const origen = K.estils[e.estil] || K.estils.text;
+  const nom = await pregunta({ titol: "Estil nou a partir d'aquest element",
+    text: "L'estil tindrà l'aspecte que té ara l'element, i el podràs posar a altres elements del cançoner.",
+    valor: `${origen.nom} (propi)`, accepta: "Crea'l" });
+  if (!nom) return;
+  const clau = `propi_${nouId()}`;
+  const format = Object.fromEntries(Object.entries(e.format || {}).filter(([k, v]) => k in origen && v !== "" && v != null));
+  K.estils[clau] = { ...copia(origen), ...format, nom: nom.slice(0, 60) };
+  aplicaEstils(K.estils);
+  desaEstils();
+  pintaEstils();
+  canviaPropietats({ estil: clau, format: {} });
   sincronitzaStore();
 }
 
