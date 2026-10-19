@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AvisLlenc from "@/components/AvisLlenc.vue";
 import BarraEines from "@/components/BarraEines.vue";
+import BarraInferior from "@/components/BarraInferior.vue";
 import BarraText from "@/components/BarraText.vue";
 import { useEditorStore } from "@/stores/editor.js";
 
@@ -41,9 +42,17 @@ describe("BarraEines", () => {
     expect(w.find('[role="toolbar"]').classes()).toContain("eines-inactives");
   });
 
+  it("el zoom, la mà i l'ajuda no són a la barra de dalt (són a la de sota)", () => {
+    const w = munta(BarraEines);
+    expect(w.find('[aria-label="Apropa"]').exists()).toBe(false);
+    expect(w.find('[aria-label="Ajuda"]').exists()).toBe(false);
+  });
+});
+
+describe("BarraInferior", () => {
   it("zoom", async () => {
     store.sincronitza({ zoom: 1.25 });
-    const w = munta(BarraEines);
+    const w = munta(BarraInferior);
     expect(w.text()).toContain("125 %");
     await w.find('[aria-label="Apropa"]').trigger("click");
     expect(ponts.zoom).toHaveBeenLastCalledWith(1.25);
@@ -93,9 +102,9 @@ describe("AvisLlenc", () => {
   });
 });
 
-describe("BarraEines: la mà", () => {
+describe("BarraInferior: la mà", () => {
   it("el botó de la mà es pot deixar premut", async () => {
-    const w = munta(BarraEines);
+    const w = munta(BarraInferior);
     const boto = w.find('[aria-label="Mou el llenç"]');
     expect(boto.attributes("aria-pressed")).toBe("false");
     await boto.trigger("click");
@@ -109,7 +118,7 @@ describe("BarraEines: la mà", () => {
 describe("Ajuda de l'editor (#12)", () => {
   it("el «?» obre l'ajuda amb totes les eines de la barra, i es tanca amb Esc tornant el focus al botó", async () => {
     const { GRUPS_EINES } = await import("@/eines.js");
-    const w = mount(BarraEines, { global: { plugins: [pinia] }, attachTo: document.body });
+    const w = mount(BarraInferior, { global: { plugins: [pinia] }, attachTo: document.body });
     const boto = w.find('[aria-label="Ajuda"]');
     await boto.trigger("click");
     const panell = () => document.querySelector("#ajuda-editor");
@@ -136,9 +145,11 @@ describe("Ajuda de l'editor (#12)", () => {
     eines.GRUPS_EINES[0].eines.push({ nom: "prova", titol: "Eina de prova", descripcio: "Només per al test.", icona: "" });
     const w = mount(BarraEines, { global: { plugins: [pinia] }, attachTo: document.body });
     expect(w.find('[data-eina="prova"]').exists()).toBe(true);
-    await w.find('[aria-label="Ajuda"]').trigger("click");
+    const inferior = mount(BarraInferior, { global: { plugins: [pinia] }, attachTo: document.body });
+    await inferior.find('[aria-label="Ajuda"]').trigger("click");
     expect(document.querySelector("#ajuda-editor").textContent).toContain("Eina de prova");
     eines.GRUPS_EINES[0].eines.pop();
+    inferior.unmount();
     w.unmount();
   });
 });

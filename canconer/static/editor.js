@@ -7,7 +7,7 @@ import {
   reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore, usePreferencies,
+  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraInferior, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore, usePreferencies,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
@@ -350,6 +350,7 @@ store.connecta({
 });
 muntaPanellLlista("#panell-llista");
 muntaBarraEines("#barra-llenc");
+muntaBarraInferior("#barra-inferior");
 muntaBarraText("#barra-text");
 muntaAvisLlenc("#avis-llenc");
 muntaMenuContext("#menu-context");

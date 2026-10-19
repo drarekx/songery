@@ -4,6 +4,7 @@ import { createPinia } from "pinia";
 import { createApp, h, reactive } from "vue";
 import AvisLlenc from "./components/AvisLlenc.vue";
 import BarraEines from "./components/BarraEines.vue";
+import BarraInferior from "./components/BarraInferior.vue";
 import BarraText from "./components/BarraText.vue";
 import MenuContext from "./components/MenuContext.vue";
 import PanellAcords from "./components/PanellAcords.vue";
@@ -29,6 +30,7 @@ function munta(component, desti, props = {}) {
 
 export const muntaPanellAcords = (desti) => munta(PanellAcords, desti);
 export const muntaBarraEines = (desti) => munta(BarraEines, desti);
+export const muntaBarraInferior = (desti) => munta(BarraInferior, desti);
 export const muntaBarraText = (desti) => munta(BarraText, desti);
 export const muntaAvisLlenc = (desti) => munta(AvisLlenc, desti);
 export const muntaMenuContext = (desti) => munta(MenuContext, desti);

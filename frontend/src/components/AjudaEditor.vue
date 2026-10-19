@@ -17,7 +17,11 @@ async function obre() {
   await nextTick();
   const r = boto.value.getBoundingClientRect();
   const ample = Math.min(448, window.innerWidth - 32);
-  posicio.value = { top: `${r.bottom + 6}px`, left: `${Math.max(16, Math.min(r.right - ample, window.innerWidth - ample - 16))}px`, width: `${ample}px` };
+  const left = `${Math.max(16, Math.min(r.right - ample, window.innerWidth - ample - 16))}px`;
+  // A sota del botó si hi cap; si no (el botó és a la barra de sota), a sobre.
+  const abaix = window.innerHeight - r.bottom > r.top;
+  posicio.value = abaix ? { top: `${r.bottom + 6}px`, left, width: `${ample}px` }
+    : { bottom: `${window.innerHeight - r.top + 6}px`, left, width: `${ample}px` };
   panell.value?.focus();
 }
 
