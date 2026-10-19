@@ -97,7 +97,7 @@ def pla(canconer: dict) -> dict:
     """Seqüència completa de pàgines amb tot el que cal per dibuixar-les."""
     especials = canconer["especials"]
     entrades = entrades_incloses(canconer)
-    instrument = canconer.get("instrument") or "guitarra"
+    instrument = diagrames.instrument_valid(canconer.get("instrument"))
 
     cancons: list[dict] = []  # per a l'índex i la interfície
     seq: list[dict] = []
@@ -122,7 +122,9 @@ def pla(canconer: dict) -> dict:
             if base not in tots_acords:
                 tots_acords.append(base)
     svgs = [diagrames.svg(a, instrument) for a in tots_acords]
-    pagines_acords = math.ceil(len(svgs) / plantilles.DIAGRAMES_PER_PAGINA) if canconer.get("pagina_acords") and svgs else 0
+    # Amb guitarra i ukulele, cada diagrama és més ample: n'hi caben menys.
+    per_pagina = plantilles.DIAGRAMES_DOBLES_PER_PAGINA if instrument == "tots" else plantilles.DIAGRAMES_PER_PAGINA
+    pagines_acords = math.ceil(len(svgs) / per_pagina) if canconer.get("pagina_acords") and svgs else 0
 
     n_cancons = sum(1 for e in entrades if e.get("tipus", "canco") == "canco")
     pagines_index = (math.ceil(n_cancons / plantilles.ENTRADES_PER_PAGINA_INDEX)
@@ -132,7 +134,7 @@ def pla(canconer: dict) -> dict:
 
     def afegeix_acords():
         for i in range(pagines_acords):
-            tros = svgs[i * plantilles.DIAGRAMES_PER_PAGINA:(i + 1) * plantilles.DIAGRAMES_PER_PAGINA]
+            tros = svgs[i * per_pagina:(i + 1) * per_pagina]
             afegeix("acords", especials["acords"], diagrames=tros)
 
     # Vídeos marcats per a l'índex de QR, de les cançons que surten.

@@ -43,7 +43,7 @@ VALORS_PER_DEFECTE = {
     "pagina_index": True,  # índex de cançons al principi
     "pagina_qr": False,  # índex de QR dels vídeos marcats
     "posicio_qr": "final",  # inici o final, com la d'acords
-    "instrument": "guitarra",  # guitarra o ukulele
+    "instrument": "guitarra",  # guitarra, ukulele o tots (els dos)
     # estils, mestres i especials: vegeu plantilles.amb_valors_per_defecte
 }
 

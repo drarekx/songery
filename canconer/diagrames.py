@@ -136,25 +136,57 @@ def _posicio_ukulele(semito: int, qualitat: str) -> tuple[list[int], int] | None
     return min(candidates, key=lambda c: (max(c[0]), c[1]))
 
 
+INSTRUMENTS = ("guitarra", "ukulele", "tots")  # «tots»: guitarra i ukulele, un al costat de l'altre
+NOMS_INSTRUMENTS = {"guitarra": "guitarra", "ukulele": "ukulele", "tots": "guitarra i ukulele"}
+
+
+def instrument_valid(valor) -> str:
+    return valor if valor in INSTRUMENTS else "guitarra"
+
+
 def svg(acord: str, instrument: str = "guitarra") -> str:
-    """Genera el diagrama SVG d'un acord (o un quadre buit amb el nom si no es coneix)."""
-    trobat = posicio(acord, instrument)
-    posicions, cejilla = trobat if trobat else (None, 0)
-    n_cordes = CORDES.get(instrument, 6)
+    """Genera el diagrama SVG d'un acord (o un quadre buit amb el nom si no es coneix). Amb «tots», el de
+    guitarra i el d'ukulele un al costat de l'altre, amb el nom de l'instrument a sota de cadascun."""
+    if instrument == "tots":
+        ample, alt = 140, 100
+        parts = [
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {ample} {alt}" '
+            f'class="diagrama doble" role="img" aria-label="Acord {escape(acord)} per a guitarra i ukulele">',
+            f'<text x="{ample / 2}" y="11" text-anchor="middle" font-size="11" '
+            f'font-weight="bold" font-family="sans-serif">{escape(acord)}</text>',
+        ]
+        for dx, nom in ((0, "guitarra"), (70, "ukulele")):
+            parts += _mastil(acord, nom, dx)
+            parts.append(f'<text x="{dx + 35}" y="97" text-anchor="middle" font-size="7" '
+                         f'font-family="sans-serif" fill="#555">{nom}</text>')
+        parts.append("</svg>")
+        return "".join(parts)
     ample, alt = 70, 92
-    sep_c, sep_t, n_trasts, y0 = 9.5, 12, 5, 26
-    amplada_mastil = sep_c * (n_cordes - 1)
-    x0 = (ample - amplada_mastil) / 2 - 1
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {ample} {alt}" '
         f'class="diagrama" role="img" aria-label="Acord {escape(acord)}">',
         f'<text x="{ample / 2}" y="11" text-anchor="middle" font-size="11" '
         f'font-weight="bold" font-family="sans-serif">{escape(acord)}</text>',
+        *_mastil(acord, instrument, 0),
+        "</svg>",
     ]
+    return "".join(parts)
+
+
+def _mastil(acord: str, instrument: str, dx: float) -> list[str]:
+    """Elements SVG del màstil d'un acord (sense el nom), en una franja de 70 d'amplada que comença a dx."""
+    trobat = posicio(acord, instrument)
+    posicions, cejilla = trobat if trobat else (None, 0)
+    n_cordes = CORDES.get(instrument, 6)
+    ample = 70
+    sep_c, sep_t, n_trasts, y0 = 9.5, 12, 5, 26
+    amplada_mastil = sep_c * (n_cordes - 1)
+    x0 = dx + (ample - amplada_mastil) / 2 - 1
+    parts: list[str] = []
     if posicions is None:
-        parts.append(f'<text x="{ample / 2}" y="55" text-anchor="middle" font-size="7" '
-                     f'font-family="sans-serif" fill="#777">sense diagrama</text></svg>')
-        return "".join(parts)
+        parts.append(f'<text x="{dx + ample / 2}" y="55" text-anchor="middle" font-size="7" '
+                     f'font-family="sans-serif" fill="#777">sense diagrama</text>')
+        return parts
 
     premuts = [t for t in posicions if t > 0]
     inici = 1 if not premuts or max(premuts) <= n_trasts else min(premuts)
@@ -191,5 +223,4 @@ def svg(acord: str, instrument: str = "guitarra") -> str:
         else:
             y = y0 + (t - inici + 0.5) * sep_t
             parts.append(f'<circle cx="{x}" cy="{y}" r="3.6" fill="#000"/>')
-    parts.append("</svg>")
-    return "".join(parts)
+    return parts

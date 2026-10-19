@@ -84,14 +84,14 @@
               <p class="ajuda-camp">Al principi, després de l'índex. Al final, just abans de la contraportada.</p>
             </fieldset>
             <fieldset>
-              <legend class="etiqueta">Instrument per defecte</legend>
+              <legend class="etiqueta">Instrument dels diagrames</legend>
               <div class="segmentat w-full">
-                {% for valor, text in [("guitarra", "Guitarra"), ("ukulele", "Ukulele")] %}
+                {% for valor, text in [("guitarra", "Guitarra"), ("ukulele", "Ukulele"), ("tots", "Els dos")] %}
                 <label class="flex-1"><input type="radio" name="instrument" value="{{ valor }}" class="peer sr-only" {% if c.instrument == valor %}checked{% endif %}>
                   <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500/40">{{ text }}</span></label>
                 {% endfor %}
               </div>
-              <p class="ajuda-camp">Ukulele amb afinació estàndard (Sol · Do · Mi · La). A Imprimir es pot canviar per a cada PDF.</p>
+              <p class="ajuda-camp">Per a tots els diagrames del cançoner: la pàgina d'acords i els de les cançons. Amb «Els dos», cada acord surt per a guitarra i per a ukulele, un al costat de l'altre. Ukulele amb afinació estàndard (Sol · Do · Mi · La).</p>
             </fieldset>
           </div>
         </div>

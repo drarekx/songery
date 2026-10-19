@@ -161,13 +161,9 @@ def crea_app() -> Flask:
                 "carpeta_dades": str(bd.DIRECTORI).replace(os.path.expanduser("~"), "~", 1)}
 
     def canconer_impressio(id_canconer: str) -> dict:
-        """Cançoner per imprimir. L'instrument dels diagrames es pot triar a l'hora d'imprimir
-        (?instrument=guitarra|ukulele) sense canviar el cançoner desat. Com que forma part de les
-        dades, la memòria cau del PDF distingeix cada versió."""
+        """Cançoner per imprimir. L'instrument dels diagrames és el de les Opcions del cançoner."""
         c = canconer_o_404(id_canconer)
-        instrument = request.args.get("instrument")
-        if instrument in ("guitarra", "ukulele"):
-            c = {**c, "instrument": instrument}
+        c = {**c, "instrument": diagrames.instrument_valid(c.get("instrument"))}
         # Mestra de marges per a l'enquadernació: la desada al cançoner (o «Sense marges»).
         return {**c, "marge": bd.carrega_marge(c.get("marges"))}
 
@@ -315,7 +311,7 @@ def crea_app() -> Flask:
                 "pagina_index": bool(f.get("pagina_index")),
                 "pagina_acords": bool(f.get("pagina_acords")),
                 "posicio_acords": "final" if f.get("posicio_acords") == "final" else "inici",
-                "instrument": "ukulele" if f.get("instrument") == "ukulele" else "guitarra",
+                "instrument": diagrames.instrument_valid(f.get("instrument")),
             })
             return redirect(url_for("canconer_opcions", id_canconer=id_canconer, desat=1))
         return render_template("opcions.html", c=c, seccio="opcions", desat=request.args.get("desat"),
@@ -353,8 +349,7 @@ def crea_app() -> Flask:
         posicio = request.form.get("posicio_qr", c.get("posicio_qr"))
         bd.desa_meta(id_canconer, {"pagina_qr": bool(request.form.get("pagina_qr")),
                                    "posicio_qr": "inici" if posicio == "inici" else "final"})
-        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer,
-                                instrument=request.form.get("instrument") or None))
+        return redirect(url_for("canconer_imprimir", id_canconer=id_canconer))
 
     @app.get("/actualitzacio")
     def actualitzacio():
@@ -831,7 +826,7 @@ def crea_app() -> Flask:
     def api_diagrames():
         """SVG dels diagrames d'uns acords, per a l'editor ({acord: svg})."""
         d = request.get_json(silent=True) or {}
-        instrument = "ukulele" if d.get("instrument") == "ukulele" else "guitarra"
+        instrument = diagrames.instrument_valid(d.get("instrument"))
         acords = [str(a)[:16] for a in (d.get("acords") or [])[:100] if a]
         return jsonify({a: diagrames.svg(a.split("/")[0], instrument) for a in acords})
 
@@ -965,14 +960,13 @@ def crea_app() -> Flask:
                 contingut = pdf.instruccions(url_interna(url_for("canconer_instruccions", id_canconer=id_canconer)))
             else:
                 pla = maquetacio.pla(c)
-                url = url_interna(url_for("canconer_imprimible", id_canconer=id_canconer, v=pdf.empremta(c),
-                                          instrument=instrument))
+                url = url_interna(url_for("canconer_imprimible", id_canconer=id_canconer, v=pdf.empremta(c)))
                 contingut = pdf.genera(c, tipus, url, pla["total"], colors_cmyk=pla["colors"])
         except (pdf.GotenbergNoDisponible, cmyk.GhostscriptNoDisponible) as e:
             return Response(str(e), status=503, mimetype="text/plain; charset=utf-8")
         pdf.neteja_cau()
         # Si hi ha pàgina de diagrames, el nom del fitxer diu per a quin instrument és.
-        sufix = f"-{instrument}" if c.get("pagina_acords") and tipus != "instruccions" else ""
+        sufix = f"-{instrument if instrument != 'tots' else 'guitarra-i-ukulele'}" if c.get("pagina_acords") and tipus != "instruccions" else ""
         if marges.actiu(c["marge"]) and tipus != "instruccions":
             sufix += f"-marges-{_nom_fitxer(c['marge']['nom'])}"
         nom = f"{_nom_fitxer(c['titol'])}-{TIPUS_PDF[tipus]}{sufix}.pdf"

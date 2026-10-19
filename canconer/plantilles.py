@@ -54,6 +54,7 @@ FONTS = ("display", "sans", "mono")
 # Línies d'índex i diagrames que caben en una pàgina (per saber quantes pàgines calen).
 ENTRADES_PER_PAGINA_INDEX = 24
 DIAGRAMES_PER_PAGINA = 20
+DIAGRAMES_DOBLES_PER_PAGINA = 15  # amb guitarra i ukulele (pagines.css: svg.doble)
 QR_PER_PAGINA_INDEX = 6
 ESPECIALS = ("portada", "index", "acords", "index_qr", "contraportada")
 

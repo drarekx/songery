@@ -69,7 +69,7 @@ def test_web(client):
 
 
 def test_l_instrument_de_la_impressio_canvia_tots_els_diagrames():
-    """Triar ukulele a Imprimir canvia la pàgina d'acords i també els diagrames de dins les cançons."""
+    """L'instrument del cançoner canvia la pàgina d'acords i també els diagrames de dins les cançons."""
     from canconer import diagrames, exemple, maquetacio
 
     k = exemple.crea_exemple()
@@ -79,9 +79,30 @@ def test_l_instrument_de_la_impressio_canvia_tots_els_diagrames():
                                                 "w": 18, "h": 23.7, "rotacio": 0, "opacitat": 1})
     bd.desa_esborrany(entrada["id"], contingut=contingut)
     bd.desa_meta(k, {"pagina_acords": True})
-    for instrument in ("guitarra", "ukulele"):
+    for instrument in ("guitarra", "ukulele", "tots"):
         pla = maquetacio.pla({**bd.carrega_canconer(k), "instrument": instrument})
         canco = next(p for p in pla["pagines"] if p.get("entrada") == entrada["id"])
         acords = next(p for p in pla["pagines"] if p["tipus"] == "acords")
         assert canco["context"]["diagrames"]["G"] == diagrames.svg("G", instrument)
         assert diagrames.svg("G", instrument) in acords["diagrames"]
+
+
+
+def test_amb_els_dos_instruments_cada_acord_porta_guitarra_i_ukulele():
+    from canconer import diagrames, maquetacio, plantilles
+
+    svg = diagrames.svg("Am", "tots")
+    assert 'class="diagrama doble"' in svg and ">guitarra<" in svg and ">ukulele<" in svg
+    assert svg.count(">Am<") == 1  # el nom de l'acord, un sol cop
+    assert diagrames.instrument_valid("tots") == "tots" and diagrames.instrument_valid("violí") == "guitarra"
+    # Són més amples: a la pàgina d'acords n'hi caben menys.
+    acords = [f"{n}{q}" for n in "CDEFGAB" for q in ("", "m", "7")]
+    canco = {"id": "c", "titol": "T", "autor": "", "tipus": "canco", "inici": "esquerra", "transport": 0, "inclosa": True,
+             "contingut": {"format": 2, "pagines": [plantilles.pagina_canco(__import__("canconer.document", fromlist=["x"]).de_text(" ".join(acords) + "\nla"))]}}
+    base = plantilles.amb_valors_per_defecte({"titol": "P", "subtitol": "", "any": "", "contraportada": "", "pagina_acords": True,
+                                               "posicio_acords": "inici", "cancons": [canco]})
+    def pagines_acords(instrument):
+        return [p for p in maquetacio.pla({**base, "instrument": instrument})["pagines"] if p["tipus"] == "acords"]
+    una, dues = pagines_acords("guitarra"), pagines_acords("tots")
+    assert len(una) == 2 and len(dues) == 2
+    assert len(dues[0]["diagrames"]) == plantilles.DIAGRAMES_DOBLES_PER_PAGINA

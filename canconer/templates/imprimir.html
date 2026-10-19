@@ -3,7 +3,7 @@
 {% block classe_main %}mx-auto w-full max-w-7xl px-4 py-8 lg:px-6{% endblock %}
 
 {% macro descarrega(tipus, titol, detall, primari=false) %}
-<a href="{{ url_for('canconer_pdf', id_canconer=c.id, tipus=tipus, v=v, baixa=1, instrument=instrument) }}"
+<a href="{{ url_for('canconer_pdf', id_canconer=c.id, tipus=tipus, v=v, baixa=1) }}"
    class="group flex items-center gap-4 rounded-lg border px-4 py-3.5 transition hover:-translate-y-px
           {{ 'border-accent-600 bg-accent-500 text-white shadow-full hover:bg-accent-600' if primari else 'border-paper-300 bg-white shadow-suau hover:border-ink-300' }}">
   <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md {{ 'bg-white/15' if primari else 'bg-paper-200 text-ink-700' }}">
@@ -47,23 +47,11 @@
       {% endif %}Les pots omplir des de l'editor (vista de tot el llibret).</p>
     {% endif %}
 
-    {# Instrument dels diagrames: es tria aquí, sense canviar el cançoner (el de les Opcions és el de defecte) #}
-    <section class="targeta flex flex-col gap-3 p-4">
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="text-[14px] font-semibold">Diagrames d'acords</h2>
-        <div class="segmentat" role="group" aria-label="Instrument">
-          {% for valor, text in [("guitarra", "Guitarra"), ("ukulele", "Ukulele")] %}
-          <a href="{{ url_for('canconer_imprimir', id_canconer=c.id, instrument=valor) }}" role="button"
-             class="rounded-[5px] px-3 py-1 text-[13px] font-medium transition {{ 'bg-white text-ink-900 shadow-suau' if instrument == valor else 'text-ink-500 hover:text-ink-900' }}"
-             aria-pressed="{{ 'true' if instrument == valor else 'false' }}">{{ text }}</a>
-          {% endfor %}
-        </div>
-      </div>
-      {% if c.pagina_acords %}
-      <p class="text-[13px] leading-snug text-ink-500">Tots els diagrames del PDF (la pàgina d'acords i els que hi ha a les pàgines de les cançons) surten per a <strong class="text-ink-900">{{ "ukulele" if instrument == "ukulele" else "guitarra" }}</strong>. Pots treure les dues versions del mateix cançoner: el nom del fitxer porta l'instrument.</p>
-      {% else %}
-      <p class="text-[13px] leading-snug text-ink-500">Aquest cançoner no té pàgina de diagrames. L'activa a <a class="text-accent-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}">Opcions</a>.</p>
-      {% endif %}
+    {# Instrument dels diagrames: es tria a Opcions #}
+    <section class="targeta flex flex-col gap-1 p-4">
+      <p class="text-[14px] font-semibold">Diagrames d'acords: {{ {"guitarra": "guitarra", "ukulele": "ukulele", "tots": "guitarra i ukulele"}[instrument] }}</p>
+      <p class="text-[13px] leading-snug text-ink-500">{% if c.pagina_acords %}A la pàgina d'acords i als diagrames de les cançons.{% else %}Als diagrames de les cançons; aquest cançoner no té pàgina d'acords.{% endif %}
+        <a class="text-accent-600 underline" href="{{ url_for('canconer_opcions', id_canconer=c.id) }}">Canvia-ho a Opcions</a></p>
     </section>
 
     {# Marges d'enquadernació: es trien a Opcions i a l'editor es veuen com a guies #}
@@ -86,7 +74,6 @@
     {# Índex de QR dels vídeos vinculats a les cançons #}
     <section class="targeta p-4">
       <form method="post" action="{{ url_for('canconer_tria_qr', id_canconer=c.id) }}" class="flex flex-col gap-3">
-        <input type="hidden" name="instrument" value="{{ request.args.get('instrument', '') }}">
         <label class="flex items-center justify-between gap-3">
           <span class="text-[14px] font-semibold">Inclou l'índex de vídeos (QR)</span>
           <span class="interruptor"><input class="peer sr-only" type="checkbox" name="pagina_qr" {{ "checked" if c.pagina_qr }} onchange="this.form.requestSubmit()"><span></span></span>
@@ -215,8 +202,8 @@
   import { Llibret3D } from "{{ estatic('llibret3d.js') }}";
 
   const urls = {
-    dobles: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a5', v=v, instrument=instrument) }}",
-    fulls: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a4', v=v, instrument=instrument) }}",
+    dobles: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a5', v=v) }}",
+    fulls: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a4', v=v) }}",
   };
   const explicacions = {
     dobles: "Com es llegirà el llibret plegat, obert per cada doble pàgina.",

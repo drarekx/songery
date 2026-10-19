@@ -186,28 +186,31 @@ def _canconer_amb_acords(client):
     return id_canconer
 
 
-def test_instrument_a_l_hora_d_imprimir(client):
-    """#1: l'instrument es tria a Imprimir i no canvia el cançoner desat."""
+def test_instrument_dels_diagrames_a_les_opcions(client):
+    """L'instrument es tria a les Opcions del cançoner: guitarra, ukulele o els dos. A Imprimir només es
+    mostra (ja no s'hi tria: un paràmetre a l'adreça no hi fa res)."""
     import re
     from canconer import maquetacio
     id_canconer = _canconer_amb_acords(client)
+    client.post(f"/canconer/{id_canconer}/opcions", data={"titol": "Acords", "pagina_acords": "on", "instrument": "tots"})
+    assert bd.meta_canconer(id_canconer)["instrument"] == "tots"
     html = client.get(f"/canconer/{id_canconer}/imprimir?instrument=ukulele").get_data(as_text=True)
-    assert re.search(r'instrument=ukulele"[^>]*\n?[^>]*aria-pressed="true"', html)
-    assert "instrument=ukulele" in html
-    assert bd.meta_canconer(id_canconer)["instrument"] == "guitarra"  # no s'ha desat res
+    assert "Diagrames d'acords: guitarra i ukulele" in html and "instrument=" not in html
+    assert 'value="tots"' in client.get(f"/canconer/{id_canconer}/opcions").get_data(as_text=True)
 
     c = bd.carrega_canconer(id_canconer)
     def cordes(instrument):
         pla = maquetacio.pla({**c, "instrument": instrument})
         svg = next(p for p in pla["pagines"] if p["tipus"] == "acords")["diagrames"][0]
         return len([m for m in re.finditer(r'<line x1="([\d.]+)" y1="[\d.]+" x2="([\d.]+)"', svg) if m[1] == m[2]])
-    assert (cordes("guitarra"), cordes("ukulele")) == (6, 4)
-    assert pdf.empremta({**c, "instrument": "guitarra"}) != pdf.empremta({**c, "instrument": "ukulele"})
+    assert (cordes("guitarra"), cordes("ukulele"), cordes("tots")) == (6, 4, 10)
+    empremtes = {pdf.empremta({**c, "instrument": i}) for i in ("guitarra", "ukulele", "tots")}
+    assert len(empremtes) == 3
 
 
 @pytest.mark.skipif(not _navegador_local(), reason="No hi ha cap Chrome/Edge instal·lat")
 def test_pdf_per_instrument(monkeypatch):
-    """#1: cada instrument genera el seu PDF (sense barrejar la memòria cau) i el nom ho indica."""
+    """Cada instrument genera el seu PDF (sense barrejar la memòria cau) i el nom ho indica."""
     monkeypatch.setattr(pdf, "GOTENBERG", "")
     app = crea_app()
     servidor = make_server("127.0.0.1", 0, app, threaded=True)
@@ -216,10 +219,11 @@ def test_pdf_per_instrument(monkeypatch):
         client = app.test_client()
         id_canconer = _canconer_amb_acords(client)
         base = f"http://127.0.0.1:{servidor.server_port}/canconer/{id_canconer}/pdf/a5"
-        guitarra = requests.get(f"{base}?instrument=guitarra", timeout=120)
-        ukulele = requests.get(f"{base}?instrument=ukulele&baixa=1", timeout=120)
-        assert guitarra.content != ukulele.content
-        assert "ukulele.pdf" in ukulele.headers["Content-Disposition"]
+        guitarra = requests.get(base, timeout=120)
+        client.post(f"/canconer/{id_canconer}/opcions", data={"titol": "Acords", "pagina_acords": "on", "instrument": "tots"})
+        tots = requests.get(f"{base}?baixa=1", timeout=120)
+        assert guitarra.content != tots.content
+        assert "guitarra-i-ukulele.pdf" in tots.headers["Content-Disposition"]
     finally:
         servidor.shutdown()
 
@@ -252,14 +256,14 @@ def test_pagina_lliure_abans_d_una_entrada_omple_la_pagina_en_blanc():
 
 
 def test_l_index_de_qr_torna_a_imprimir():
-    """L'índex de QR es tria a Imprimir i hi torna (amb l'instrument triat)."""
+    """L'índex de QR es tria a Imprimir i hi torna."""
     from canconer import basedades as bd
     from canconer.web import crea_app
 
     k = bd.crea_canconer("Prova")
     client = crea_app().test_client()
-    r = client.post(f"/canconer/{k}/qr", data={"pagina_qr": "on", "posicio_qr": "final", "instrument": "ukulele"})
-    assert f"/canconer/{k}/imprimir" in r.headers["Location"] and "instrument=ukulele" in r.headers["Location"]
+    r = client.post(f"/canconer/{k}/qr", data={"pagina_qr": "on", "posicio_qr": "final"})
+    assert r.headers["Location"].endswith(f"/canconer/{k}/imprimir")
 
 
 def test_l_index_es_tria_a_opcions():
