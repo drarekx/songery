@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import re
 import ssl
 import sys
 import urllib.request
+import zlib
 from functools import cache
 from pathlib import Path
 
@@ -50,12 +52,29 @@ def es_mes_nova(candidata: str, actual: str) -> bool:
     return a + (0,) * (llarg - len(a)) > b + (0,) * (llarg - len(b))
 
 
+def llegeix_json(url: str, temps_maxim: float = 10) -> dict:
+    """JSON d'una API (la de GitHub) llegit tal com arriba. Amb urllib, que no descomprimeix res pel seu
+    compte: algunes xarxes, proxies o antivirus marquen la resposta com a comprimida sense ser-ho, i
+    `requests` fallava amb «Error -3 while decompressing data: incorrect header check». Si la resposta
+    sí que ve comprimida (gzip o zlib), es descomprimeix aquí. Llança OSError o ValueError si falla."""
+    peticio = urllib.request.Request(url, headers={
+        "Accept": "application/vnd.github+json", "Accept-Encoding": "identity",
+        "User-Agent": f"Canconers/{versio_actual()}"})
+    with urllib.request.urlopen(peticio, timeout=temps_maxim, context=context_ssl()) as resposta:
+        cos = resposta.read()
+    if cos[:2] == b"\x1f\x8b":
+        cos = gzip.decompress(cos)
+    elif cos[:1] == b"\x78":
+        try:
+            cos = zlib.decompress(cos)
+        except zlib.error:
+            pass
+    return json.loads(cos)
+
+
 def ultima_publicada(temps_maxim: float = 8) -> dict:
     """Última release publicada: {"versio", "url", "notes"}. Llança OSError si no s'hi pot accedir."""
-    peticio = urllib.request.Request(API_ULTIMA, headers={
-        "Accept": "application/vnd.github+json", "User-Agent": f"Canconers/{versio_actual()}"})
-    with urllib.request.urlopen(peticio, timeout=temps_maxim, context=context_ssl()) as resposta:
-        dades = json.load(resposta)
+    dades = llegeix_json(API_ULTIMA, temps_maxim)
     return {"versio": str(dades.get("tag_name", "")).lstrip("v"), "url": dades.get("html_url", ""),
             "notes": str(dades.get("body") or "")[:2000]}
 

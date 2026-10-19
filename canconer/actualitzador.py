@@ -107,8 +107,8 @@ def _actualitza() -> None:
     # 2. Baixada
     _passa("baixada", "Buscant l'última versió…")
     try:
-        release = requests.get(API_ULTIMA, timeout=10, headers={"Accept": "application/vnd.github+json", **SENSE_COMPRESSIO}).json()
-    except (requests.RequestException, ValueError) as e:
+        release = actualitzacions.llegeix_json(API_ULTIMA, 10)
+    except (OSError, ValueError) as e:
         raise ErrorActualitzacio(f"No es pot connectar amb GitHub ({e}).") from e
     nova = str(release.get("tag_name", "")).lstrip("v")
     actiu = next((a for a in release.get("assets", []) if a.get("name") == "Canconers.zip"), None)

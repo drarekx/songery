@@ -14,6 +14,7 @@ import shutil
 import sqlite3
 import tempfile
 import zipfile
+import zlib
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -140,8 +141,8 @@ def resum(copia: Path) -> dict:
                                     "cancons": con.execute("SELECT COUNT(*) FROM canco").fetchone()[0]}
                     finally:
                         con.close()
-        except (zipfile.BadZipFile, sqlite3.DatabaseError, OSError):
-            pass
+        except (zipfile.BadZipFile, sqlite3.DatabaseError, OSError, zlib.error, EOFError):
+            pass  # còpia malmesa: compta com a buida
         _resums[clau] = resultat
     return _resums[clau]
 
@@ -174,6 +175,13 @@ def descripcio(copia: Path) -> dict:
 def contingut(copia: Path) -> dict:
     """Què hi ha en una còpia, per previsualitzar-la: cada cançoner amb les seves cançons (en ordre),
     les cançons que no són a cap cançoner i quantes imatges i tipografies porta."""
+    try:
+        return _contingut(copia)
+    except (zipfile.BadZipFile, zlib.error, EOFError, sqlite3.DatabaseError) as e:
+        raise CopiaInvalida("La còpia està malmesa.") from e
+
+
+def _contingut(copia: Path) -> dict:
     with tempfile.TemporaryDirectory() as temporal, zipfile.ZipFile(copia) as z:
         noms = z.namelist()
         if BASE_DADES not in noms:

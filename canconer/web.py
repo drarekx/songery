@@ -219,7 +219,7 @@ def crea_app() -> Flask:
     def api_copia_contingut(nom):
         try:
             return jsonify(copies.contingut(copia_o_404(nom)))
-        except (copies.CopiaInvalida, zipfile.BadZipFile, sqlite3.DatabaseError) as e:
+        except (copies.CopiaInvalida, zipfile.BadZipFile, sqlite3.DatabaseError, OSError, EOFError) as e:
             return jsonify({"error": str(e) or "La còpia està malmesa."}), 400
 
     @app.post("/copies/nova")

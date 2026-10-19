@@ -106,3 +106,40 @@ def test_baixada_ignora_una_compressio_http_falsa(tmp_path):
             actualitzador.baixa(url, tmp_path / "b.zip", len(contingut) + 1)
     finally:
         servidor.shutdown()
+
+
+def test_la_consulta_a_github_aguanta_una_compressio_falsa(monkeypatch):
+    """La consulta de l'última versió (abans amb requests) també fallava amb l'error -3 si la xarxa
+    marcava la resposta com a gzip sense ser-ho. Ara es llegeix tal com arriba; si de debò ve comprimida,
+    es descomprimeix."""
+    import gzip
+    import json
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from canconer import actualitzacions
+
+    dades = {"tag_name": "v9.9.9", "html_url": "https://exemple", "body": "", "assets": []}
+    respostes = [json.dumps(dades).encode(), gzip.compress(json.dumps(dades).encode())]
+
+    class Servidor(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            cos = respostes.pop(0)
+            self.send_response(200)
+            self.send_header("Content-Encoding", "gzip")  # la primera vegada, mentida
+            self.send_header("Content-Length", str(len(cos)))
+            self.end_headers()
+            self.wfile.write(cos)
+
+        def log_message(self, *a):
+            pass
+
+    servidor = HTTPServer(("127.0.0.1", 0), Servidor)
+    threading.Thread(target=servidor.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{servidor.server_port}/"
+    try:
+        monkeypatch.setattr(actualitzacions, "API_ULTIMA", url)
+        assert actualitzacions.ultima_publicada()["versio"] == "9.9.9"  # sense comprimir (i diu gzip)
+        assert actualitzacions.llegeix_json(url)["tag_name"] == "v9.9.9"  # comprimida de debò
+    finally:
+        servidor.shutdown()

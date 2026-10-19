@@ -89,8 +89,11 @@ dades».) El peu de cada pàgina diu de quina carpeta llegeix les dades, i el se
   Tota petició HTTPS amb `urllib` ha de passar `context=actualitzacions.context_ssl()` (certifi). `requests`
   ja fa servir certifi.
 - **`Error -3 while decompressing data: incorrect header check`**: xarxes, proxies o antivirus que marquen
-  la resposta com a comprimida sense ser-ho. Les baixades demanen `Accept-Encoding: identity` i desen el
-  flux en cru (`r.raw.stream(..., decode_content=False)`), i se'n comprova la mida.
+  la resposta com a comprimida sense ser-ho. **Cap petició a GitHub pot deixar que `requests` descomprimeixi
+  la resposta**: el JSON de l'API es llegeix amb `actualitzacions.llegeix_json` (urllib, tal com arriba, i
+  descomprimit a mà només si de debò ho està) i el paquet es baixa en cru
+  (`r.raw.stream(..., decode_content=False)`) amb la mida comprovada. A la 1.4.3 només es va arreglar la
+  baixada i la consulta de l'última versió (`requests.get(...).json()`) va continuar fallant fins a la 1.4.9.
 - **«L'app descarregada no està signada per l'equip esperat»** a l'atzar: `codesign -dv | grep -q` amb
   `pipefail` rebia SIGPIPE. Primer es desa la sortida en una variable i després s'hi busca.
 - **Error 500 després d'actualitzar el codi**: plantilles noves amb Python antic. A la web, el context de les
