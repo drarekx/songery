@@ -80,16 +80,25 @@ def pagina(elements: list[dict], mestra: str | None = "estandard", fons: str = "
     return {"id": nou_id(), "mestra": mestra, "fons": fons, "elements": elements}
 
 
+def portada_completa() -> dict:
+    """Portada amb una barra de color, el títol, el subtítol i l'any (la que tenien per defecte els
+    cançoners fins a la versió 1.4; la fan servir el cançoner d'exemple i els cançoners base)."""
+    return pagina([
+        _el("forma", 0, 0, 6, ALT, fons="cmyk(0,85,90,25)", radi=0, forma="rectangle"),
+        _el("text", 18, 62, 112, 40, text="{titol}", estil="titol", alineacio="center", format={"mida": 30}),
+        _el("text", 18, 106, 112, 10, text="{subtitol}", estil="text", alineacio="center",
+            format={"mida": 13, "pes": 500, "color": "cmyk(0,0,0,88)"}),
+        _el("text", 18, 180, 112, 8, text="{any}", estil="text", alineacio="center",
+            format={"mida": 11, "pes": 600, "color": "cmyk(0,0,0,54)", "espaiat": 0.2}),
+    ], mestra=None)
+
+
 def especials() -> dict:
-    """Portada, índex, acords, índex de QR i contraportada per defecte."""
+    """Portada, índex, acords, índex de QR i contraportada per defecte. La portada d'un cançoner nou
+    només porta el títol (el subtítol i l'any es poden afegir a l'editor amb {subtitol} i {any})."""
     return {
         "portada": pagina([
-            _el("forma", 0, 0, 6, ALT, fons="cmyk(0,85,90,25)", radi=0, forma="rectangle"),
             _el("text", 18, 62, 112, 40, text="{titol}", estil="titol", alineacio="center", format={"mida": 30}),
-            _el("text", 18, 106, 112, 10, text="{subtitol}", estil="text", alineacio="center",
-                format={"mida": 13, "pes": 500, "color": "cmyk(0,0,0,88)"}),
-            _el("text", 18, 180, 112, 8, text="{any}", estil="text", alineacio="center",
-                format={"mida": 11, "pes": 600, "color": "cmyk(0,0,0,54)", "espaiat": 0.2}),
         ], mestra=None),
         "index": pagina([
             _el("text", 13, 14, 122, 12, text="Índex", estil="titol", alineacio="left"),

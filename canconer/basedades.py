@@ -885,9 +885,22 @@ def _afegeix_paperera_cancons(con) -> None:
         con.execute("ALTER TABLE canco ADD COLUMN paperera_de TEXT")
 
 
+def _fixa_portades(con) -> None:
+    """La portada per defecte dels cançoners nous passa a ser només el títol. Els cançoners que ja
+    existien i no l'havien retocada (la prenien dels valors per defecte) es queden la que tenien."""
+    for fila in con.execute("SELECT id, dades FROM canconer").fetchall():
+        dades = json.loads(fila["dades"])
+        especials = dades.get("especials") or {}
+        if especials.get("portada") or (dades.get("disseny") or {}).get("portada"):
+            continue
+        dades["especials"] = {**especials, "portada": plantilles.portada_completa()}
+        con.execute("UPDATE canconer SET dades = ? WHERE id = ?", (json.dumps(dades, ensure_ascii=False), fila["id"]))
+
+
 MIGRACIONS = [
     _afegeix_columnes,  # 1: canco.tipus i entrada.inici
     _sembra_marges,  # 2: mestres de marges predefinides
     _afegeix_paperera,  # 3: canconer.paperera (data en què s'hi ha enviat)
     _afegeix_paperera_cancons,  # 4: canco.paperera i canco.paperera_de (cançoner d'on s'ha eliminat)
+    _fixa_portades,  # 5: els cançoners existents es queden la portada completa (la nova és només el títol)
 ]

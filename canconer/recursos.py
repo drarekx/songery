@@ -6,7 +6,7 @@ Només hi van cançons tradicionals o d'autors morts fa més de 80 anys. Les lle
 
 from __future__ import annotations
 
-from . import basedades, document
+from . import basedades, document, plantilles
 
 # Lletres i acords contrastats sobretot amb «Cançons populars i tradicionals a l'escola» (Generalitat),
 # que porta els acords sobre la partitura, i amb Viquitexts, la Viquipèdia i reculls d'acords.
@@ -532,7 +532,8 @@ def crea(clau: str) -> str:
     """Crea el cançoner base `clau` amb les seves cançons (noves a la biblioteca) i en retorna l'id."""
     base = BASES[clau]
     id_canconer = basedades.crea_canconer(base["titol"], subtitol=base["subtitol"],
-                                          contraportada="Cançons de domini públic.\nBona cantada!")
+                                          contraportada="Cançons de domini públic.\nBona cantada!",
+                                          especials={"portada": plantilles.portada_completa()})
     for c in base["cancons"]:
         id_canco = basedades.crea_canco(c["titol"], c["autor"], document.de_text(c["cos"]))
         basedades.crea_versio(id_canco, "Versió inicial")

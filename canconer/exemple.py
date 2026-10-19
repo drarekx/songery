@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from . import basedades, document
+from . import basedades, document, plantilles
 
 _ESTROFA = """\
 G           D/F#        Em
@@ -48,7 +48,8 @@ def crea_exemple() -> str:
     """Crea un cançoner amb 4 cançons noves a la biblioteca i en retorna l'id."""
     id_canconer = basedades.crea_canconer(
         "Cançoner d'exemple", subtitol="Trobada de prova", any="2026",
-        contraportada="Fet amb el generador de cançoners.\nBona cantada!")
+        contraportada="Fet amb el generador de cançoners.\nBona cantada!",
+        especials={"portada": plantilles.portada_completa()})
     for c in CANCONS:
         id_canco = basedades.crea_canco(c["titol"], c["autor"], document.de_text(c["cos"]))
         basedades.crea_versio(id_canco, "Versió inicial")

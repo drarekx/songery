@@ -67,7 +67,7 @@ def test_disseny_estils_mestres_i_especials(client, canconer):
     r = client.put(f"/api/canconer/{canconer}/disseny", json={"especials": {"portada": portada}}).get_json()
     assert r["especials"]["portada"]["elements"][0]["fons"] == "#000000"
     r = client.put(f"/api/canconer/{canconer}/disseny", json={"restableix": "portada"}).get_json()
-    assert len(r["especials"]["portada"]["elements"]) == 4
+    assert [e.get("text") for e in r["especials"]["portada"]["elements"]] == ["{titol}"]  # la per defecte: només el títol
 
 
 def test_elements_i_imatges(client):
@@ -319,3 +319,26 @@ def test_descarta_nomes_pagines_lliures_buides():
         raise AssertionError("no s'ha esborrat")
     except KeyError:
         pass
+
+
+def test_portada_per_defecte_nomes_amb_el_titol():
+    """Issue #10: un cançoner nou porta només el títol a la portada; els existents i l'exemple no canvien."""
+    import json as json_
+    from canconer import basedades as bd, exemple, plantilles
+
+    nou = bd.carrega_canconer(bd.crea_canconer("Nou"))
+    assert [e.get("text") for e in nou["especials"]["portada"]["elements"]] == ["{titol}"]
+    assert len(bd.carrega_canconer(exemple.crea_exemple())["especials"]["portada"]["elements"]) == 4
+    # Migració: un cançoner antic que agafava la portada per defecte es queda la completa; un amb la
+    # portada retocada no es toca.
+    antic, retocat = bd.crea_canconer("Antic"), bd.crea_canconer("Retocat")
+    propia = plantilles.pagina([{"id": "x", "tipus": "text", "text": "Meva", "x": 1, "y": 1, "w": 9, "h": 9}], mestra=None)
+    bd.desa_meta(retocat, {"especials": {"portada": propia}})
+    with bd.connexio() as con:
+        bd._fixa_portades(con)
+    assert len(bd.carrega_canconer(antic)["especials"]["portada"]["elements"]) == 4
+    assert bd.carrega_canconer(retocat)["especials"]["portada"]["elements"][0]["text"] == "Meva"
+    with bd.connexio() as con:
+        dades = json_.loads(con.execute("SELECT dades FROM canconer WHERE id = ?", (antic,)).fetchone()["dades"])
+    sense_ids = lambda pagina: [{k: v for k, v in e.items() if k != "id"} for e in pagina["elements"]]
+    assert sense_ids(dades["especials"]["portada"]) == sense_ids(plantilles.portada_completa())
