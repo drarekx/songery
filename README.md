@@ -21,31 +21,30 @@ Cal un Mac amb Apple Silicon (M1 o posterior) i macOS 12 o posterior.
 
 ## App per a Mac
 
-`Cançoners.app` porta tot el que cal a dins (no cal Python ni Docker). En obrir-la, arrenca el servidor,
-obre el navegador (Chrome si hi és) i deixa una icona a la barra de menú amb «Obre Cançoners», «Obre la
-carpeta de dades», la versió instal·lada, «Cerca actualitzacions…», «Fes una còpia de seguretat ara»,
-«Restaura una còpia…» i «Surt». Les dades es desen a `~/Library/Application Support/Cançoners`, fora
-de l'app: actualitzar-la no les toca.
+`Cançoners.app` porta tot el que cal a dins (no cal Python ni Docker). En obrir-la, arrenca el servidor
+(sempre al mateix port si és lliure) i obre Cançoners en una pestanya de Chrome (o Edge o Brave; si no
+n'hi ha cap, al navegador per defecte). Tornar-la a obrir des del Dock va a la mateixa pestanya: la
+primera vegada macOS demana permís perquè Cançoners pugui controlar Chrome.
+
+A la barra de menú hi ha «Obre Cançoners», «Obre la carpeta de dades», la versió instal·lada, «Cerca
+actualitzacions…», «Fes una còpia de seguretat ara», «Còpies de seguretat…» i «Surt». Les dades es desen
+a `~/Library/Application Support/Cançoners`, fora de l'app: actualitzar-la no les toca.
 
 ### Actualitzacions i còpies de seguretat
 
 - En obrir l'app i un cop al dia, es mira a GitHub Releases si hi ha una versió més nova que la
-  d'`eines/app/VERSIO`. Si n'hi ha, avisa (un sol cop per versió) i pregunta si es vol instal·lar.
-  «Cerca actualitzacions…» ho comprova a l'acte.
-- Abans d'actualitzar es fa **sempre** una còpia de seguretat; si falla, no s'actualitza. Mentre es
-  genera un PDF tampoc.
-- L'actualització es fa a la pàgina `/actualitzacio` (també des del peu de qualsevol pàgina), que
-  en mostra cada pas en directe: còpia de seguretat, baixada (amb el progrés), verificació de la
-  signatura (Developer ID), instal·lació i reinici. Quan la versió nova respon, la pàgina s'hi
-  reconnecta sola. Si la nova no arrenca en un minut, es torna a posar l'anterior. El registre
-  queda a `actualitzacio.log` i els errors del servidor a `errors.log`.
-- Les còpies són a `copies/AAAA-MM-DD_HHMMSS_vX.Y.Z_motiu.zip` dins de la carpeta de dades: la base de
-  dades (copiada amb l'API de còpia de SQLite, consistent encara que l'app estigui oberta), les
-  imatges i les tipografies. Es conserven les 5 últimes.
-- «Restaura una còpia…» deixa les dades com a la còpia triada i, abans, en desa una de l'estat actual.
-- L'esquema de la base de dades té versió (`PRAGMA user_version`) i migracions ordenades
-  (`MIGRACIONS` a `canconer/basedades.py`; les noves s'afegeixen al final). Abans de migrar se'n fa
-  una còpia, i si una migració falla es desfà tota i no es toca res.
+  d'`eines/app/VERSIO`. Si n'hi ha, avisa i pregunta si es vol instal·lar. «Cerca actualitzacions…» ho
+  comprova a l'acte.
+- Abans d'actualitzar es fa **sempre** una còpia de seguretat; si falla, no s'actualitza.
+- L'actualització es fa a la pàgina `/actualitzacio`, que en mostra cada pas: còpia de seguretat,
+  baixada, verificació de la signatura (Developer ID), instal·lació i reinici. Si la versió nova no
+  arrenca en un minut, es torna a posar l'anterior. El registre queda a `actualitzacio.log`.
+- Les còpies (`copies/` a la carpeta de dades) porten la base de dades, les imatges i les tipografies.
+  Es conserven les 10 últimes i totes les dels últims 30 dies (fins a 60), i mai s'esborra la més
+  recent amb dades. A «Còpies de seguretat…» (pàgina `/copies`) es pot veure què hi ha a cadascuna i
+  restaurar-la; abans de restaurar se'n desa una de l'estat actual.
+- Les dades es migren soles en obrir una versió nova (amb còpia abans; si una migració falla, no es
+  toca res).
 
 Per generar el PDF fa servir el Chrome, Edge o Brave del Mac en mode invisible. Si no n'hi ha cap, la
 primera vegada baixa el «Chrome headless shell» oficial de Google (uns 90 MB).
@@ -134,23 +133,32 @@ Cada pàgina és un llenç A5 on es col·loquen elements amb el ratolí (mides e
 
 | Element | Què és |
 |---|---|
-| **Lletra** | Marc amb la lletra i els acords ancorats a la síl·laba. S'ajusta sol de mida perquè hi càpiga (i totes les pàgines d'una cançó fan servir la mateixa mida). Pot tenir columnes. |
+| **Lletra** | Marc amb la lletra i els acords ancorats a la síl·laba. S'ajusta sol de mida perquè hi càpiga (si no se li canvia la mida a mà). Pot tenir columnes. |
 | **Text** | Text lliure amb variables: `{titol}`, `{autor}`, `{acords}`, `{pagina}`, `{subtitol}`, `{any}`, `{contraportada}`. |
 | **Imatge**, **rectangle**, **el·lipse** | Per decorar, il·lustrar o fer fons. |
+| **Diagrames d'acords** | Un acord sol o tots els de la cançó, per a guitarra, ukulele o tots dos. |
+| **Codi QR** | Porta a un vídeo de la cançó. |
 | **Número de pàgina** | Sobretot a les pàgines mestres. |
 
 - **Pàgines mestres**: elements que es repeteixen (número de pàgina, sanefes, fons), diferents per a
-  les pàgines parells i les senars. Cada pàgina tria la seva mestra.
-- **Estils**: Títol, Lletra, Acord, Secció, Nota… Canvies un estil i s'actualitza tot el cançoner.
-  Cada element pot canviar-ne alguna propietat.
-- **Biblioteca d'elements**: desa un element (o tots els d'una pàgina) i reutilitza'l a qualsevol
-  pàgina o cançoner.
+  les pàgines parells i les senars.
+- **Estils**: Títol, Lletra, Acord, Secció, Nota… i els propis que hi creïs (també a partir d'un
+  element). Canvies un estil i s'actualitza tot el cançoner; se'n pot posar un a diversos elements d'un cop.
+- **Mèdia**: una galeria d'imatges compartida per tots els cançoners, en carpetes. Hi pots pujar imatges
+  (PNG, JPG, WEBP o GIF), arrossegar-les o enganxar-les (⌘V), moure-les de carpeta i esborrar les que no
+  es fan servir. Les imatges enganxades o arrossegades a la pàgina també s'hi desen.
 - **Lletra**: fes doble clic en un marc. Escriu `[G]` just abans de la síl·laba per posar un acord;
   `[Chorus]` sol en una línia crea una secció. Enganxa text de webs de tabs i es converteix sol.
-  Marques: síl·laba tònica (⌘U), veus del cor (⇧⌘K), negreta, cursiva, notes. «Talla aquí» passa la
-  resta de la lletra a la pàgina següent.
-- **Biblioteca de cançons** amb **versions**: cada cançoner fa servir l'última versió o una de
-  fixada, tria quines cançons surten al PDF i el transport.
+  Marques: síl·laba tònica (⌘U), veus del cor (⇧⌘K), negreta, cursiva, notes, i mida, tipografia i
+  colors del text seleccionat. Amb el botó dret: «Reparteix» passa el que no hi cap a les pàgines
+  següents i «Talla aquí» hi passa la resta des del punt clicat.
+- **Biblioteca de cançons** amb **versions** i **autors**: cada cançoner fa servir l'última versió o una
+  de fixada, tria quines cançons surten al PDF i el transport.
+- **Biblioteca d'elements**: desa un element (o tots els d'una pàgina) i reutilitza'l on vulguis.
+- **Recursos**: cançoners de base per començar (nadales i cançons populars, de domini públic).
+- **Opcions del cançoner**: índex, pàgina d'acords (al principi o al final), instrument dels diagrames
+  (guitarra, ukulele o els dos, amb una pàgina d'acords de dos blocs) i marges d'enquadernació, que a
+  l'editor es veuen com a guies.
 
 ### Paginació
 
@@ -158,22 +166,31 @@ Automàtica, amb excepcions:
 
 - 1: portada. Després, l'índex (tantes pàgines com calgui) i, si es vol, la pàgina d'acords.
 - Cada cançó comença en pàgina parella (esquerra), amb una pàgina en blanc si cal. Es pot marcar
-  «comença on toqui» per posar dues cançons curtes a la mateixa doble pàgina. Les **pàgines
-  lliures** (dedicatòries, il·lustracions) van on les posis.
-- Pàgines en blanc fins a un múltiple de 4, la pàgina d'acords si va al final, i la contraportada.
+  «comença on toqui». Les **pàgines lliures** (dedicatòries, il·lustracions) van on les posis.
+- Pàgines en blanc fins a un múltiple de 4 (un full plegat fa 4 pàgines), o de 2 amb anelles (marges amb
+  forats: els fulls van solts). Després, la pàgina d'acords si va al final, i la contraportada.
 
 ### Imposició
 
-Amb N pàgines i F = N/4 fulls, el full *i* (0..F-1) porta:
+Fulls A4 en horitzontal amb dues pàgines A5 per cara, a **doble cara girant per la vora curta** i a
+**mida real**.
+
+**Per plegar i cosir** (cavallet). Amb N pàgines i F = N/4 fulls, el full *i* (0..F-1) porta:
 
 | Cara      | Esquerra | Dreta      |
 |-----------|----------|------------|
 | davantera | N − 2i   | 1 + 2i     |
 | darrere   | 2 + 2i   | N − 1 − 2i |
 
-Exemple N=12: `12|1, 2|11, 10|3, 4|9, 8|5, 6|7`. Imprimeix el PDF A4 a **mida real**, a **doble cara
-girant per la vora curta**. Per a impressores sense doble cara hi ha PDF separats de cares
-davanteres i del darrere, i un **full d'instruccions** imprimible.
+Exemple N=12: `12|1, 2|11, 10|3, 4|9, 8|5, 6|7`.
+
+**Amb anelles** (talla i apila): els fulls es tallen pel mig i la pila de les meitats esquerres va a sobre
+de la de les dretes, i les pàgines queden en ordre. Amb F = ⌈N/4⌉ fulls, el full *i* porta 1 + 2i |
+1 + 2(F + i) a davant i 2 + 2(F + i) | 2 + 2i al darrere; el que passa de N queda en blanc.
+
+Per a impressores sense doble cara hi ha PDF separats de cares davanteres i del darrere, i un **full
+d'instruccions** imprimible. A Imprimir es pot veure el llibret obert, els fulls A4 i un **llibret en 3D**
+on es passen les pàgines.
 
 ### Colors per a impremta (CMYK)
 
@@ -195,11 +212,12 @@ codi font (`eines/ghostscript/LICENSE` i `CODI_FONT`) i es fa servir sense modif
 
 ## Dades
 
-- `data/canconers.sqlite3`: cançoners, cançons, versions i biblioteca d'elements.
+- `data/canconers.sqlite3`: cançoners, cançons, versions, autors, mèdia i biblioteca d'elements.
 - `data/imatges/`, `data/tipografies/`: imatges i tipografies pujades. `data/cau/`: PDF generats (es
   poden esborrar sense perill). `data/copies/`: còpies de seguretat.
 - Les mestres de marges d'enquadernació (`/marges`) són comunes a tots els cançoners.
-- Les dades de versions anteriors (JSON o cançons d'un sol document) es migren soles en arrencar.
+
+Més detalls a [docs/dades.md](docs/dades.md).
 
 ## Desenvolupament
 
@@ -216,42 +234,43 @@ Els fitxers compilats (`canconer/static/app.css` i `canconer/static/dist/`) ja v
 
 ### Frontend: Vue 3 + Pinia
 
-El frontend està passant a **Vue 3** amb **Pinia** per a l'estat, per parts i sense trencar res:
+Les pàgines les genera Flask (Jinja); els components Vue es munten on cal amb les funcions `munta…` de
+`frontend/src/vue.js`. L'editor (`canconer/static/editor.js`) i els components comparteixen l'store Pinia
+`useEditorStore`. Ja són Vue les barres d'eines, els panells (propietats, capes, estils, cançó, acords,
+vídeos, llista), el menú del botó dret, l'ajuda, la galeria de mèdia i el selector d'autor.
 
-- Les pàgines les continua generant Flask (Jinja); els components Vue es munten on cal amb les
-  funcions `munta…` de `frontend/src/vue.js`.
-- L'estat de l'editor és a l'store `useEditorStore` (`frontend/src/stores/editor.js`). Mentre hi hagi
-  parts de l'editor que encara no són Vue (`canconer/static/editor.js`), aquestes hi escriuen l'estat
-  (`sincronitza`) i hi connecten les accions que encara fan elles (`connecta`).
-- Ja són components Vue: el selector de color (`SelectorColor.vue`), el panell de diagrames d'acords
-  (`PanellAcords.vue`) i el dels vídeos (`PanellVideos.vue`). Cada component té els seus tests a
-  `frontend/tests/`.
+Referència per al desenvolupament (i per a Claude): [CLAUDE.md](CLAUDE.md),
+[docs/arquitectura.md](docs/arquitectura.md), [docs/dades.md](docs/dades.md) i
+[docs/escriptori.md](docs/escriptori.md).
 
 ```
 app.py                     punt d'entrada (desenvolupament)
-escriptori.py              llançador de l'app de Mac (servidor + navegador + barra de menú)
-eines/app/                 construcció de Cançoners.app: PyInstaller, icones, signatura i notarització
-docker-compose.yml         Gotenberg
+escriptori.py              llançador de l'app de Mac (servidor, pestanya de Chrome, Dock i barra de menú)
+eines/app/                 construcció de Cançoners.app: PyInstaller, icones, signatura i publicació
 canconer/
   web.py                   rutes Flask i API JSON
-  basedades.py             SQLite: cançons, versions, cançoners, entrades, imatges, elements
+  basedades.py             SQLite: cançons, versions, autors, cançoners, entrades, mèdia; migracions
   plantilles.py            estils, mestres, pàgines especials i plantilla de cançó per defecte
   maquetacio.py            seqüència de pàgines del llibret (regles de paginació)
   disseny.py               validació del disseny que envia l'editor
-  document.py              format de la lletra (Tiptap): conversió de text de tabs i transport
-  parser.py                detecció d'acords i transport
+  document.py, parser.py   format de la lletra (Tiptap): text de webs de tabs, acords i transport
   diagrames.py             diagrames de guitarra i ukulele en SVG
-  imposicio.py             ordre de cavallet i muntatge A4 amb pypdf
-  pdf.py                   tria del motor de PDF i memòria cau
-  motor_pdf.py             PDF amb el Chromium local (DevTools), sense Docker
-  tipografies.py           catàleg de tipografies i tipografies importades
+  imposicio.py, marges.py  fulls A4 (cavallet o talla i apila) i marges d'enquadernació
+  pdf.py, motor_pdf.py     PDF amb el Chromium local (DevTools) i memòria cau
+  cmyk.py, colors.py       PDF per a impremta en CMYK
+  copies.py                còpies de seguretat
+  actualitzacions.py, actualitzador.py   avís i instal·lació de versions noves
+  intercanvi.py            exportar i importar cançoners
+  recursos.py              cançoners de base (nadales, populars)
+  preferencies.py, tipografies.py, videos.py
   templates/               pàgines web, pàgina d'impressió (imprimible.html) i instruccions
   static/
     pagines.css            estils de les pàgines (compartits per l'editor i la impressió)
     editor.js              editor de pàgines
+    visor.js, llibret3d.js visor de PDF (pdf.js) i llibret en 3D
     dist/                  compilat amb Vite: canconer.js (Tiptap + motor de dibuix) i vue.js (components)
-frontend/src/              font: editor-canco.js (Tiptap), pagines.js (motor de dibuix), colors.js,
+frontend/src/              pagines.js (motor de dibuix), editor-canco.js (Tiptap), eines.js, galeria.js,
                            vue.js (muntatge), components/*.vue i stores/ (Pinia)
-frontend/tests/            Vitest (components Vue i motor de dibuix)
-tests/                     pytest
+frontend/tests/            Vitest
+tests/                     pytest (tests/e2e: punta a punta amb un Chromium real)
 ```
