@@ -124,3 +124,35 @@ def test_context_ssl_fa_servir_els_certificats_de_certifi():
     ctx = actualitzacions.context_ssl()
     assert isinstance(ctx, ssl.SSLContext) and ctx.verify_mode == ssl.CERT_REQUIRED
     assert ctx.cert_store_stats()["x509_ca"] > 50  # el paquet de certifi, no un magatzem buit
+
+
+def test_si_les_dades_desapareixen_l_inici_ofereix_la_copia_que_en_te():
+    """Protecció: amb la base de dades buida i una còpia amb dades, l'inici ho diu i la restaura."""
+    from canconer import basedades as bd, copies, exemple
+    from canconer.web import crea_app
+
+    exemple.crea_exemple()
+    copia = copies.fes_copia("1.4.5", "abans-d-actualitzar")
+    with bd.connexio() as con:  # «desapareixen» les dades
+        con.execute("DELETE FROM entrada")
+        con.execute("DELETE FROM canconer")
+        con.execute("DELETE FROM canco")
+    # Les còpies que es facin ara (buides) no han de fer fora la que té dades.
+    for i in range(copies.CONSERVADES + 2):
+        copies.fes_copia("1.4.5", f"buida-{i}")
+    assert copia in copies.llista() and copies.ultima_amb_dades() == copia
+    assert copies.resum(copia)["canconers"] == 1
+
+    client = crea_app().test_client()
+    html = client.get("/").get_data(as_text=True)
+    assert "hi ha una còpia de seguretat amb les teves dades" in html and copia.name in html
+    assert client.post("/copies/restaura", data={"copia": "no-existeix.zip"}).status_code == 404
+    client.post("/copies/restaura", data={"copia": copia.name})
+    assert [k["titol"] for k in bd.llista_canconers()] == ["Cançoner d'exemple"]
+    assert "hi ha una còpia de seguretat amb les teves dades" not in client.get("/").get_data(as_text=True)
+
+
+def test_sense_dades_ni_copies_no_surt_cap_avis():
+    from canconer.web import crea_app
+
+    assert "còpia de seguretat amb les teves dades" not in crea_app().test_client().get("/").get_data(as_text=True)

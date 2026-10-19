@@ -94,8 +94,44 @@ def llista() -> list[Path]:
 
 
 def neteja(conserva: int = CONSERVADES) -> None:
-    for antiga in llista()[conserva:]:
-        antiga.unlink(missing_ok=True)
+    """Esborra les còpies més antigues. Mai la més recent que té dades: si l'app s'ha obert sense dades
+    (i n'ha fet còpies buides), aquella és la que permet recuperar-les."""
+    totes = llista()
+    amb_dades = ultima_amb_dades()
+    for antiga in totes[conserva:]:
+        if antiga != amb_dades:
+            antiga.unlink(missing_ok=True)
+
+
+_resums: dict[tuple[str, float], dict] = {}
+
+
+def resum(copia: Path) -> dict:
+    """Quants cançoners (fora de la paperera) i cançons hi ha en una còpia: {"canconers", "cancons"}."""
+    clau = (copia.name, copia.stat().st_mtime)
+    if clau not in _resums:
+        resultat = {"canconers": 0, "cancons": 0}
+        try:
+            with tempfile.TemporaryDirectory() as temporal, zipfile.ZipFile(copia) as z:
+                if BASE_DADES in z.namelist():
+                    z.extract(BASE_DADES, temporal)
+                    con = sqlite3.connect(Path(temporal) / BASE_DADES)
+                    try:
+                        columnes = {f[1] for f in con.execute("PRAGMA table_info(canconer)")}
+                        filtre = " WHERE paperera IS NULL" if "paperera" in columnes else ""
+                        resultat = {"canconers": con.execute(f"SELECT COUNT(*) FROM canconer{filtre}").fetchone()[0],
+                                    "cancons": con.execute("SELECT COUNT(*) FROM canco").fetchone()[0]}
+                    finally:
+                        con.close()
+        except (zipfile.BadZipFile, sqlite3.DatabaseError, OSError):
+            pass
+        _resums[clau] = resultat
+    return _resums[clau]
+
+
+def ultima_amb_dades() -> Path | None:
+    """La còpia més recent que té algun cançoner o alguna cançó."""
+    return next((c for c in llista() if resum(c)["canconers"] or resum(c)["cancons"]), None)
 
 
 def restaura(copia: Path, versio: str = "") -> Path:

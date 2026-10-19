@@ -21,6 +21,21 @@
 <div class="mx-auto flex w-full max-w-[75rem] flex-col gap-8 px-4 py-10 lg:px-10">
   <h1 class="sr-only">Els teus cançoners</h1>
   {% if error %}<p class="avis"><span aria-hidden="true">⚠</span><span>{{ error }}</span></p>{% endif %}
+  {% if recuperable %}
+  <div role="alert" class="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950 sm:flex-row sm:items-center">
+    <div class="flex-1">
+      <p class="font-semibold">No hi ha cap cançoner, però hi ha una còpia de seguretat amb les teves dades.</p>
+      <p class="mt-1 text-[14px] leading-snug">La còpia <span class="font-mono text-[13px]">{{ recuperable.nom }}</span> té
+        {{ recuperable.canconers }} {{ "cançoner" if recuperable.canconers == 1 else "cançoners" }} i {{ recuperable.cancons }} {{ "cançó" if recuperable.cancons == 1 else "cançons" }}.
+        Si les dades han desaparegut, restaura-la: abans es guarda l'estat actual, així que no es perd res.</p>
+    </div>
+    <form method="post" action="{{ url_for('copies_restaura') }}" data-confirma-titol="Restaurar la còpia?" data-confirma-accepta="Restaura-la"
+          data-confirma="Les dades tornaran a l'estat de la còpia {{ recuperable.nom }}. Abans es fa una còpia de l'estat actual.">
+      <input type="hidden" name="copia" value="{{ recuperable.nom }}">
+      <button class="btn btn-primari shrink-0">Restaura la còpia</button>
+    </form>
+  </div>
+  {% endif %}
   {% if enviat %}
   <div role="status" class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-ink-900 px-4 py-3 text-[14px] text-white">
     <span>«{{ enviat.titol }}» és a la paperera.</span>

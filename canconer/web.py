@@ -12,7 +12,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, cmyk, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, copies, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -183,8 +183,27 @@ def crea_app() -> Flask:
                 enviat = bd.meta_canconer(request.args["paperera"])
             except KeyError:
                 pass
-        return render_template("inici.html", canconers=canconers, bases=recursos.BASES, error=request.args.get("error"), enviat=enviat,
+        # Protecció: si no hi ha cap dada però hi ha una còpia de seguretat que en té, s'avisa i s'ofereix
+        # restaurar-la (en lloc de mostrar l'app buida com si res).
+        recuperable = None
+        if not canconers and not bd.llista_canconers(paperera=True) and not bd.biblioteca():
+            copia = copies.ultima_amb_dades()
+            if copia:
+                recuperable = {"nom": copia.name, **copies.resum(copia)}
+        return render_template("inici.html", canconers=canconers, bases=recursos.BASES, recuperable=recuperable, error=request.args.get("error"), enviat=enviat,
                                a_la_paperera=len(bd.llista_canconers(paperera=True)) + len(bd.cancons_paperera()))
+
+    @app.post("/copies/restaura")
+    def copies_restaura():
+        """Restaura una còpia de seguretat (abans, se'n fa una de l'estat actual)."""
+        copia = next((c for c in copies.llista() if c.name == request.form.get("copia")), None)
+        if not copia:
+            abort(404)
+        try:
+            copies.restaura(copia, actualitzacions.versio_actual())
+        except copies.CopiaInvalida as e:
+            return redirect(url_for("inici", error=str(e)))
+        return redirect(url_for("inici"))
 
     @app.post("/canconer/<id_canconer>/duplica")
     def canconer_duplica(id_canconer):

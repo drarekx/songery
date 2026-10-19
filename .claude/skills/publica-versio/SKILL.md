@@ -61,6 +61,12 @@ toquen. `install.sh` es llegeix de la branca `main`: un canvi a `install.sh` afe
 **Dades**: en obrir-se, `basedades._aplica_migracions` aplica les migracions pendents (`MIGRACIONS`,
 versió de l'esquema a `PRAGMA user_version`), amb còpia de seguretat abans i tot en una transacció.
 
+**Protecció contra «s'ha esborrat tot»**: si l'inici no troba cap cançoner ni cap cançó però hi ha una
+còpia de seguretat amb dades (`copies.ultima_amb_dades`), ho avisa i ofereix restaurar-la
+(`POST /copies/restaura`, que abans guarda l'estat actual). La neteja de còpies antigues (se'n conserven 5)
+no esborra mai la més recent que té dades. També es poden restaurar des de la barra de menú
+(«Restaura una còpia…»).
+
 ## Errors que ja han passat (i com evitar-los)
 
 - **`CERTIFICATE_VERIFY_FAILED`** dins l'app: el Python empaquetat no troba els certificats del sistema.
@@ -77,6 +83,11 @@ versió de l'esquema a `PRAGMA user_version`), amb còpia de seguretat abans i t
 - **PDF desactualitzats**: l'empremta de la memòria cau (`pdf.empremta`) ha d'incloure tot el codi del motor
   de dibuix (`dist/canconer.js` i `dist/trossos/*.js`).
 - **Publicar feina a mitges**: vegeu el pas 1. Si una funció no està acabada, que no entri a la versió.
+- **«S'ha esborrat tot» després d'actualitzar** (1.4.5, en un altre Mac): un cop acabada l'actualització, les
+  dades hi eren. Per això hi ha la protecció de l'inici i els tests d'actualització des de cada esquema. Si
+  passa, primer comprova la carpeta de dades i `copies/` (no restauris ni creïs res a cegues):
+  `ls -la "$HOME/Library/Application Support/Cançoners" "$HOME/Library/Application Support/Cançoners/copies"`
+  i llegeix `actualitzacio.log` i `errors.log`.
 
 ## Si toques l'actualitzador, l'instal·lador, la signatura o les migracions
 
@@ -86,7 +97,12 @@ versió de l'esquema a `PRAGMA user_version`), amb còpia de seguretat abans i t
 - No canviïs el nom de l'actiu (`Canconers.zip`), l'etiqueta (`vX.Y.Z`), el Team ID ni el camí de les dades
   sense mantenir la compatibilitat amb les versions ja publicades.
 - Migracions: només s'afegeixen al final de `MIGRACIONS`, no destructives (afegir columnes o files, no
-  esborrar dades) i idempotents.
+  esborrar dades) i idempotents. **Abans d'afegir-ne una**, desa l'esquema de la base de dades de l'última
+  versió publicada a `tests/fixtures/esquemes/esquema-N.sql` (N = la `user_version` d'aquella versió; només
+  l'estructura: `sqlite3 <base de dades> .schema`, sense dades de ningú). `tests/test_actualitzacio_dades.py`
+  crea una base de dades amb cada esquema, la migra amb el codi actual i comprova que no es perd res
+  (cançoners, cançons, versions, portades retocades) i que les pàgines funcionen; un altre test falla si
+  falta l'esquema de l'última versió.
 - Prova-ho abans de publicar:
   - `tests/test_actualitzador.py` (inclou un servidor que fingeix compressió gzip) i
     `tests/test_copies_i_actualitzacions.py` (còpies, comparació de versions i certificats).
