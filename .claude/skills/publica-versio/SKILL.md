@@ -63,8 +63,11 @@ toquen. `install.sh` es llegeix de la branca `main`: un canvi a `install.sh` afe
 d'aleatori que no es desa. L'adreça es publica a `servidor.json`, que és el que llegeixen `install.sh` i
 l'script d'actualització per saber que la versió nova respon: no hi poseu el port a mà. Si després d'una
 actualització el port ha canviat, l'app obre una finestra nova (la pàgina d'actualització no s'hi podria
-reconnectar). L'app s'obre en una finestra pròpia de Chrome, Edge o Brave (`--app`); es pot tornar al navegador
-normal des de la barra de menú (`finestra` a `configuracio.json`).
+reconnectar). L'app s'obre en una finestra pròpia de Chrome, Edge o Brave (`--app`), amb un perfil només per a Cançoners
+(`<dades>/navegador`) i DevTools: el procés i el port es desen a `navegador.json`, i tornar a obrir l'app (Dock,
+Finder, menú) porta la finestra al davant (i hi navega si es demana una pàgina) en lloc d'obrir-ne una altra.
+«Surt» tanca aquest navegador; en actualitzar-se, no (la pàgina d'actualització s'hi reconnecta). Es pot
+tornar al navegador normal des de la barra de menú (`finestra` a `configuracio.json`).
 
 **Dades**: en obrir-se, `basedades._aplica_migracions` aplica les migracions pendents (`MIGRACIONS`,
 versió de l'esquema a `PRAGMA user_version`), amb còpia de seguretat abans i tot en una transacció.

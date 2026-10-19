@@ -21,6 +21,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -58,18 +59,119 @@ def navegador_app() -> str | None:
     return None
 
 
+# El navegador de la finestra pròpia: un perfil només per a Cançoners (--user-data-dir), amb DevTools
+# (--remote-debugging-port) perquè l'app el pugui reaprofitar: tornar a obrir l'app (Dock, Finder, menú)
+# porta la finestra al davant en lloc d'obrir-ne una de nova. Se'n desa el procés i el port.
+PERFIL_NAVEGADOR = DADES / "navegador"
+FITXER_NAVEGADOR = DADES / "navegador.json"
+
+
+def _cdp(port: int, cami: str, es_json: bool = True):
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}{cami}", timeout=2) as r:
+        cos = r.read()
+    return json.loads(cos or b"null") if es_json else cos
+
+
+def navegador_obert() -> dict | None:
+    """El navegador de Cançoners que ja és obert ({pid, port}), si n'hi ha i respon."""
+    try:
+        desat = json.loads(FITXER_NAVEGADOR.read_text())
+        pid, port = int(desat["pid"]), int(desat["port"])
+        os.kill(pid, 0)
+        _cdp(port, "/json/version")
+        return {"pid": pid, "port": port}
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _porta_al_davant(pid: int) -> None:
+    try:
+        from AppKit import NSApplicationActivateIgnoringOtherApps, NSRunningApplication
+
+        app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
+        if app:
+            app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
+    except Exception:  # noqa: BLE001 - sense AppKit (proves), la finestra només no es porta al davant
+        pass
+
+
+def _navega(pagina: dict, url: str) -> None:
+    import websocket
+
+    ws = websocket.create_connection(pagina["webSocketDebuggerUrl"], timeout=5, suppress_origin=True)
+    try:
+        ws.send(json.dumps({"id": 1, "method": "Page.navigate", "params": {"url": url}}))
+        ws.recv()
+    finally:
+        ws.close()
+
+
+def _reaprofita(navegador: dict, url: str) -> bool:
+    """Fa servir la finestra que ja hi ha: la porta al davant i, si es demana una pàgina concreta (o
+    l'app ha canviat d'adreça), hi navega. Torna False si ja no hi ha cap finestra."""
+    pagines = [t for t in _cdp(navegador["port"], "/json/list") or [] if t.get("type") == "page"]
+    if not pagines:
+        return False
+    pagina = pagines[0]
+    origen = url.split("/", 3)[:3]
+    especifica = url.rstrip("/") != "/".join(origen)
+    if especifica or pagina.get("url", "").split("/", 3)[:3] != origen:
+        _navega(pagina, url)
+    _cdp(navegador["port"], f"/json/activate/{pagina['id']}", es_json=False)  # respon amb text
+    _porta_al_davant(navegador["pid"])
+    return True
+
+
+def tanca_navegador() -> None:
+    """Tanca el navegador de Cançoners (en sortir de l'app)."""
+    navegador = navegador_obert()
+    FITXER_NAVEGADOR.unlink(missing_ok=True)
+    if navegador:
+        try:
+            os.kill(navegador["pid"], 15)
+        except OSError:
+            pass
+
+
+def _obre_finestra(executable: str, url: str) -> None:
+    """Obre el navegador de Cançoners amb una finestra d'app i en desa el procés i el port de DevTools."""
+    PERFIL_NAVEGADOR.mkdir(parents=True, exist_ok=True)
+    port_fitxer = PERFIL_NAVEGADOR / "DevToolsActivePort"
+    port_fitxer.unlink(missing_ok=True)
+    opcions = [executable, f"--user-data-dir={PERFIL_NAVEGADOR}", "--remote-debugging-port=0",
+               "--no-first-run", "--no-default-browser-check", f"--app={url}", "--window-size=1440,900"]
+    if os.environ.get("CANCONER_NAVEGADOR_INVISIBLE"):  # per a proves automàtiques
+        opcions.insert(1, "--headless=new")
+    proces = subprocess.Popen(opcions, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    for _ in range(100):  # fins a 10 s perquè el navegador digui el seu port
+        if port_fitxer.exists() and port_fitxer.read_text().strip():
+            FITXER_NAVEGADOR.write_text(json.dumps({"pid": proces.pid, "port": int(port_fitxer.read_text().split()[0])}))
+            return
+        if proces.poll() is not None:
+            return
+        time.sleep(0.1)
+
+
 def obre_navegador(url: str) -> None:
-    """Obre l'app: en una finestra pròpia (sense barra d'adreces) si hi ha Chrome, Edge o Brave i no
-    s'ha triat el navegador normal; si no, al navegador per defecte."""
+    """Obre Cançoners: en una finestra pròpia (sense barra d'adreces) si hi ha Chrome, Edge o Brave i no
+    s'ha triat el navegador normal; si no, al navegador per defecte. Amb la finestra pròpia n'hi ha
+    sempre una sola: si ja és oberta, es porta al davant (i, si cal, va a la pàgina demanada)."""
     if os.environ.get("CANCONER_NO_OBRIS"):  # per a proves automàtiques
         return
-    navegador = navegador_app() if configuracio().get("finestra", "app") == "app" else None
-    if navegador:
-        # Si el navegador ja és obert, la instància que hi ha obre la finestra i aquesta es tanca.
-        subprocess.Popen([navegador, f"--app={url}", "--window-size=1440,900"], stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL, start_new_session=True)
-    else:
+    executable = navegador_app() if configuracio().get("finestra", "app") == "app" else None
+    if not executable:
         subprocess.Popen(["open", url])
+        return
+    navegador = navegador_obert()
+    if navegador:
+        try:
+            if _reaprofita(navegador, url):
+                return
+        except (OSError, ValueError):
+            pass
+        tanca_navegador()  # obert però sense finestra (o sense resposta): es torna a obrir
+        time.sleep(0.5)
+    _obre_finestra(executable, url)
 
 
 def instancia_oberta() -> str | None:
@@ -339,6 +441,7 @@ def main() -> None:
 
         def surt(self, _):
             FITXER_SERVIDOR.unlink(missing_ok=True)
+            tanca_navegador()
             rumps.quit_application()
 
     App().run()

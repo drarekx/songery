@@ -63,8 +63,10 @@ def test_s_obre_en_una_finestra_propia_o_al_navegador(escriptori, monkeypatch, t
     chrome.write_text("#!/bin/sh\n")
     chrome.chmod(chrome.stat().st_mode | stat.S_IEXEC)
     monkeypatch.setattr(escriptori, "NAVEGADORS_APP", [str(chrome)])
+    monkeypatch.setattr(escriptori, "navegador_obert", lambda: None)
+    monkeypatch.setattr(escriptori, "_obre_finestra", lambda executable, url: crides.append([executable, f"--app={url}"]))
     escriptori.obre_navegador("http://127.0.0.1:48650/")
-    assert crides[-1][:2] == [str(chrome), "--app=http://127.0.0.1:48650/"]
+    assert crides[-1] == [str(chrome), "--app=http://127.0.0.1:48650/"]
     escriptori.desa_configuracio(finestra="navegador")  # l'usuari prefereix el navegador normal
     escriptori.obre_navegador("http://127.0.0.1:48650/")
     assert crides[-1] == ["open", "http://127.0.0.1:48650/"]
@@ -126,3 +128,45 @@ def test_no_es_confon_amb_un_altre_servidor_al_mateix_port(escriptori, tmp_path,
     escriptori.FITXER_SERVIDOR.write_text(json.dumps({"url": url, "pid": pid}))
     assert escriptori.instancia_oberta() == url
     s.shutdown()
+
+
+def test_una_sola_finestra_encara_que_s_obri_moltes_vegades(escriptori, tmp_path, monkeypatch):
+    """#15: tornar a obrir l'app (Dock, Finder, menú) porta al davant la finestra que ja hi ha (i, si es
+    demana una pàgina concreta, hi navega) en lloc d'obrir-ne una de nova. Amb un Chromium invisible."""
+    import time
+    import urllib.request
+
+    from canconer import motor_pdf
+
+    executable = motor_pdf.troba_navegador()
+    if not executable or "headless-shell" in executable:
+        pytest.skip("Cal un Chrome, Edge o Brave")
+    monkeypatch.setattr(escriptori, "navegador_app", lambda: executable)
+    monkeypatch.setattr(escriptori, "PERFIL_NAVEGADOR", tmp_path / "navegador")
+    monkeypatch.setattr(escriptori, "FITXER_NAVEGADOR", tmp_path / "navegador.json")
+    monkeypatch.setenv("CANCONER_NAVEGADOR_INVISIBLE", "1")
+    s = _servidor({"app": "canconers"})
+    base = f"http://127.0.0.1:{s.server_port}/"
+    pagines = lambda nav: [t for t in escriptori._cdp(nav["port"], "/json/list") if t["type"] == "page"]
+    try:
+        escriptori.obre_navegador(base)
+        nav = escriptori.navegador_obert()
+        assert nav and len(pagines(nav)) == 1
+        for _ in range(3):  # tres clics al Dock
+            escriptori.obre_navegador(base)
+        assert escriptori.navegador_obert()["pid"] == nav["pid"] and len(pagines(nav)) == 1
+        escriptori.obre_navegador(base + "copies")  # «Còpies de seguretat…» del menú: la mateixa finestra
+        time.sleep(0.5)
+        assert len(pagines(nav)) == 1 and pagines(nav)[0]["url"].endswith("/copies")
+        # Es tanca la finestra (el navegador continua): en tornar a obrir, n'hi ha exactament una.
+        urllib.request.urlopen(f"http://127.0.0.1:{nav['port']}/json/close/{pagines(nav)[0]['id']}")
+        time.sleep(0.5)
+        escriptori.obre_navegador(base)
+        nou = escriptori.navegador_obert()
+        assert nou and len(pagines(nou)) == 1
+        escriptori.tanca_navegador()  # en sortir de l'app
+        time.sleep(1)
+        assert escriptori.navegador_obert() is None
+    finally:
+        escriptori.tanca_navegador()
+        s.shutdown()
