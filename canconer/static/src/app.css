@@ -150,6 +150,9 @@
   .nansa-columna:hover::after, .nansa-columna:focus-visible::after, .nansa-columna.actiu::after { @apply bg-ink-400; }
   .redimensionant, .redimensionant * { cursor: col-resize !important; user-select: none !important; }
 
+  /* Ajuda de l'editor (botó «?») */
+  .ajuda-editor { @apply fixed z-[60] flex max-h-[min(70vh,40rem)] flex-col rounded-xl border border-paper-300 bg-paper-50 shadow-full outline-none; }
+
   /* Menú del botó dret */
   .menu-context {
     @apply fixed z-[70] flex min-w-[14rem] max-w-[20rem] flex-col rounded-xl border border-paper-300 bg-paper-50/95 p-1 shadow-full outline-none backdrop-blur;

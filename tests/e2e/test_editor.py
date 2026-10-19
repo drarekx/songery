@@ -205,3 +205,18 @@ def test_estils_propis_crear_aplicar_i_esborrar(pagina, servidor):
     pagina.avalua("""(() => { const li = [...document.querySelectorAll('#panell-estils li')].find((x) => x.textContent.includes('Destacat'));
                      li.querySelector('details').open = true; [...li.querySelectorAll('button')].find((b) => b.textContent.startsWith('Esborra')).click(); })()""")
     pagina.espera("document.querySelector('dialog[open]')?.textContent.includes(\"s'està fent servir\")")
+
+
+def test_ajuda_de_l_editor(pagina, servidor):
+    """#12: el botó «?» (o la tecla ?) obre l'ajuda amb les eines i les dreceres; Esc la tanca."""
+    obre_editor(pagina, servidor)
+    pagina.avalua("document.querySelector('[aria-label=Ajuda]').click()")
+    pagina.espera("document.querySelector('#ajuda-editor')")
+    text = pagina.avalua("document.querySelector('#ajuda-editor').textContent")
+    assert "Marc de lletra amb acords" in text and "Duplica la pàgina" in text and "Dreceres" in text
+    caixa = pagina.avalua("(() => { const r = document.querySelector('#ajuda-editor').getBoundingClientRect(); return [r.left, r.right, r.bottom, innerWidth, innerHeight]; })()")
+    assert caixa[0] >= 0 and caixa[1] <= caixa[3] and caixa[2] <= caixa[4]  # dins de la finestra
+    pagina.avalua("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))")
+    pagina.espera("!document.querySelector('#ajuda-editor')")
+    pagina.avalua("document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))")
+    pagina.espera("document.querySelector('#ajuda-editor')")

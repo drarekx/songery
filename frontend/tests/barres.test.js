@@ -105,3 +105,40 @@ describe("BarraEines: la mà", () => {
     expect(boto.attributes("aria-pressed")).toBe("true");
   });
 });
+
+describe("Ajuda de l'editor (#12)", () => {
+  it("el «?» obre l'ajuda amb totes les eines de la barra, i es tanca amb Esc tornant el focus al botó", async () => {
+    const { GRUPS_EINES } = await import("@/eines.js");
+    const w = mount(BarraEines, { global: { plugins: [pinia] }, attachTo: document.body });
+    const boto = w.find('[aria-label="Ajuda"]');
+    await boto.trigger("click");
+    const panell = () => document.querySelector("#ajuda-editor");
+    expect(panell()).not.toBeNull();
+    for (const eina of GRUPS_EINES.flatMap((g) => g.eines)) expect(panell().textContent).toContain(eina.titol.split(":")[0]);
+    expect(panell().textContent).toContain("⇧⌘Z");
+    expect(panell().textContent).toContain("Amb text seleccionat");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await w.vm.$nextTick();
+    expect(panell()).toBeNull();
+    expect(document.activeElement).toBe(boto.element);
+    // La tecla «?» també l'obre (si no s'escriu enlloc), i un clic fora el tanca.
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
+    await w.vm.$nextTick();
+    expect(panell()).not.toBeNull();
+    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    await w.vm.$nextTick();
+    expect(panell()).toBeNull();
+    w.unmount();
+  });
+
+  it("una eina nova a eines.js surt a l'ajuda sense tocar el component", async () => {
+    const eines = await import("@/eines.js");
+    eines.GRUPS_EINES[0].eines.push({ nom: "prova", titol: "Eina de prova", descripcio: "Només per al test.", icona: "" });
+    const w = mount(BarraEines, { global: { plugins: [pinia] }, attachTo: document.body });
+    expect(w.find('[data-eina="prova"]').exists()).toBe(true);
+    await w.find('[aria-label="Ajuda"]').trigger("click");
+    expect(document.querySelector("#ajuda-editor").textContent).toContain("Eina de prova");
+    eines.GRUPS_EINES[0].eines.pop();
+    w.unmount();
+  });
+});
