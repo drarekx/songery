@@ -103,7 +103,15 @@ function deixa() {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <!-- Fora d'un cançoner (editant una cançó des de la biblioteca), només la cançó i d'on ve el disseny. -->
+  <div v-if="store.modeCanco" class="flex flex-col gap-3 px-4 pt-4 text-[13px] leading-snug text-ink-700">
+    <h2 class="titol-seccio-llista p-0">Cançó</h2>
+    <p class="font-display text-[17px] font-medium text-ink-900">{{ store.llista.cancons[0]?.titol || "Sense títol" }}</p>
+    <p class="text-ink-500">L'edites fora de cap cançoner: els canvis es desen a la cançó i els veuen tots els cançoners que la fan servir.</p>
+    <p class="text-ink-500">Disseny: {{ store.dissenyDe ? `el del cançoner «${store.dissenyDe}»` : "el de per defecte" }} (aquí no es pot canviar).</p>
+    <a :href="`/biblioteca/${store.llista.cancons[0]?.id}`" class="btn btn-petit justify-start">Fitxa i versions de la cançó</a>
+  </div>
+  <div v-else class="flex flex-col">
     <div class="px-2 pt-3">
       <button type="button" class="item-llista w-full" :aria-current="String(actiu('llibre'))" @click="obre('llibre')">
         <svg class="h-4 w-4 shrink-0 text-ink-400" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3h5v10H2zM9 3h5v10H9z"/></svg>

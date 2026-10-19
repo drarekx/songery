@@ -28,8 +28,10 @@ function numero(clau, prop, valor) {
 <template>
   <div class="flex flex-col">
     <div class="flex items-start gap-3 px-4 pt-4">
-      <p class="flex-1 text-[13px] leading-snug text-ink-500">Els estils s'apliquen a tot el cançoner. Canvia'n un i s'actualitzen totes les pàgines.</p>
-      <button type="button" class="btn btn-petit shrink-0" @click="store.crida('creaEstil', 'text')">+ Estil nou</button>
+      <p v-if="store.modeCanco" class="flex-1 text-[13px] leading-snug text-ink-500">Fora d'un cançoner, els estils són
+        {{ store.dissenyDe ? `els del cançoner «${store.dissenyDe}»` : "els de per defecte" }} i aquí no es poden canviar.</p>
+      <p v-else class="flex-1 text-[13px] leading-snug text-ink-500">Els estils s'apliquen a tot el cançoner. Canvia'n un i s'actualitzen totes les pàgines.</p>
+      <button v-if="!store.modeCanco" type="button" class="btn btn-petit shrink-0" @click="store.crida('creaEstil', 'text')">+ Estil nou</button>
     </div>
     <ul class="flex flex-col gap-2 p-4">
       <li v-for="(e, clau) in store.estils" :key="clau" class="rounded-md border border-paper-300 bg-white">
@@ -40,7 +42,7 @@ function numero(clau, prop, valor) {
             <span v-if="propi(clau)" class="rounded bg-paper-200 px-1.5 text-[10.5px] font-medium text-ink-500">propi</span>
             <span class="font-mono text-[11px] text-ink-400">{{ e.mida }} pt</span>
           </summary>
-          <div class="grid grid-cols-2 gap-3 border-t border-paper-200 p-3">
+          <fieldset class="grid grid-cols-2 gap-3 border-t border-paper-200 p-3" :disabled="store.modeCanco">
             <label v-if="propi(clau)" class="col-span-2"><span class="etiqueta">Nom</span>
               <input class="camp py-1 text-[13px]" :value="e.nom" maxlength="60" @change="store.crida('reanomenaEstil', clau, $event.target.value)"></label>
             <div class="col-span-2">
@@ -72,7 +74,7 @@ function numero(clau, prop, valor) {
               <button type="button" class="btn btn-fantasma btn-petit" @click="store.crida('creaEstil', clau)">Duplica</button>
               <button v-if="propi(clau)" type="button" class="btn btn-perill btn-petit" @click="store.crida('esborraEstil', clau)">Esborra…</button>
             </div>
-          </div>
+          </fieldset>
         </details>
       </li>
     </ul>

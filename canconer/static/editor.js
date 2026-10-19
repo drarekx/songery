@@ -2931,6 +2931,8 @@ $$("[data-mostra]").forEach((b) => b.addEventListener("click", () => mostraPanel
 
 // ------------------------------------------------------------ Inici
 
+// Editant una cançó des de la biblioteca (sense cançoner): els components amaguen el que és del cançoner.
+store.sincronitza({ modeCanco: !!dades.modeCanco, dissenyDe: dades.dissenyDe || null });
 [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
 aplicaEstils(K.estils);
 pintaLlista();

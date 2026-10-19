@@ -27,23 +27,26 @@ const etiquetaVersio = computed(() => {
       <input class="camp" :value="store.canco.autor" :readonly="!store.editable"
              @input="store.canviaDadesCanco('autor', $event.target.value)"></label>
 
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-[13px] font-semibold text-ink-700" title="S'aplica en aquest cançoner, sense canviar la cançó">Transport</span>
-      <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
-        <button type="button" class="w-8 rounded-l-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Baixa un semitò" @click="store.mouTransport(-1)">−</button>
-        <output class="flex w-10 items-center justify-center border-x border-paper-300 font-mono text-[13px] font-semibold tabular-nums">{{ transportText }}</output>
-        <button type="button" class="w-8 rounded-r-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Puja un semitò" @click="store.mouTransport(1)">+</button>
+    <template v-if="!store.modeCanco">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-[13px] font-semibold text-ink-700" title="S'aplica en aquest cançoner, sense canviar la cançó">Transport</span>
+        <div class="inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau">
+          <button type="button" class="w-8 rounded-l-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Baixa un semitò" @click="store.mouTransport(-1)">−</button>
+          <output class="flex w-10 items-center justify-center border-x border-paper-300 font-mono text-[13px] font-semibold tabular-nums">{{ transportText }}</output>
+          <button type="button" class="w-8 rounded-r-md text-lg leading-none text-ink-500 hover:bg-paper-100" aria-label="Puja un semitò" @click="store.mouTransport(1)">+</button>
+        </div>
       </div>
-    </div>
-    <button type="button" class="btn btn-petit" :disabled="!store.transport || !store.editable" @click="store.crida('aplicaTransport')">Aplica el transport a la cançó</button>
+      <button type="button" class="btn btn-petit" :disabled="!store.transport || !store.editable" @click="store.crida('aplicaTransport')">Aplica el transport a la cançó</button>
 
-    <label class="flex items-center justify-between gap-3 text-[14px]">Surt al PDF
-      <span class="interruptor"><input class="peer sr-only" type="checkbox" :checked="store.entrada.inclosa"
-             @change="store.canviaEntrada({ inclosa: $event.target.checked })"><span></span></span></label>
-    <label class="flex items-center justify-between gap-3 text-[14px]">Comença sempre a l'esquerra
-      <span class="interruptor"><input class="peer sr-only" type="checkbox" :checked="store.entrada.inici !== 'qualsevol'"
-             @change="store.canviaEntrada({ inici: $event.target.checked ? 'esquerra' : 'qualsevol' })"><span></span></span></label>
-    <p class="-mt-2 text-[12px] leading-snug text-ink-500">Desactiva-ho per posar-la just després de l'anterior (per exemple, dues cançons curtes a la mateixa doble pàgina).</p>
+      <label class="flex items-center justify-between gap-3 text-[14px]">Surt al PDF
+        <span class="interruptor"><input class="peer sr-only" type="checkbox" :checked="store.entrada.inclosa"
+               @change="store.canviaEntrada({ inclosa: $event.target.checked })"><span></span></span></label>
+      <label class="flex items-center justify-between gap-3 text-[14px]">Comença sempre a l'esquerra
+        <span class="interruptor"><input class="peer sr-only" type="checkbox" :checked="store.entrada.inici !== 'qualsevol'"
+               @change="store.canviaEntrada({ inici: $event.target.checked ? 'esquerra' : 'qualsevol' })"><span></span></span></label>
+      <p class="-mt-2 text-[12px] leading-snug text-ink-500">Desactiva-ho per posar-la just després de l'anterior (per exemple, dues cançons curtes a la mateixa doble pàgina).</p>
+
+    </template>
 
     <PanellVideos class="border-t border-paper-300 pt-4" />
 
@@ -51,7 +54,7 @@ const etiquetaVersio = computed(() => {
       <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.5H5M8 5v3l2 1.5"/></svg>
       Versions i historial <span class="font-mono text-[11px] text-ink-400">{{ etiquetaVersio }}</span>
     </button>
-    <div class="flex flex-col gap-1.5 border-t border-paper-300 pt-4">
+    <div v-if="!store.modeCanco" class="flex flex-col gap-1.5 border-t border-paper-300 pt-4">
       <button type="button" class="btn btn-petit" @click="store.crida('treuCanco')">Treu del cançoner</button>
       <button type="button" class="btn btn-perill btn-petit" :disabled="store.entrada.usos > 1" @click="store.crida('eliminaCanco')">Elimina la cançó…</button>
       <p class="text-[12px] leading-snug text-ink-500">

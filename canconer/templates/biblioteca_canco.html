@@ -11,13 +11,16 @@
       <h1 class="font-display text-4xl font-medium tracking-tight">{{ canco.titol or "Sense títol" }}</h1>
       {% if canco.autor %}<p class="mt-1 text-lg italic text-ink-500">{{ canco.autor }}</p>{% endif %}
     </div>
+    <div class="flex flex-wrap items-end gap-3">
+    <a href="{{ url_for('biblioteca_edita', id_canco=canco.id) }}" class="btn btn-primari">Edita la cançó</a>
     <form method="post" action="{{ url_for('biblioteca_afegeix', id_canco=canco.id) }}" class="flex items-end gap-2">
-      <label><span class="etiqueta">Afegeix-la a un cançoner per editar-la</span>
+      <label><span class="etiqueta">Afegeix-la a un cançoner</span>
         <select name="canconer" class="camp py-1.5 text-[14px]" required>
           {% for k in canconers if k.id not in usos | map(attribute="id") | list %}<option value="{{ k.id }}">{{ k.titol }}</option>{% else %}<option value="" disabled selected>Ja és a tots els cançoners</option>{% endfor %}
         </select></label>
-      <button class="btn btn-primari">Afegeix i edita</button>
+      <button class="btn">Afegeix-la</button>
     </form>
+    </div>
   </div>
 
   <section class="targeta p-4">
@@ -35,7 +38,7 @@
     </ul>
     <p class="mt-2 text-[12px] text-ink-500">Restaurar una versió canvia l'esborrany: els cançoners que el segueixen ho veuran; els que tenen una versió fixada, no.</p>
     {% else %}
-    <p class="mt-1 text-[14px] text-ink-500">No és a cap cançoner. Afegeix-la a un per editar-la.</p>
+    <p class="mt-1 text-[14px] text-ink-500">No és a cap cançoner. La pots editar igualment amb «Edita la cançó».</p>
     {% endif %}
   </section>
 

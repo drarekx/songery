@@ -1,9 +1,18 @@
 {% extends "base.html" %}
-{% block titol %}{{ c.titol }} · Editor{% endblock %}
+{% block titol %}{{ c.titol if c else canco_sola.titol }} · Editor{% endblock %}
 {% block classe_body %}flex h-dvh flex-col overflow-hidden{% endblock %}
 {% block classe_capcalera %}{% endblock %}
 {% block classe_main %}flex min-h-0 flex-1 lg:grid lg:grid-cols-[var(--ample-llista)_minmax(0,1fr)_var(--ample-propietats)] lg:grid-rows-[minmax(0,1fr)]{% endblock %}
 {% block atributs_main %}id="editor" style="--ample-propietats: {{ (preferencies | default({}, true)).get('editor.amplePropietats', 320) }}px; --ample-llista: {{ (preferencies | default({}, true)).get('editor.ampleLlista', 256) }}px"{% endblock %}
+
+{% block molla %}
+{% if not c %}
+<svg class="hidden h-4 w-4 shrink-0 text-ink-300 sm:block" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>
+<a href="{{ url_for('biblioteca') }}" class="text-[15px] text-ink-500 hover:text-ink-900">Biblioteca</a>
+<svg class="hidden h-4 w-4 shrink-0 text-ink-300 sm:block" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>
+<span class="min-w-0 truncate font-display text-[17px] font-medium" title="{{ canco_sola.titol }}">{{ canco_sola.titol }}</span>
+{% endif %}
+{% endblock %}
 
 {% block accions %}
 <span id="estat" role="status" data-tipus="ok"
@@ -258,21 +267,25 @@
 
 <link rel="stylesheet" href="{{ url_for('fonts_css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+{# Sense cançoner (editar una cançó des de la biblioteca), les adreces del cançoner virtual de la cançó. #}
+{% set u = urls_editor if urls_editor is defined and urls_editor else {} %}
 <script id="dades-editor" type="application/json">{{ {
   "actual": actual,
+  "modeCanco": not c,
+  "dissenyDe": canco_sola.disseny_de if not c else none,
   "fonts": tipografies_navegador(),
   "especial": especial,
   "marge": marge,
   "urls": {
-    "canconer": url_for('api_canconer', id_canconer=c.id),
-    "pla": url_for('api_pla', id_canconer=c.id),
-    "disseny": url_for('api_disseny', id_canconer=c.id),
-    "ordre": url_for('canconer_ordre', id_canconer=c.id),
-    "nova": url_for('api_canco_nova', id_canconer=c.id),
-    "importa": url_for('api_importa', id_canconer=c.id),
-    "mestresAltres": url_for('api_mestres_altres', id_canconer=c.id),
-    "mestresCopia": url_for('api_mestres_copia', id_canconer=c.id),
-    "entrada": "/api/canconer/" ~ c.id ~ "/entrada/",
+    "canconer": url_for('api_canconer', id_canconer=c.id) if c else (u.get('canconer') or ''),
+    "pla": url_for('api_pla', id_canconer=c.id) if c else (u.get('pla') or ''),
+    "disseny": url_for('api_disseny', id_canconer=c.id) if c else (u.get('disseny') or ''),
+    "ordre": url_for('canconer_ordre', id_canconer=c.id) if c else (u.get('ordre') or ''),
+    "nova": url_for('api_canco_nova', id_canconer=c.id) if c else (u.get('nova') or ''),
+    "importa": url_for('api_importa', id_canconer=c.id) if c else (u.get('importa') or ''),
+    "mestresAltres": url_for('api_mestres_altres', id_canconer=c.id) if c else (u.get('mestresAltres') or ''),
+    "mestresCopia": url_for('api_mestres_copia', id_canconer=c.id) if c else (u.get('mestresCopia') or ''),
+    "entrada": ("/api/canconer/" ~ c.id ~ "/entrada/") if c else u.entrada,
     "canco": "/api/canco/",
     "versio": "/api/versio/",
     "biblioteca": url_for('api_biblioteca'),

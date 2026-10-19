@@ -81,8 +81,11 @@
             <div class="flex items-center gap-2">
               <span class="font-mono text-[13px] text-ink-700">{{ s.n_versions }}</span>
               {% if s.modificat %}<span class="h-[7px] w-[7px] rounded-full bg-amber-500" title="L'esborrany té canvis que encara no són a cap versió"><span class="sr-only">Canvis sense versió</span></span>{% endif %}
+              <a href="{{ url_for('biblioteca_edita', id_canco=s.id) }}" class="eina ml-auto h-8 w-8" aria-label="Edita «{{ s.titol }}»" data-tooltip="Edita">
+                <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h2.5L13 5.5 10.5 3 3 10.5z"/></svg>
+              </a>
               {% if not s.canconers %}
-              <form method="post" action="{{ url_for('biblioteca_a_paperera', id_canco=s.id) }}" class="ml-auto">
+              <form method="post" action="{{ url_for('biblioteca_a_paperera', id_canco=s.id) }}">
                 {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
                 <input type="hidden" name="ordre" value="{{ ordre }}">
                 <input type="hidden" name="pagina" value="{{ pagina }}">

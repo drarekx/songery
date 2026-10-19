@@ -35,6 +35,10 @@ export const useEditorStore = defineStore("editor", {
      *  "mestra:id"); cancons: [{id, titol, tipus, inclosa, inici, versio_numero (si està fixada),
      *  desfasada, usos, pagines: [números]}]; total: pàgines del llibret. */
     llista: { obert: null, cancons: [], total: null, especials: {} },
+    /** Editant una cançó fora de cap cançoner (des de la biblioteca): sense llibret, entrada ni disseny
+     *  propis. dissenyDe: el cançoner del qual es fa servir el disseny (null: el de per defecte). */
+    modeCanco: false,
+    dissenyDe: null,
     /** Panell de propietats. mode: "pagina" (no hi ha res seleccionat), "element" o "multi".
      *  pagina: {tipus (el que hi ha obert: canco, especial, mestra o llibre), mestra, costat, fons,
      *           nomMestra, mestraEsborrable}

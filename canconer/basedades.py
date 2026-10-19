@@ -370,6 +370,36 @@ def carrega_canconer(id_canconer: str) -> dict:
     return {**meta, "cancons": cancons}
 
 
+def canconer_de_canco(id_canco: str) -> dict:
+    """«Cançoner virtual» amb només aquesta cançó, per editar-la des de la biblioteca sense cap cançoner.
+
+    El disseny (estils, mestres, marges…) és el del primer cançoner on surt o, si no és a cap, el de
+    per defecte; no hi ha índex ni pàgines d'acords o de vídeos. Té les mateixes claus que
+    carrega_canconer, perquè l'editor el pugui fer servir igual. Llança KeyError si la cançó no existeix.
+    """
+    with connexio() as con:
+        fila = con.execute("SELECT * FROM canco WHERE id = ? AND paperera IS NULL", (_valida(id_canco),)).fetchone()
+        if not fila:
+            raise KeyError(id_canco)
+        usos = con.execute("SELECT k.id, k.dades FROM entrada e JOIN canconer k ON k.id = e.canconer_id "
+                           "WHERE e.canco_id = ? AND k.paperera IS NULL ORDER BY k.actualitzat DESC", (id_canco,)).fetchall()
+        ultima = con.execute("SELECT * FROM versio WHERE canco_id = ? ORDER BY numero DESC LIMIT 1", (id_canco,)).fetchone()
+    base = meta_canconer(usos[0]["id"]) if usos else {**_meta("{}"), "id": None}
+    return {
+        **base, "id": None, "titol": fila["titol"] or "Sense títol",
+        "disseny_de": json.loads(usos[0]["dades"]).get("titol") if usos else None,
+        "pagina_index": False, "pagina_acords": False, "pagina_qr": False,
+        "cancons": [{
+            "id": fila["id"], "titol": fila["titol"], "autor": fila["autor"],
+            "contingut": plantilles.normalitza_contingut(json.loads(fila["doc"])),
+            "tipus": fila["tipus"], "inici": "esquerra", "transport": 0, "inclosa": True,
+            "versio_id": None, "versio_numero": None, "versio_ultima": ultima["numero"] if ultima else 0,
+            "esborrany_modificat": not ultima or (ultima["doc"], ultima["titol"], ultima["autor"]) != (fila["doc"], fila["titol"], fila["autor"]),
+            "usos": len(usos),
+        }],
+    }
+
+
 # ---------------------------------------------------------------- Entrades
 
 

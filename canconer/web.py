@@ -460,6 +460,49 @@ def crea_app() -> Flask:
                                canconers=bd.llista_canconers(), seccio="biblioteca",
                                estils=disseny_canconer["estils"], mestres=disseny_canconer["mestres"])
 
+    # ---------------------------------------------------- Editar una cançó sense cançoner (biblioteca)
+
+    def canconer_de_canco_o_404(id_canco: str) -> dict:
+        try:
+            return bd.canconer_de_canco(id_canco)
+        except KeyError:
+            abort(404)
+
+    @app.get("/biblioteca/<id_canco>/edita")
+    def biblioteca_edita(id_canco):
+        """L'editor complet per a una cançó, sense cap cançoner: només les seves pàgines, amb el disseny
+        del primer cançoner on surt (o el de per defecte), que aquí no es pot canviar."""
+        k = canconer_de_canco_o_404(id_canco)
+        urls = {
+            "canconer": url_for("api_biblioteca_canconer", id_canco=id_canco),
+            "pla": url_for("api_biblioteca_pla", id_canco=id_canco),
+            "disseny": url_for("api_biblioteca_disseny", id_canco=id_canco),
+            "entrada": f"/api/biblioteca/{id_canco}/entrada/",
+        }
+        return render_template("editor.html", c=None, canco_sola={"id": id_canco, "titol": k["titol"], "disseny_de": k["disseny_de"]},
+                               urls_editor=urls, seccio="biblioteca", actual=id_canco, especial=None,
+                               marge=k["marge"] if marges.te_guies(k.get("marge")) else None)
+
+    @app.get("/api/biblioteca/<id_canco>/canconer")
+    def api_biblioteca_canconer(id_canco):
+        return jsonify(canconer_de_canco_o_404(id_canco))
+
+    @app.get("/api/biblioteca/<id_canco>/pla")
+    def api_biblioteca_pla(id_canco):
+        k = canconer_de_canco_o_404(id_canco)
+        return jsonify({**maquetacio.pla(k), "versio": pdf.empremta(k)})
+
+    @app.put("/api/biblioteca/<id_canco>/disseny")
+    def api_biblioteca_disseny(id_canco):
+        canconer_de_canco_o_404(id_canco)
+        return jsonify({"error": "Fora d'un cançoner, els estils i les pàgines mestres no es poden canviar."}), 409
+
+    @app.patch("/api/biblioteca/<id_canco>/entrada/<id_entrada>")
+    def api_biblioteca_entrada(id_canco, id_entrada):
+        """Fora d'un cançoner no hi ha entrada (transport, si surt al PDF…): no es desa res."""
+        canconer_de_canco_o_404(id_canco)
+        return jsonify({"ok": True, "ignorat": True})
+
     @app.post("/biblioteca/<id_canco>/afegeix")
     def biblioteca_afegeix(id_canco):
         """Afegeix la cançó a un cançoner (seguint l'esborrany) i l'obre per editar-la."""
@@ -478,7 +521,7 @@ def crea_app() -> Flask:
             meta_o_404(id_canconer)
             bd.afegeix_entrada(id_canconer, id_canco)
             return redirect(url_for("canconer", id_canconer=id_canconer, canco=id_canco))
-        return redirect(url_for("biblioteca_canco", id_canco=id_canco))
+        return redirect(url_for("biblioteca_edita", id_canco=id_canco))
 
     @app.post("/biblioteca/<id_canco>/paperera")
     def biblioteca_a_paperera(id_canco):

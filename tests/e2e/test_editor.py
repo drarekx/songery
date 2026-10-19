@@ -220,3 +220,37 @@ def test_ajuda_de_l_editor(pagina, servidor):
     pagina.espera("!document.querySelector('#ajuda-editor')")
     pagina.avalua("document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))")
     pagina.espera("document.querySelector('#ajuda-editor')")
+
+
+def test_editar_una_canco_des_de_la_biblioteca_sense_canconer(pagina, servidor):
+    """#13: l'editor complet per a una cançó, sense cançoner; els canvis van a la cançó (i els veuen els
+    cançoners que la segueixen). El que és del cançoner no hi surt."""
+    import json as json_
+    import urllib.request
+
+    url = canconer_exemple(servidor)
+    k = json_.loads(urllib.request.urlopen(url.replace("/canconer/", "/api/canconer/")).read())
+    canco = k["cancons"][0]["id"]
+    pagina.obre(f"{servidor}/biblioteca/{canco}/edita", LLEST)
+    pagina.espera("document.querySelectorAll('.capa-elements [data-id]').length > 0")
+    llista = pagina.avalua("document.getElementById('panell-llista').textContent")
+    assert "fora de cap cançoner" in llista and "Tot el llibret" not in llista and "Pàgines mestres" not in llista
+    assert "Cançoner d'exemple" in llista  # el disseny és el del cançoner on surt
+    pagina.avalua("document.querySelector('[data-pestanya=canco]').click()")
+    assert "Transport" not in pagina.avalua("document.querySelector('[data-panell-pestanya=canco]').textContent")
+    pagina.avalua("document.querySelector('[data-pestanya=estils]').click()")
+    assert pagina.avalua("[...document.querySelectorAll('#panell-estils fieldset')].every((f) => f.disabled)")
+    # S'edita la lletra i es desa a la cançó.
+    pagina.avalua("""(async () => {
+      const marc = document.querySelector('.marc-lletra');
+      const r = marc.getBoundingClientRect();
+      marc.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: r.left + 40, clientY: r.top + 60 }));
+      await new Promise((res) => setTimeout(res, 400));
+      marc._editor.commands.insertContentAt(1, 'EDITADA DES DE LA BIBLIOTECA ');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    })()""")
+    pagina.espera("document.getElementById('text-estat').textContent.includes('Tot desat')", 10)
+    desada = json_.loads(urllib.request.urlopen(f"{servidor}/api/canco/{canco}").read())
+    assert "EDITADA DES DE LA BIBLIOTECA" in json_.dumps(desada["contingut"], ensure_ascii=False)
+    k = json_.loads(urllib.request.urlopen(url.replace("/canconer/", "/api/canconer/")).read())
+    assert "EDITADA DES DE LA BIBLIOTECA" in json_.dumps(k["cancons"][0]["contingut"], ensure_ascii=False)
