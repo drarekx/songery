@@ -58,6 +58,14 @@ Mai es puja `data/` (són els cançoners de l'usuari).
 torna a l'anterior si la nova no arrenca. Les dades (`~/Library/Application Support/Cançoners`) no es
 toquen. `install.sh` es llegeix de la branca `main`: un canvi a `install.sh` afecta tothom de seguida.
 
+**Port i finestra** (`escriptori.py`): el servidor fa servir el port de l'última vegada (a
+`configuracio.json`); si està ocupat, el primer lliure de `PORTS` (48650–48659), i només si tots ho estan, un
+d'aleatori que no es desa. L'adreça es publica a `servidor.json`, que és el que llegeixen `install.sh` i
+l'script d'actualització per saber que la versió nova respon: no hi poseu el port a mà. Si després d'una
+actualització el port ha canviat, l'app obre una finestra nova (la pàgina d'actualització no s'hi podria
+reconnectar). L'app s'obre en una finestra pròpia de Chrome, Edge o Brave (`--app`); es pot tornar al navegador
+normal des de la barra de menú (`finestra` a `configuracio.json`).
+
 **Dades**: en obrir-se, `basedades._aplica_migracions` aplica les migracions pendents (`MIGRACIONS`,
 versió de l'esquema a `PRAGMA user_version`), amb còpia de seguretat abans i tot en una transacció.
 

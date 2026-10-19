@@ -2,8 +2,10 @@
 
 En obrir l'app:
   - les dades es desen a ~/Library/Application Support/Cançoners
-  - s'engega el servidor en un port local lliure
-  - s'obre el navegador (Chrome si hi és, perquè és el mateix motor que genera el PDF)
+  - s'engega el servidor en un port local: el de l'última vegada o, si està ocupat, un de fix d'una
+    llista curta (mai es desa un port aleatori, perquè l'adreça no vagi canviant)
+  - s'obre en una finestra pròpia de Chrome, Edge o Brave (sense barra d'adreces; és el mateix motor
+    que genera el PDF), o al navegador per defecte si no n'hi ha cap o si s'ha triat així
   - apareix una icona a la barra de menú per tornar a obrir-lo, anar a les dades o sortir
   - es comprova (en obrir-la i cada dia) si hi ha una versió nova; si n'hi ha, es pregunta si
     es vol instal·lar. Abans d'actualitzar es fa sempre una còpia de seguretat de les dades.
@@ -26,7 +28,15 @@ DADES = Path.home() / "Library" / "Application Support" / NOM
 os.environ.setdefault("CANCONER_DADES", str(DADES))  # abans d'importar l'aplicació
 
 FITXER_SERVIDOR = DADES / "servidor.json"
-CHROME = "/Applications/Google Chrome.app"
+# Ports fixos, poc habituals: si el de l'última vegada està ocupat, es prova aquests en ordre.
+PORTS = tuple(range(48650, 48660))
+# Navegadors amb motor Chromium que poden obrir l'app en una finestra pròpia (--app).
+NAVEGADORS_APP = [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+]
 CONFIGURACIO = DADES / "configuracio.json"
 CADA_QUANT = 24 * 3600  # comprovació de versions noves (segons)
 
@@ -37,11 +47,25 @@ def recurs(nom: str) -> str:
     return str(base / "eines" / "app" / nom)
 
 
+def navegador_app() -> str | None:
+    """Executable d'un navegador Chromium per obrir l'app en una finestra pròpia, si n'hi ha."""
+    for cami in NAVEGADORS_APP:
+        for candidat in (cami, str(Path.home()) + cami):
+            if os.access(candidat, os.X_OK):
+                return candidat
+    return None
+
+
 def obre_navegador(url: str) -> None:
+    """Obre l'app: en una finestra pròpia (sense barra d'adreces) si hi ha Chrome, Edge o Brave i no
+    s'ha triat el navegador normal; si no, al navegador per defecte."""
     if os.environ.get("CANCONER_NO_OBRIS"):  # per a proves automàtiques
         return
-    if Path(CHROME).exists():
-        subprocess.Popen(["open", "-a", CHROME, url])
+    navegador = navegador_app() if configuracio().get("finestra", "app") == "app" else None
+    if navegador:
+        # Si el navegador ja és obert, la instància que hi ha obre la finestra i aquesta es tanca.
+        subprocess.Popen([navegador, f"--app={url}", "--window-size=1440,900"], stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
     else:
         subprocess.Popen(["open", url])
 
@@ -56,33 +80,47 @@ def instancia_oberta() -> str | None:
         return None
 
 
-def port_lliure(preferit: int = 5050) -> int:
-    for port in (preferit, 0):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(("127.0.0.1", port))
-                return s.getsockname()[1]
-            except OSError:
-                continue
-    raise RuntimeError("No hi ha cap port lliure")
+def port_lliure(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+            return True
+        except OSError:
+            return False
 
 
-def engega_servidor() -> str:
+def tria_port(desat: int | None) -> tuple[int, bool]:
+    """Port per al servidor i si s'ha de desar: el de l'última vegada, si és lliure; si no, el primer
+    lliure dels fixos (PORTS). Només si tots estan ocupats, un d'aleatori, que no es desa (la vegada
+    següent es torna a provar el de sempre)."""
+    for port in ([desat] if desat else []) + [p for p in PORTS if p != desat]:
+        if port_lliure(port):
+            return port, True
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1], False
+
+
+def engega_servidor() -> tuple[str, bool]:
+    """Engega el servidor. Torna l'adreça i si el port ha canviat respecte de l'última vegada."""
     from werkzeug.serving import make_server
 
     from canconer import motor_pdf
     from canconer.web import crea_app
 
-    # El mateix port que l'última vegada: així, després d'actualitzar, la pàgina s'hi reconnecta.
-    port = port_lliure(configuracio().get("port", 5050))
-    desa_configuracio(port=port)
+    # El mateix port que l'última vegada: així l'adreça no canvia i, després d'actualitzar, la pàgina
+    # s'hi reconnecta.
+    desat = configuracio().get("port")
+    port, desa = tria_port(desat if isinstance(desat, int) else None)
+    if desa:
+        desa_configuracio(port=port)
     servidor = make_server("127.0.0.1", port, crea_app(), threaded=True)
     threading.Thread(target=servidor.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{port}/"
     DADES.mkdir(parents=True, exist_ok=True)
     FITXER_SERVIDOR.write_text(json.dumps({"url": url, "pid": os.getpid()}))
     motor_pdf.prepara_en_segon_pla()  # si no hi ha Chrome/Edge, baixa el motor de PDF ara
-    return url
+    return url, desat is not None and port != desat
 
 
 def configuracio() -> dict:
@@ -127,10 +165,11 @@ def main() -> None:
         obre_navegador(oberta)
         return
 
-    url = engega_servidor()
+    url, port_canviat = engega_servidor()
     # Després d'una actualització feta des de la web, la pàgina d'actualització s'hi reconnecta
-    # sola: no cal obrir cap finestra nova (ho diu l'avís de la barra de menú).
-    if not (DADES / "actualitzada.json").exists():
+    # sola: no cal obrir cap finestra nova (ho diu l'avís de la barra de menú). Si el port ha canviat,
+    # la pàgina no s'hi podria reconnectar: s'obre una finestra a l'adreça nova.
+    if port_canviat or not (DADES / "actualitzada.json").exists():
         obre_navegador(url)
 
     import rumps
@@ -145,9 +184,15 @@ def main() -> None:
             super().__init__(NOM, icon=icona if Path(icona).exists() else None, template=True,
                              title=None if Path(icona).exists() else "♪", quit_button=None)
             self.item_versio = rumps.MenuItem(f"Cançoners {versio}")
+            # Finestra pròpia (amb Chrome, Edge o Brave) o el navegador de sempre.
+            self.item_finestra = rumps.MenuItem("Obre en una finestra pròpia", callback=self.canvia_finestra)
+            self.item_finestra.state = int(configuracio().get("finestra", "app") == "app")
+            if not navegador_app():
+                self.item_finestra.set_callback(None)  # sense Chrome, Edge ni Brave no es pot
             self.menu = [
                 rumps.MenuItem("Obre Cançoners", callback=lambda _: obre_navegador(url)),
                 rumps.MenuItem("Obre la carpeta de dades", callback=lambda _: subprocess.Popen(["open", str(DADES)])),
+                self.item_finestra,
                 None,
                 self.item_versio,
                 rumps.MenuItem("Cerca actualitzacions…", callback=lambda _: obre_navegador(url + "actualitzacio")),
@@ -179,6 +224,11 @@ def main() -> None:
             primera = threading.Timer(8, lambda: self.cerca(manual=False))
             primera.daemon = True
             primera.start()
+
+        def canvia_finestra(self, item) -> None:
+            item.state = int(not item.state)
+            desa_configuracio(finestra="app" if item.state else "navegador")
+            obre_navegador(url)
 
         # -------------------------------------------------------- Actualitzacions
 
