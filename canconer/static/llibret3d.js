@@ -28,7 +28,9 @@ export class Llibret3D {
     this.llibre = el("div", "llibret3d-llibre");
     this.gruixEsquerra = el("div", "llibret3d-gruix esquerra");
     this.gruixDreta = el("div", "llibret3d-gruix dreta");
-    this.llibre.append(this.gruixEsquerra, this.gruixDreta);
+    this.ombraEsquerra = el("div", "llibret3d-ombra-taula esquerra");
+    this.ombraDreta = el("div", "llibret3d-ombra-taula dreta");
+    this.llibre.append(this.ombraEsquerra, this.ombraDreta, this.gruixEsquerra, this.gruixDreta);
     this.escena.append(this.llibre);
 
     const enrere = boto("Pàgina anterior", '<path d="m12 5-5 5 5 5"/>');
@@ -147,8 +149,8 @@ export class Llibret3D {
     // Tancat (portada o contraportada), el llibre es desplaça perquè quedi centrat.
     const desplacament = this.girats === 0 ? -0.5 : this.girats === total ? 0.5 : 0;
     this.llibre.style.setProperty("--desplacament", desplacament);
-    this.llibre.style.setProperty("--obert-esq", this.girats > 0 ? 1 : 0);
-    this.llibre.style.setProperty("--obert-dre", this.girats < total ? 1 : 0);
+    this.ombraEsquerra.classList.toggle("visible", this.girats > 0);
+    this.ombraDreta.classList.toggle("visible", this.girats < total);
     this.llibre.classList.toggle("sense-animacio", !anima);
     this.gruixEsquerra.style.width = `${Math.min(14, this.girats * SEPARACIO * 1.5)}px`;
     this.gruixDreta.style.width = `${Math.min(14, (total - this.girats) * SEPARACIO * 1.5)}px`;

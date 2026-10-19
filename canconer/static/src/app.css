@@ -277,17 +277,19 @@
     transform: rotateX(18deg) translateX(calc(var(--desplacament, 0) * var(--ample)));
     transition: transform 0.9s cubic-bezier(0.45, 0.05, 0.25, 1);
   }
-  /* Ombra del llibret sobre la taula: només sota les meitats que tenen pàgines. */
-  .llibret3d-llibre::before {
-    content: "";
-    @apply pointer-events-none absolute inset-y-0 rounded-sm;
-    left: calc(50% - var(--ample) * var(--obert-esq, 1));
-    right: calc(50% - var(--ample) * var(--obert-dre, 1));
+  /* Ombra del llibret sobre la taula, una per meitat. Apareix quan el full ja hi ha arribat i se'n va de seguida. */
+  .llibret3d-ombra-taula {
+    @apply pointer-events-none absolute top-0 opacity-0;
+    width: var(--ample);
+    height: var(--alt);
     box-shadow: 0 18px 40px -8px rgb(0 0 0 / 0.35), 0 4px 10px rgb(0 0 0 / 0.15);
     transform: translateZ(-1px);
-    transition: left 0.9s, right 0.9s;
+    transition: opacity 0.15s;
   }
-  .llibret3d-llibre.sense-animacio, .llibret3d-llibre.sense-animacio::before { transition: none; }
+  .llibret3d-ombra-taula.esquerra { left: 0; }
+  .llibret3d-ombra-taula.dreta { left: 50%; }
+  .llibret3d-ombra-taula.visible { @apply opacity-100; transition: opacity 0.3s 0.6s; }
+  .llibret3d-llibre.sense-animacio, .llibret3d-llibre.sense-animacio .llibret3d-ombra-taula { transition: none; }
   .llibret3d-full {
     @apply absolute left-1/2 top-0;
     width: var(--ample);
@@ -304,9 +306,10 @@
   .llibret3d-cara.davant .llibret3d-ombra { background: linear-gradient(90deg, rgb(0 0 0 / 0.16), rgb(0 0 0 / 0.04) 6%, transparent 14%); }
   .llibret3d-cara.darrere .llibret3d-ombra { background: linear-gradient(270deg, rgb(0 0 0 / 0.16), rgb(0 0 0 / 0.04) 6%, transparent 14%); }
   /* Mentre el full gira, la cara s'enfosqueix una mica a mig camí. */
-  .llibret3d-cara::after { content: ""; @apply pointer-events-none absolute inset-0 bg-black opacity-0; }
+  .llibret3d-cara::after { content: ""; @apply pointer-events-none absolute inset-0 opacity-0; background: linear-gradient(90deg, rgb(0 0 0 / 0.18), transparent 75%); }
+  .llibret3d-cara.darrere::after { background: linear-gradient(270deg, rgb(0 0 0 / 0.18), transparent 75%); }
   .llibret3d-full.girant .llibret3d-cara::after { animation: llibret3d-gir 0.9s ease-in-out; }
-  @keyframes llibret3d-gir { 50% { opacity: 0.22; } }
+  @keyframes llibret3d-gir { 50% { opacity: 1; } }
   /* Gruix dels fulls apilats a cada costat. */
   .llibret3d-gruix {
     @apply pointer-events-none absolute top-[2px];
@@ -319,7 +322,7 @@
   .llibret3d-llegenda { @apply min-w-[14rem] truncate text-center text-[13px] text-ink-500; }
   .llibret3d-llegenda strong { @apply font-mono font-semibold text-ink-900; }
   @media (prefers-reduced-motion: reduce) {
-    .llibret3d-llibre, .llibret3d-llibre::before, .llibret3d-full { transition: none; }
+    .llibret3d-llibre, .llibret3d-ombra-taula, .llibret3d-full { transition: none; }
     .llibret3d-full.girant .llibret3d-cara::after { animation: none; }
   }
 
