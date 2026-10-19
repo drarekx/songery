@@ -131,4 +131,10 @@ dades».) El peu de cada pàgina diu de quina carpeta llegeix les dades, i el se
   - Per simular una versió antiga: `CANCONER_VERSIO=1.0.0`.
   - Per provar el procés sencer sense tocar l'app de debò: un `HOME` temporal i un `open` fals al `PATH`.
 - Després de publicar, comprova que la baixada real funciona:
-  `actualitzador.baixa(<browser_download_url>, desti, mida)` amb l'actiu de la release nova.
+  `actualitzador.baixa(<browser_download_url>, desti, mida)` amb l'actiu de la release nova. L'API
+  `releases/latest` de GitHub pot trigar fins a un minut a donar la versió nova: si encara dona l'anterior,
+  espera i torna-ho a provar abans de pensar que la publicació ha fallat (`gh release list` ja la marca com a
+  «Latest»).
+- Els fitxers estàtics es demanen amb la versió a l'adreça (`/v/<versió>/…`, helper `estatic()` a les
+  plantilles; mai `url_for('static', …)`): per això cada versió publicada ha de tenir un número nou, o el
+  navegador continuaria amb els fitxers de l'anterior.
