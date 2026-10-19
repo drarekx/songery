@@ -165,7 +165,7 @@
 
 {% block scripts %}
 <link rel="stylesheet" href="{{ url_for('fonts_css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<link rel="stylesheet" href="{{ estatic('pagines.css') }}">
 <script id="fonts-biblioteca" type="application/json">{{ tipografies_navegador() | tojson }}</script>
-<script type="module" src="{{ url_for('static', filename='biblioteca.js') }}"></script>
+<script type="module" src="{{ estatic('biblioteca.js') }}"></script>
 {% endblock %}

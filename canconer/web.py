@@ -13,7 +13,7 @@ from datetime import datetime
 from html import escape
 
 from flask import (Flask, Response, abort, jsonify, redirect, render_template, request,
-                   send_file, url_for)
+                   send_file, send_from_directory, url_for)
 
 from . import basedades as bd
 from . import actualitzacions, actualitzador, cmyk, copies, diagrames, disseny, document, exemple, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
@@ -134,10 +134,27 @@ def crea_app() -> Flask:
     # Números a la catalana, sense decimals sobrers: 14 → «14», 2.5 → «2,5».
     app.jinja_env.filters["num"] = lambda v, decimals=1: f"{round(float(v), decimals):g}".replace(".", ",")
 
+    # Fitxers estàtics amb la versió a l'adreça (/v/<versió>/editor.js): en actualitzar l'app canvia
+    # l'adreça i el navegador no pot fer servir els fitxers d'abans (els imports relatius entre mòduls la
+    # hereten). En producció es poden guardar un any; en desenvolupament canvien sense canviar de
+    # versió, i es tornen a comprovar sempre.
+    versio_estatics = actualitzacions.versio_actual()
+
+    def estatic(fitxer: str) -> str:
+        return url_for("estatic_versionat", versio=versio_estatics, fitxer=fitxer)
+
+    @app.get("/v/<versio>/<path:fitxer>")
+    def estatic_versionat(versio, fitxer):
+        desenvolupament = app.config.get("DESENVOLUPAMENT") or app.debug
+        resposta = send_from_directory(app.static_folder, fitxer, max_age=0 if desenvolupament else 31536000)
+        if not desenvolupament:
+            resposta.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return resposta
+
     @app.context_processor
     def fonts_per_a_les_plantilles():
         """Llista de tipografies per al motor de dibuix (editor i pàgina d'impressió)."""
-        return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts()),
+        return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts()), "estatic": estatic,
                 "versio_app": actualitzacions.versio_actual(),
                 "preferencies": preferencies.carrega(),
                 "desenvolupament": str(bd.DIRECTORI) if app.config.get("DESENVOLUPAMENT") else None,
@@ -897,7 +914,7 @@ def crea_app() -> Flask:
 
     @app.get("/fonts.css")
     def fonts_css():
-        css = tipografies.css(fonts(), lambda f: url_for("static", filename=f"fonts/{f}"),
+        css = tipografies.css(fonts(), lambda f: estatic(f"fonts/{f}"),
                               lambda i: url_for("fitxer_tipografia", id_tipografia=i))
         return Response(css, mimetype="text/css", headers={"Cache-Control": "no-cache"})
 

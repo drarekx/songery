@@ -32,7 +32,7 @@
 
 {% block scripts %}
 <script type="module">
-  import { confirma } from "{{ url_for('static', filename='dist/dialegs.js') }}";
+  import { confirma } from "{{ estatic('dist/dialegs.js') }}";
   const error = (text) => {
     const p = document.getElementById("error-autors");
     p.lastElementChild.textContent = text;

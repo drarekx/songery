@@ -198,7 +198,7 @@
 
 {% block scripts %}
 <script type="module">
-  import { Visor, connectaZoom } from "{{ url_for('static', filename='visor.js') }}";
+  import { Visor, connectaZoom } from "{{ estatic('visor.js') }}";
 
   const urls = {
     dobles: "{{ url_for('canconer_pdf', id_canconer=c.id, tipus='a5', v=v, instrument=instrument) }}",

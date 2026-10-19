@@ -266,7 +266,7 @@
 </nav>
 
 <link rel="stylesheet" href="{{ url_for('fonts_css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<link rel="stylesheet" href="{{ estatic('pagines.css') }}">
 {# Sense cançoner (editar una cançó des de la biblioteca), les adreces del cançoner virtual de la cançó. #}
 {% set u = urls_editor if urls_editor is defined and urls_editor else {} %}
 <script id="dades-editor" type="application/json">{{ {
@@ -300,5 +300,5 @@
     "fontsCss": url_for('fonts_css'),
   },
 } | tojson }}</script>
-<script type="module" src="{{ url_for('static', filename='editor.js') }}"></script>
+<script type="module" src="{{ estatic('editor.js') }}"></script>
 {% endblock %}

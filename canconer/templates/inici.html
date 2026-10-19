@@ -112,12 +112,12 @@
 
 {% block scripts %}
 <link rel="stylesheet" href="{{ url_for('fonts_css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<link rel="stylesheet" href="{{ estatic('pagines.css') }}">
 <script id="fonts-inici" type="application/json">{{ tipografies_navegador() | tojson }}</script>
 <script type="module">
   // Portades reals: el mateix motor que l'editor i el PDF, amb els estils de cada cançoner
   // limitats al seu llibret perquè no es barregin.
-  import { AMPLE, ajustaMarcs, cssEstils, dibuixaPagina, esperaFonts, registraFonts } from "{{ url_for('static', filename='dist/canconer.js') }}";
+  import { AMPLE, ajustaMarcs, cssEstils, dibuixaPagina, esperaFonts, registraFonts } from "{{ estatic('dist/canconer.js') }}";
   const PX_MM = 96 / 25.4;
   registraFonts(JSON.parse(document.getElementById("fonts-inici").textContent));
   const estils = document.createElement("style");

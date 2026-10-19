@@ -359,3 +359,25 @@ def test_estils_propis_del_canconer():
     del estils["propi_ab12cd34"]
     client.put(f"/api/canconer/{k}/disseny", json={"estils": estils})
     assert "propi_ab12cd34" not in bd.carrega_canconer(k)["estils"]
+
+
+def test_fitxers_estatics_amb_la_versio_a_l_adreca():
+    """Els fitxers estàtics es demanen amb la versió a l'adreça (/v/<versió>/…): en actualitzar l'app,
+    el navegador no pot fer servir els d'abans. Cap plantilla no els ha de demanar sense versió."""
+    import re
+    from pathlib import Path
+
+    from canconer import actualitzacions, basedades as bd
+    from canconer.web import crea_app
+
+    for plantilla in (Path(__file__).parent.parent / "canconer" / "templates").glob("*.html"):
+        assert "url_for('static'" not in plantilla.read_text(), plantilla.name
+    client = crea_app().test_client()
+    k = bd.crea_canconer("Prova")
+    versio = actualitzacions.versio_actual()
+    for pagina in ("/", f"/canconer/{k}", "/biblioteca", f"/canconer/{k}/imprimir"):
+        html = client.get(pagina).get_data(as_text=True)
+        assert f"/v/{versio}/" in html and not re.search(r'["\']/static/', html), pagina
+    r = client.get(f"/v/{versio}/dist/vue.js")
+    assert r.status_code == 200 and "immutable" in r.headers["Cache-Control"]
+    assert client.get(f"/v/{versio}/../web.py").status_code == 404

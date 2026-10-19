@@ -93,7 +93,7 @@
 
 {% block scripts %}
 <link rel="stylesheet" href="{{ url_for('fonts_css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='pagines.css') }}">
+<link rel="stylesheet" href="{{ estatic('pagines.css') }}">
 <script id="dades-historial" type="application/json">{{ {
   "canco": canco,
   "estils": estils,
@@ -108,5 +108,5 @@
     "imatge": "/imatges/",
   },
 } | tojson }}</script>
-<script type="module" src="{{ url_for('static', filename='historial.js') }}"></script>
+<script type="module" src="{{ estatic('historial.js') }}"></script>
 {% endblock %}
