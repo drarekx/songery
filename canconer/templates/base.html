@@ -11,6 +11,11 @@
 </head>
 <body class="{% block classe_body %}flex min-h-dvh flex-col{% endblock %} bg-paper font-sans text-[15px] text-ink antialiased">
 
+{% if desenvolupament %}
+<div class="shrink-0 bg-amber-400 px-4 py-1 text-center font-mono text-[11.5px] font-semibold text-amber-950" role="note">
+  DESENVOLUPAMENT · dades de {{ desenvolupament }} · no és l'app instal·lada
+</div>
+{% endif %}
 <header class="z-30 shrink-0 border-b border-paper-300 bg-paper-50/95 backdrop-blur supports-[backdrop-filter]:bg-paper-50/80 {% block classe_capcalera %}sticky top-0{% endblock %}">
   <div class="flex h-14 items-center gap-3 px-4 lg:px-6">
     <a href="{{ url_for('inici') }}" class="flex shrink-0 items-center gap-2.5 rounded-md" aria-label="Tots els cançoners" title="Cançoners {{ versio_app }}">

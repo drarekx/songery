@@ -112,7 +112,7 @@ pip install -r requirements.txt
 ## Execució
 
 ```bash
-python app.py                      # http://localhost:5050
+python app.py                      # http://localhost:5180 (amb una franja «DESENVOLUPAMENT»)
 python app.py --host 0.0.0.0       # per obrir-lo des del mòbil a la mateixa xarxa
 python app.py --port 8080 --debug
 python app.py --sense-recarrega    # per defecte es recarrega sol quan canvia el codi

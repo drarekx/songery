@@ -135,7 +135,8 @@ def crea_app() -> Flask:
         """Llista de tipografies per al motor de dibuix (editor i pàgina d'impressió)."""
         return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts()),
                 "versio_app": actualitzacions.versio_actual(),
-                "preferencies": preferencies.carrega()}
+                "preferencies": preferencies.carrega(),
+                "desenvolupament": str(bd.DIRECTORI) if app.config.get("DESENVOLUPAMENT") else None}
 
     def canconer_impressio(id_canconer: str) -> dict:
         """Cançoner per imprimir. L'instrument dels diagrames es pot triar a l'hora d'imprimir
