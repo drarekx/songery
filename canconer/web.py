@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import os
+
 import re
+import sqlite3
 import traceback
 import unicodedata
+import zipfile
 from datetime import datetime
 from html import escape
 
@@ -136,7 +140,8 @@ def crea_app() -> Flask:
         return {"tipografies_navegador": lambda: tipografies.per_al_navegador(fonts()),
                 "versio_app": actualitzacions.versio_actual(),
                 "preferencies": preferencies.carrega(),
-                "desenvolupament": str(bd.DIRECTORI) if app.config.get("DESENVOLUPAMENT") else None}
+                "desenvolupament": str(bd.DIRECTORI) if app.config.get("DESENVOLUPAMENT") else None,
+                "carpeta_dades": str(bd.DIRECTORI).replace(os.path.expanduser("~"), "~", 1)}
 
     def canconer_impressio(id_canconer: str) -> dict:
         """Cançoner per imprimir. L'instrument dels diagrames es pot triar a l'hora d'imprimir
@@ -194,17 +199,43 @@ def crea_app() -> Flask:
         return render_template("inici.html", canconers=canconers, bases=recursos.BASES, recuperable=recuperable, error=request.args.get("error"), enviat=enviat,
                                a_la_paperera=len(bd.llista_canconers(paperera=True)) + len(bd.cancons_paperera()))
 
+    def copia_o_404(nom: str | None):
+        copia = next((c for c in copies.llista() if c.name == nom), None)
+        if not copia:
+            abort(404)
+        return copia
+
+    @app.get("/copies")
+    def copies_llista():
+        """Restaurador: les còpies de seguretat, què hi ha a cadascuna i restaurar-ne una."""
+        actual = {"canconers": len(bd.llista_canconers()), "cancons": len(bd.biblioteca())}
+        return render_template("copies.html", copies=[copies.descripcio(c) for c in copies.llista()], actual=actual,
+                               carpeta=str(copies.directori()).replace(os.path.expanduser("~"), "~", 1),
+                               restaurada=request.args.get("restaurada"),
+                               feta=request.args.get("feta"), error=request.args.get("error"),
+                               dies=copies.DIES_CONSERVADES, minim=copies.CONSERVADES)
+
+    @app.get("/api/copies/<nom>")
+    def api_copia_contingut(nom):
+        try:
+            return jsonify(copies.contingut(copia_o_404(nom)))
+        except (copies.CopiaInvalida, zipfile.BadZipFile, sqlite3.DatabaseError) as e:
+            return jsonify({"error": str(e) or "La còpia està malmesa."}), 400
+
+    @app.post("/copies/nova")
+    def copies_nova():
+        copia = copies.fes_copia(actualitzacions.versio_actual(), "manual")
+        return redirect(url_for("copies_llista", feta=copia.name))
+
     @app.post("/copies/restaura")
     def copies_restaura():
         """Restaura una còpia de seguretat (abans, se'n fa una de l'estat actual)."""
-        copia = next((c for c in copies.llista() if c.name == request.form.get("copia")), None)
-        if not copia:
-            abort(404)
+        copia = copia_o_404(request.form.get("copia"))
         try:
             copies.restaura(copia, actualitzacions.versio_actual())
         except copies.CopiaInvalida as e:
-            return redirect(url_for("inici", error=str(e)))
-        return redirect(url_for("inici"))
+            return redirect(url_for("copies_llista", error=str(e)))
+        return redirect(url_for("copies_llista", restaurada=copia.name))
 
     @app.post("/canconer/<id_canconer>/duplica")
     def canconer_duplica(id_canconer):
@@ -624,6 +655,13 @@ def crea_app() -> Flask:
     @app.get("/api/canco/<id_canco>")
     def api_canco(id_canco):
         return jsonify(o_404(bd.carrega_canco, id_canco))
+
+    @app.get("/api/identitat")
+    def api_identitat():
+        """Qui és aquest servidor: la carpeta de dades, el procés i la versió. L'app d'escriptori ho fa
+        servir per no confondre's amb un altre servidor que ocupi el mateix port."""
+        return jsonify({"app": "canconers", "dades": str(bd.DIRECTORI.resolve()), "pid": os.getpid(),
+                        "versio": actualitzacions.versio_actual()})
 
     @app.get("/api/preferencies")
     def api_preferencies():

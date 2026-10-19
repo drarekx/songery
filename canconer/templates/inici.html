@@ -34,6 +34,7 @@
       <input type="hidden" name="copia" value="{{ recuperable.nom }}">
       <button class="btn btn-primari shrink-0">Restaura la còpia</button>
     </form>
+    <a href="{{ url_for('copies_llista') }}" class="btn btn-fantasma shrink-0">Mira totes les còpies</a>
   </div>
   {% endif %}
   {% if enviat %}

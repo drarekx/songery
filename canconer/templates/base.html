@@ -63,7 +63,9 @@
 
 <footer class="mt-auto shrink-0 border-t border-paper-300 bg-paper-50 px-4 py-1.5 text-[12px] text-ink-400 lg:px-6">
   Cançoners · versió instal·lada <span class="font-mono text-ink-500">{{ versio_app }}</span>
+  · dades a <span class="font-mono text-ink-500" title="Carpeta d'on llegeix les dades aquesta finestra">{{ carpeta_dades }}</span>
   · <a href="{{ url_for('actualitzacio') }}" class="underline hover:text-ink-700">Actualitzacions</a>
+  · <a href="{{ url_for('copies_llista') }}" class="underline hover:text-ink-700">Còpies de seguretat</a>
 </footer>
 
 <script id="preferencies" type="application/json">{{ (preferencies | default({}, true)) | tojson }}</script>

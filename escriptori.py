@@ -21,6 +21,7 @@ import socket
 import subprocess
 import sys
 import threading
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -72,13 +73,35 @@ def obre_navegador(url: str) -> None:
 
 
 def instancia_oberta() -> str | None:
-    """URL de l'app si ja n'hi ha una altra d'oberta (i respon)."""
+    """URL de l'app si ja n'hi ha una altra d'oberta. Ha de ser aquesta mateixa app amb aquestes mateixes
+    dades: si a l'adreça desada hi respon un altre servidor (un altre programa o un servidor de
+    desenvolupament de Cançoners amb unes altres dades), no es fa servir i l'app arrenca la seva."""
     try:
-        url = json.loads(FITXER_SERVIDOR.read_text())["url"]
-        with urllib.request.urlopen(url, timeout=2):
-            return url
-    except (OSError, ValueError, KeyError):
+        desat = json.loads(FITXER_SERVIDOR.read_text())
+        url, pid = desat["url"], int(desat["pid"])
+    except (OSError, ValueError, KeyError, TypeError):
         return None
+    try:
+        with urllib.request.urlopen(url + "api/identitat", timeout=2) as r:
+            qui = json.loads(r.read())
+        if qui.get("app") == "canconers" and qui.get("pid") == pid and Path(qui.get("dades", "")).resolve() == DADES.resolve():
+            return url
+        return None
+    except urllib.error.HTTPError as e:
+        # Una versió antiga (sense /api/identitat) que encara és oberta: és ella si el procés desat és
+        # l'app de Cançoners.
+        return url if e.code == 404 and es_l_app(pid) else None
+    except (OSError, ValueError):
+        return None
+
+
+def es_l_app(pid: int) -> bool:
+    """Si el procés és l'app de Cançoners (i no un altre programa que hagi reaprofitat el número)."""
+    try:
+        ordre = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
+    except OSError:
+        return False
+    return "/Contents/MacOS/Canconers" in ordre
 
 
 def port_lliure(port: int) -> bool:
@@ -134,14 +157,6 @@ def configuracio() -> dict:
 def desa_configuracio(**canvis) -> None:
     DADES.mkdir(parents=True, exist_ok=True)
     CONFIGURACIO.write_text(json.dumps({**configuracio(), **canvis}, indent=2))
-
-
-def tria_fitxer(carpeta: Path) -> Path | None:
-    """Diàleg de macOS per triar un .zip (None si es cancel·la)."""
-    script = (f'POSIX path of (choose file with prompt "Tria la còpia de seguretat que vols restaurar:" '
-              f'of type {{"zip", "public.zip-archive"}} default location (POSIX file "{carpeta}"))')
-    r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
-    return Path(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
 
 
 def redirigeix_sortida() -> None:
@@ -213,7 +228,7 @@ def main() -> None:
                 self.item_versio,
                 rumps.MenuItem("Cerca actualitzacions…", callback=lambda _: obre_navegador(url + "actualitzacio")),
                 rumps.MenuItem("Fes una còpia de seguretat ara", callback=self.copia_ara),
-                rumps.MenuItem("Restaura una còpia…", callback=self.restaura),
+                rumps.MenuItem("Còpies de seguretat…", callback=lambda _: obre_navegador(url + "copies")),
                 None,
                 rumps.MenuItem("Surt", callback=self.surt),
             ]
@@ -317,27 +332,10 @@ def main() -> None:
             except Exception as e:  # noqa: BLE001
                 rumps.alert("No s'ha pogut fer la còpia", str(e))
                 return
-            if rumps.alert("Còpia de seguretat feta", f"S'ha desat {copia.name}. Es conserven les últimes {copies.CONSERVADES}.",
+            if rumps.alert("Còpia de seguretat feta", f"S'ha desat {copia.name}. Es conserven les dels últims {copies.DIES_CONSERVADES} dies.",
                            ok="D'acord", cancel="Mostra-la"):
                 return
             subprocess.Popen(["open", "-R", str(copia)])
-
-        def restaura(self, _) -> None:
-            fitxer = tria_fitxer(copies.directori())
-            if not fitxer:
-                return
-            if not rumps.alert("Restaurar la còpia?", f"Les dades tornaran a l'estat de {fitxer.name}. "
-                               "Abans es farà una còpia de l'estat actual, per si de cas.\n\n"
-                               "Tanca les pestanyes de Cançoners del navegador abans de continuar.",
-                               ok="Restaura", cancel="Cancel·la"):
-                return
-            try:
-                abans = copies.restaura(fitxer, versio)
-            except Exception as e:  # noqa: BLE001
-                rumps.alert("No s'ha pogut restaurar", str(e))
-                return
-            rumps.alert("Còpia restaurada", f"L'estat anterior s'ha desat a {abans.name}.")
-            obre_navegador(url)
 
         def surt(self, _):
             FITXER_SERVIDOR.unlink(missing_ok=True)

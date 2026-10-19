@@ -31,14 +31,21 @@ def test_la_copia_conte_tot_i_es_consistent(dades_temporals):
     con.close()
 
 
-def test_es_conserven_les_ultimes(dades_temporals):
+def test_es_conserven_les_recents_i_les_dels_ultims_30_dies(dades_temporals):
+    """Es conserven sempre les 10 més recents i totes les dels últims 30 dies; les velles, no."""
+    from datetime import datetime, timedelta
+
     _amb_dades(dades_temporals)
-    for i in range(7):
-        (copies.directori() / f"2020-01-0{i + 1}_1200_v1.0.0.zip").write_bytes(b"")
+    for i in range(12):  # velles (fa anys): de sobres per passar de les 10 més recents
+        (copies.directori() / f"2020-01-{i + 1:02d}_1200_v1.0.0.zip").write_bytes(b"")
+    fa_poc = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
+    for i in range(12):  # dels últims dies: totes es queden
+        (copies.directori() / f"{fa_poc}_12{i:02d}_v1.0.0.zip").write_bytes(b"")
     copies.fes_copia("1.0.0")
     noms = [c.name for c in copies.llista()]
-    assert len(noms) == copies.CONSERVADES and noms[0].startswith(tuple("23456789"))  # la nova és la primera
-    assert "2020-01-01_1200_v1.0.0.zip" not in noms
+    assert sum(n.startswith(fa_poc) for n in noms) == 12
+    assert not any(n.startswith("2020-") for n in noms)  # més de 30 dies i fora de les 10 més recents
+    assert noms[0] > fa_poc  # la nova és la primera
 
 
 def test_restaurar_torna_les_dades_i_guarda_l_estat_actual(dades_temporals):
@@ -156,3 +163,31 @@ def test_sense_dades_ni_copies_no_surt_cap_avis():
     from canconer.web import crea_app
 
     assert "còpia de seguretat amb les teves dades" not in crea_app().test_client().get("/").get_data(as_text=True)
+
+
+def test_restaurador_llista_previsualitza_i_restaura():
+    from canconer import basedades as bd, copies, exemple
+    from canconer.web import crea_app
+
+    exemple.crea_exemple()
+    client = crea_app().test_client()
+    r = client.post("/copies/nova")
+    feta = r.headers["Location"].split("feta=")[1]
+    html = client.get("/copies").get_data(as_text=True)
+    assert feta in html and "Feta a mà" in html and "1 cançoner, 4 cançons" in html
+    d = client.get(f"/api/copies/{feta}").get_json()
+    assert d["canconers"][0]["titol"] == "Cançoner d'exemple" and len(d["canconers"][0]["cancons"]) == 4
+    assert client.get("/api/copies/no-existeix.zip").status_code == 404
+    bd.crea_canconer("Nou després de la còpia")
+    r = client.post("/copies/restaura", data={"copia": feta})
+    assert "restaurada=" in r.headers["Location"]
+    assert [k["titol"] for k in bd.llista_canconers()] == ["Cançoner d'exemple"]
+    assert any(copies.descripcio(c)["motiu"] == "Abans de restaurar una còpia" for c in copies.llista())
+
+
+def test_identitat_del_servidor():
+    from canconer import basedades as bd
+    from canconer.web import crea_app
+
+    d = crea_app().test_client().get("/api/identitat").get_json()
+    assert d["app"] == "canconers" and d["dades"] == str(bd.DIRECTORI.resolve()) and isinstance(d["pid"], int)

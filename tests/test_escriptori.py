@@ -73,3 +73,56 @@ def test_s_obre_en_una_finestra_propia_o_al_navegador(escriptori, monkeypatch, t
     escriptori.obre_navegador("http://127.0.0.1:48650/")
     assert crides[-1] == ["open", "http://127.0.0.1:48650/"]  # sense Chrome, Edge ni Brave
     assert json.loads((tmp_path / "configuracio.json").read_text())["finestra"] == "app"
+
+
+def _servidor(resposta: dict | None):
+    """Servidor HTTP de prova que respon /api/identitat amb `resposta` (None: 404, com una versió antiga
+    o un altre programa)."""
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class Gestor(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            if resposta is None or self.path != "/api/identitat":
+                self.send_response(404)
+                self.end_headers()
+                return
+            cos = json.dumps(resposta).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(cos)
+
+        def log_message(self, *a):
+            pass
+
+    s = HTTPServer(("127.0.0.1", 0), Gestor)
+    threading.Thread(target=s.serve_forever, daemon=True).start()
+    return s
+
+
+def test_no_es_confon_amb_un_altre_servidor_al_mateix_port(escriptori, tmp_path, monkeypatch):
+    """Si a l'adreça desada hi respon un altre servidor (un altre programa, o un Cançoners amb unes altres
+    dades), l'app no s'hi connecta: arrenca la seva."""
+    monkeypatch.setattr(escriptori, "FITXER_SERVIDOR", tmp_path / "servidor.json")
+    pid = 4242
+    casos = [
+        ({"app": "canconers", "dades": str(tmp_path), "pid": pid}, True),  # és ella
+        ({"app": "canconers", "dades": "/una/altra/carpeta", "pid": pid}, False),  # unes altres dades
+        ({"app": "canconers", "dades": str(tmp_path), "pid": 1}, False),  # un altre procés
+        (None, False),  # un altre programa (i el procés desat no és l'app)
+    ]
+    monkeypatch.setattr(escriptori, "DADES", tmp_path)
+    for resposta, nostra in casos:
+        s = _servidor(resposta)
+        url = f"http://127.0.0.1:{s.server_port}/"
+        escriptori.FITXER_SERVIDOR.write_text(json.dumps({"url": url, "pid": pid}))
+        assert (escriptori.instancia_oberta() == url) is nostra, resposta
+        s.shutdown()
+    # Una versió antiga de l'app (sense /api/identitat) que encara és oberta sí que es reaprofita.
+    monkeypatch.setattr(escriptori, "es_l_app", lambda p: p == pid)
+    s = _servidor(None)
+    url = f"http://127.0.0.1:{s.server_port}/"
+    escriptori.FITXER_SERVIDOR.write_text(json.dumps({"url": url, "pid": pid}))
+    assert escriptori.instancia_oberta() == url
+    s.shutdown()

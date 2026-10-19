@@ -69,11 +69,19 @@ normal des de la barra de menú (`finestra` a `configuracio.json`).
 **Dades**: en obrir-se, `basedades._aplica_migracions` aplica les migracions pendents (`MIGRACIONS`,
 versió de l'esquema a `PRAGMA user_version`), amb còpia de seguretat abans i tot en una transacció.
 
-**Protecció contra «s'ha esborrat tot»**: si l'inici no troba cap cançoner ni cap cançó però hi ha una
-còpia de seguretat amb dades (`copies.ultima_amb_dades`), ho avisa i ofereix restaurar-la
-(`POST /copies/restaura`, que abans guarda l'estat actual). La neteja de còpies antigues (se'n conserven 5)
-no esborra mai la més recent que té dades. També es poden restaurar des de la barra de menú
-(«Restaura una còpia…»).
+**Còpies de seguretat i restaurador**: `/copies` (enllaç al peu i a la barra de menú) llista les còpies amb
+el motiu i quants cançoners i cançons tenen, en mostra el contingut i en restaura una (abans guarda l'estat
+actual). Es conserven les 10 més recents i totes les dels últims 30 dies (fins a 60), i mai la més recent
+amb dades. **No torneu mai a una regla de «les N últimes»**: el 2026-10-19, amb només 5, unes quantes
+restauracions i migracions seguides van fer fora les còpies bones. Si l'inici no troba cap dada però hi ha
+una còpia que en té, ho avisa i ofereix restaurar-la.
+
+**Una sola app, les mateixes dades**: abans de reaprofitar una instància oberta (`servidor.json`),
+`escriptori.instancia_oberta` comprova a `/api/identitat` que qui respon és Cançoners amb la mateixa carpeta
+de dades i el mateix procés. Si no, n'arrenca una de nova. (Abans n'hi havia prou que l'adreça respongués:
+amb un altre servidor al port desat, l'app el mostrava com si fos ella: «es veu una altra base de
+dades».) El peu de cada pàgina diu de quina carpeta llegeix les dades, i el servidor de desenvolupament
+(`python app.py`, port 5180) porta una franja «DESENVOLUPAMENT».
 
 ## Errors que ja han passat (i com evitar-los)
 

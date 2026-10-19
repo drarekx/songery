@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titol %}Còpies de seguretat{% endblock %}
+
+{% block contingut %}
+<div class="flex flex-col gap-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-4xl font-medium tracking-tight">Còpies de seguretat</h1>
+      <p class="mt-1 max-w-2xl text-ink-500">Es fan soles abans d'actualitzar l'app o les dades, i abans de restaurar-ne una.
+        Mira què hi ha a cadascuna i, si cal, torna-hi. Abans de restaurar es guarda l'estat actual, així que no es perd res.
+        Es conserven totes les dels últims {{ dies }} dies (i, com a mínim, les {{ minim }} més recents).</p>
+    </div>
+    <form method="post" action="{{ url_for('copies_nova') }}">
+      <button class="btn btn-primari">Fes una còpia ara</button>
+    </form>
+  </div>
+
+  {% if error %}<p class="avis"><span aria-hidden="true">⚠</span><span>{{ error }}</span></p>{% endif %}
+  {% if restaurada %}
+  <p role="status" class="rounded-lg bg-ink-900 px-4 py-3 text-[14px] text-white">S'ha restaurat la còpia <span class="font-mono">{{ restaurada }}</span>. L'estat d'abans s'ha desat com a còpia nova («Abans de restaurar una còpia»).</p>
+  {% endif %}
+  {% if feta %}
+  <p role="status" class="rounded-lg bg-ink-900 px-4 py-3 text-[14px] text-white">Còpia feta: <span class="font-mono">{{ feta }}</span>.</p>
+  {% endif %}
+
+  <p class="text-[14px] text-ink-700">Ara mateix tens <strong>{{ actual.canconers }}</strong> {{ "cançoner" if actual.canconers == 1 else "cançoners" }}
+    i <strong>{{ actual.cancons }}</strong> {{ "cançó" if actual.cancons == 1 else "cançons" }}.
+    <span class="text-ink-500">Les còpies són a <span class="font-mono text-[13px]">{{ carpeta }}</span>.</span></p>
+
+  {% if copies %}
+  <ul class="flex flex-col gap-2">
+    {% for c in copies %}
+    <li class="targeta" data-copia="{{ c.nom }}">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <div class="min-w-[12rem] flex-1">
+          <p class="font-medium">{{ c.data }} <span class="ml-1 text-[13px] font-normal text-ink-500">· {{ c.motiu }}</span></p>
+          <p class="text-[12.5px] text-ink-500">
+            {% if c.canconers or c.cancons %}{{ c.canconers }} {{ "cançoner" if c.canconers == 1 else "cançoners" }}, {{ c.cancons }} {{ "cançó" if c.cancons == 1 else "cançons" }}
+            {% else %}<span class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900">buida</span>{% endif %}
+            · versió {{ c.versio }} · {{ (c.mida / 1024) | round | int }} kB</p>
+        </div>
+        <button type="button" class="btn btn-fantasma btn-petit" data-mostra aria-expanded="false">Mostra què hi ha</button>
+        <form method="post" action="{{ url_for('copies_restaura') }}" data-confirma-titol="Restaurar la còpia del {{ c.data }}?"
+              data-confirma-accepta="Restaura-la" data-confirma="Les dades tornaran a com eren en aquesta còpia ({{ c.canconers }} cançoners, {{ c.cancons }} cançons). Abans es desa l'estat actual com a còpia nova.">
+          <input type="hidden" name="copia" value="{{ c.nom }}">
+          <button class="btn btn-petit">Restaura</button>
+        </form>
+      </div>
+      <div class="hidden border-t border-paper-200 px-4 py-3 text-[13.5px]" data-contingut></div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-ink-500">Encara no hi ha cap còpia de seguretat.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Previsualització d'una còpia: els cançoners (amb les cançons) i les cançons soltes.
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  document.querySelectorAll("[data-mostra]").forEach((boto) => boto.addEventListener("click", async () => {
+    const li = boto.closest("[data-copia]");
+    const caixa = li.querySelector("[data-contingut]");
+    const obrir = caixa.classList.contains("hidden");
+    caixa.classList.toggle("hidden", !obrir);
+    boto.setAttribute("aria-expanded", String(obrir));
+    boto.textContent = obrir ? "Amaga" : "Mostra què hi ha";
+    if (!obrir || caixa.dataset.carregat) return;
+    caixa.textContent = "Llegint la còpia…";
+    const r = await fetch(`/api/copies/${encodeURIComponent(li.dataset.copia)}`);
+    const d = await r.json();
+    if (!r.ok) { caixa.textContent = d.error || "No s'ha pogut llegir la còpia."; return; }
+    caixa.dataset.carregat = "1";
+    const canconers = d.canconers.map((k) => `<li><p class="font-medium">${esc(k.titol)}${k.paperera ? ' <span class="text-[12px] font-normal text-ink-400">(a la paperera)</span>' : ""}
+      <span class="font-mono text-[11.5px] text-ink-400">${k.cancons.length}</span></p>
+      ${k.cancons.length ? `<p class="text-ink-500">${k.cancons.map(esc).join(" · ")}</p>` : ""}</li>`).join("");
+    caixa.innerHTML = `${d.canconers.length ? `<ul class="flex flex-col gap-2">${canconers}</ul>` : '<p class="text-ink-500">Cap cançoner.</p>'}
+      ${d.soltes.length ? `<p class="mt-3 text-ink-700"><span class="font-medium">Cançons que no són a cap cançoner:</span> ${d.soltes.map(esc).join(" · ")}</p>` : ""}
+      <p class="mt-3 text-[12px] text-ink-400">${d.imatges} imatges · ${d.tipografies} tipografies importades</p>`;
+  }));
+</script>
+{% endblock %}
