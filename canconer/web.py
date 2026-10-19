@@ -893,10 +893,65 @@ def crea_app() -> Flask:
         if len(dades) > MIDA_MAXIMA_IMATGE:
             return jsonify({"error": "La imatge fa més de 12 MB."}), 413
         try:
-            id_imatge = bd.desa_imatge(dades, fitxer.mimetype, fitxer.filename or "")
+            id_imatge = bd.puja_imatge(dades, fitxer.filename or "", request.form.get("carpeta") or None)
         except ValueError as e:
             return jsonify({"error": str(e)}), 415
         return jsonify({"id": id_imatge, "url": url_for("imatge", id_imatge=id_imatge)})
+
+    # ------------------------------------------------------------ Mèdia (galeria d'imatges compartides)
+
+    @app.get("/api/media")
+    def api_media():
+        """Imatges de la mèdia: ?carpeta= (buit: sense carpeta; sense el paràmetre: totes) i ?q=."""
+        carpeta = request.args.get("carpeta")
+        dades = bd.media(carpeta, request.args.get("q", ""))
+        for im in dades["imatges"]:
+            im["url"] = url_for("imatge", id_imatge=im["id"])
+        return jsonify(dades)
+
+    @app.post("/api/media/carpetes")
+    def api_media_carpeta_nova():
+        try:
+            return jsonify({"id": bd.crea_carpeta_media(str((request.get_json(silent=True) or {}).get("nom") or ""))})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.put("/api/media/carpetes/<id_carpeta>")
+    def api_media_carpeta(id_carpeta):
+        try:
+            o_404(bd.reanomena_carpeta_media, id_carpeta, str((request.get_json(silent=True) or {}).get("nom") or ""))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": True})
+
+    @app.delete("/api/media/carpetes/<id_carpeta>")
+    def api_media_carpeta_esborra(id_carpeta):
+        o_404(bd.esborra_carpeta_media, id_carpeta)
+        return jsonify({"ok": True})
+
+    @app.put("/api/media/imatges")
+    def api_media_mou():
+        """Mou imatges a una carpeta ({ids, carpeta}; carpeta buida: «Sense carpeta»)."""
+        d = request.get_json(silent=True) or {}
+        ids = [str(i) for i in (d.get("ids") or [])][:500]
+        n = o_404(bd.mou_imatges, ids, str(d.get("carpeta") or "") or None)
+        return jsonify({"mogudes": n})
+
+    @app.put("/api/media/imatges/<id_imatge>")
+    def api_media_reanomena(id_imatge):
+        try:
+            o_404(bd.reanomena_imatge, id_imatge, str((request.get_json(silent=True) or {}).get("nom") or ""))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": True})
+
+    @app.delete("/api/media/imatges/<id_imatge>")
+    def api_media_esborra(id_imatge):
+        try:
+            o_404(bd.esborra_imatge, id_imatge)
+        except bd.ImatgeEnUs as e:
+            return jsonify({"error": f"No es pot esborrar: {e}", "usos": e.usos}), 409
+        return jsonify({"ok": True})
 
     @app.get("/imatges/<id_imatge>")
     def imatge(id_imatge):

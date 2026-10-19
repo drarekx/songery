@@ -75,8 +75,9 @@ def test_elements_i_imatges(client):
     assert r.status_code == 200
     assert client.get("/api/elements").get_json()["elements"][0]["nom"] == "Sanefa"
     assert client.post("/api/elements", json={"elements": []}).status_code == 400
-    r = client.post("/api/imatges", data={"imatge": (io.BytesIO(b"\x89PNG"), "a.png", "image/png")})
-    assert client.get(f"/imatges/{r.get_json()['id']}").data == b"\x89PNG"
+    png = b"\x89PNG\r\n\x1a\n" + b"\0" * 16
+    r = client.post("/api/imatges", data={"imatge": (io.BytesIO(png), "a.png", "image/png")})
+    assert client.get(f"/imatges/{r.get_json()['id']}").data == png
 
 
 def test_converteix_i_transporta(client):

@@ -398,3 +398,51 @@ def test_la_mida_de_la_barra_canvia_nomes_el_text_seleccionat(pagina, servidor):
     tros = pagina.avalua("parseFloat(getComputedStyle(document.querySelector('.marc-lletra.editant [data-mida]')).fontSize)")
     assert tros > abans * 1.2, (tros, abans)
     assert abs(pagina.avalua(linia) - abans) < 0.05  # la resta, igual
+
+
+def test_galeria_de_media_pujar_afegir_carpeta_i_moure(pagina, servidor):
+    """El botó «Imatge» obre la galeria de mèdia: s'hi puja una imatge, s'afegeix a la pàgina, es crea una
+    carpeta i s'hi mou (la imatge de la pàgina no canvia) i no es deixa esborrar perquè es fa servir."""
+    obre_editor(pagina, servidor)
+    imatges = "document.querySelectorAll('.capa-elements [data-tipus=imatge]').length"
+    abans = pagina.avalua(imatges)
+    pagina.avalua("[...document.querySelectorAll('#barra-eines button, [role=toolbar] button')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Imatge')).click()")
+    pagina.espera("document.querySelector('dialog.galeria-media[open]')")
+    # Pujar: una PNG de debò (dibuixada en un canvas) i un fitxer que no és imatge.
+    pagina.avalua("""(async () => {
+      const c = document.createElement('canvas'); c.width = 40; c.height = 30;
+      c.getContext('2d').fillRect(0, 0, 20, 20);
+      const png = await new Promise((r) => c.toBlob(r, 'image/png'));
+      const dt = new DataTransfer();
+      dt.items.add(new File([png], 'quadrat.png', { type: 'image/png' }));
+      dt.items.add(new File(['hola'], 'notes.txt', { type: 'text/plain' }));
+      const input = document.querySelector('dialog.galeria-media input[type=file]');
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+    })()""")
+    pagina.espera("[...document.querySelectorAll('.imatge-media')].some((b) => b.textContent.includes('quadrat.png'))")
+    assert "Només es poden pujar" in pagina.avalua("document.querySelector('dialog.galeria-media [role=alert]')?.textContent || ''")
+    # La que s'acaba de pujar queda triada: s'afegeix a la pàgina.
+    pagina.espera("document.querySelector('.imatge-media[aria-pressed=true]')")
+    pagina.avalua("[...document.querySelectorAll('dialog.galeria-media footer button')].find((b) => b.textContent.includes('Afegeix a la pàgina')).click()")
+    pagina.espera(f"{imatges} === {abans + 1} && !document.querySelector('dialog.galeria-media[open]')")
+    src = pagina.avalua("document.querySelector('.capa-elements [data-tipus=imatge] img')?.getAttribute('src')")
+
+    # Carpeta nova i moure-hi la imatge amb «Mou a…».
+    pagina.avalua("[...document.querySelectorAll('#barra-eines button, [role=toolbar] button')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Imatge')).click()")
+    pagina.espera("document.querySelector('dialog.galeria-media[open] .imatge-media')")
+    pagina.avalua("[...document.querySelectorAll('dialog.galeria-media nav button')].find((b) => b.textContent.includes('Carpeta nova')).click()")
+    pagina.espera("document.querySelector('dialog.galeria-media nav input')")
+    pagina.avalua("""(() => { const i = document.querySelector('dialog.galeria-media nav input'); i.value = 'Formes'; i.dispatchEvent(new Event('input'));
+      i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })()""")
+    pagina.espera("[...document.querySelectorAll('dialog.galeria-media .carpeta-media')].some((b) => b.textContent.includes('Formes'))")
+    pagina.avalua("[...document.querySelectorAll('.imatge-media')].find((b) => b.textContent.includes('quadrat.png')).click()")
+    pagina.avalua("[...document.querySelectorAll('dialog.galeria-media footer button')].find((b) => b.textContent.startsWith('Mou a')).click()")
+    pagina.espera("document.querySelector('.menu-mou')")
+    pagina.avalua("[...document.querySelectorAll('.menu-mou button')].find((b) => b.textContent.trim() === 'Formes').click()")
+    pagina.espera("[...document.querySelectorAll('dialog.galeria-media .carpeta-media')].find((b) => b.textContent.includes('Formes'))?.textContent.includes('1')")
+    assert pagina.avalua("document.querySelector('.capa-elements [data-tipus=imatge] img')?.getAttribute('src')") == src
+
+    # Es fa servir a la cançó: no es pot esborrar.
+    pagina.avalua("[...document.querySelectorAll('.imatge-media')].find((b) => b.textContent.includes('quadrat.png')).click()")
+    assert "a 1 lloc" in pagina.avalua("document.querySelector('dialog.galeria-media footer').textContent")

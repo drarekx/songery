@@ -7,7 +7,7 @@ import {
   reposiciona, requadre, transportaAcord, transportaPagines, treuAcord,
 } from "./dist/canconer.js";
 import {
-  TIPUS_ACORD, muntaAvisLlenc, muntaBarraEines, muntaBarraInferior, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore, usePreferencies,
+  TIPUS_ACORD, muntaAvisLlenc, muntaGaleriaMedia, obreGaleria, pujaAMedia, muntaBarraEines, muntaBarraInferior, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore, usePreferencies,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
 
@@ -315,10 +315,7 @@ store.connecta({
     const e = elementSel();
     if (e) editaLletra(seleccio.p, e.id);
   },
-  canviaImatge() {
-    $("#fitxer-imatge").dataset.desti = "substitueix";
-    $("#fitxer-imatge").click();
-  },
+  canviaImatge: () => triaImatge("substitueix"),
   triaFontElement,
   desaABiblioteca: desaSeleccioABiblioteca,
   canviaNomMestra,
@@ -357,6 +354,7 @@ muntaBarraInferior("#barra-inferior");
 muntaBarraText("#barra-text");
 muntaAvisLlenc("#avis-llenc");
 muntaMenuContext("#menu-context");
+muntaGaleriaMedia("#galeria-media");
 muntaPanellAcords("#llista-acords");
 muntaPanellCanco("#panell-canco");
 muntaPanellEstils("#panell-estils");
@@ -1187,7 +1185,7 @@ const FORMATS = {
   cor: (ed) => ed.chain().focus().toggleMark("cor").run(),
   seccio: (ed) => ed.chain().focus().toggleNode("seccio", "linia").run(),
   nota: (ed) => ed.chain().focus().toggleNode("nota", "linia").run(),
-  imatge: () => { $("#fitxer-imatge").dataset.desti = "lletra"; $("#fitxer-imatge").click(); },
+  imatge: () => triaImatge("lletra"),
   enganxa: () => $("#dialeg-text").showModal(),
   talla: () => tallaAqui(),
   reparteix: () => edicio && reparteix(edicio.p, edicio.id),
@@ -1555,7 +1553,7 @@ const NOUS = {
 const EINES = {
   desfes: () => desfes(true),
   refes: () => desfes(false),
-  "nou-imatge": () => { $("#fitxer-imatge").dataset.desti = "element"; $("#fitxer-imatge").click(); },
+  "nou-imatge": () => triaImatge("element"),
   "importa-text": () => {
     if (obert?.tipus !== "canco" || !editable) return avisa("Obre una cançó per importar-hi text amb acords, o fes servir «Importa» a la llista per crear-ne una de nova.");
     if (transport()) return avisa("Aquesta cançó té transport en aquest cançoner. Posa'l a 0 o aplica'l a la cançó abans d'importar-hi text.");
@@ -1606,28 +1604,37 @@ function mouPagina(d) {
 }
 
 
-$("#fitxer-imatge").addEventListener("change", async (ev) => {
-  const fitxer = ev.target.files[0];
-  const desti = ev.target.dataset.desti;
-  ev.target.value = "";
-  if (fitxer) await pujaImatge(fitxer, desti);
-});
+/**
+ * Obre la galeria de mèdia per triar-hi una imatge (o pujar-ne una) i posar-la on toca: «element»
+ * (a la pàgina), «substitueix» (en lloc de la imatge seleccionada) o «lletra» (dins la lletra que s'edita).
+ */
+async function triaImatge(desti) {
+  await desa(); // l'ús de cada imatge es compta amb el que hi ha desat: que hi sigui tot
+  const titol = { substitueix: "Fes servir aquesta imatge", lletra: "Posa-la a la lletra" }[desti] || "Afegeix a la pàgina";
+  const p = seleccio?.p;
+  obreGaleria({ titol, tria: (imatge) => { if (p !== undefined && desti === "element") seleccio = { p, id: null }; posaImatge(imatge, desti); } });
+}
 
 /**
- * Puja una imatge i la posa on toca: dins la lletra que s'edita, en lloc de la imatge seleccionada o
- * com a element nou (a la pàgina activa, centrada al punt donat en mm o al centre de la pàgina).
+ * Puja una imatge (enganxada o arrossegada al llenç) a la mèdia, «Sense carpeta», i la posa a la pàgina.
  */
 async function pujaImatge(fitxer, desti = "element", punt = null) {
-  const formulari = new FormData();
-  formulari.append("imatge", fitxer, fitxer.name || "imatge.png");
-  mostraEstat("Pujant la imatge…", "treballant");
+  mostraEstat("Pujant la imatge a la mèdia…", "treballant");
   let r;
   try {
-    r = await api(urls.imatges, "POST", formulari);
+    r = await pujaAMedia(fitxer);
   } catch (e) {
     return mostraEstat(e.message, "error");
   }
-  mostraEstat("Tot desat");
+  mostraEstat("Imatge desada a la mèdia (Sense carpeta)");
+  await posaImatge(r, desti, punt);
+}
+
+/**
+ * Posa una imatge de la mèdia ({id, url}) on toca: dins la lletra que s'edita, en lloc de la imatge
+ * seleccionada o com a element nou (a la pàgina activa, centrada al punt donat en mm o al centre).
+ */
+async function posaImatge(r, desti = "element", punt = null) {
   if (desti === "lletra" && edicio?.editor) {
     edicio.editor.chain().focus().insertContent({ type: "imatge", attrs: { src: r.id, posicio: "dreta", amplada: 40 } }).run();
     return;
@@ -1742,7 +1749,7 @@ function menuSeleccio() {
     }
   }
   if (e?.tipus === "text") propies.push({ text: "Edita el text", drecera: "doble clic", fes: () => editaText(seleccio.p, e.id, nodeElement(seleccio.p, e.id)) });
-  if (e?.tipus === "imatge") propies.push({ text: "Canvia la imatge…", fes: () => { $("#fitxer-imatge").dataset.desti = "substitueix"; $("#fitxer-imatge").click(); } });
+  if (e?.tipus === "imatge") propies.push({ text: "Canvia la imatge…", fes: () => triaImatge("substitueix") });
   if (e?.grup) propies.push({ text: "Selecciona tot el grup", fes: () => selecciona(seleccio.p, e.id) });
   return [
     ...(els.length > 1 ? [{ seccio: grup ? `Grup de ${els.length}` : `${els.length} elements` }] : []),

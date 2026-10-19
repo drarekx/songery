@@ -9,7 +9,8 @@ Model:
   - entrada: una cançó dins d'un cançoner, amb la posició, si surt al PDF, el transport, la
     versió fixada (NULL = segueix l'esborrany, és a dir, sempre l'última) i si ha de començar a
     l'esquerra o on toqui.
-  - imatge: fitxers pujats (es desen a data/imatges/).
+  - imatge: fitxers pujats (es desen a data/imatges/). És la mèdia: compartida per totes les cançons i
+    cançoners, que hi apunten pel seu id (camps «src»). Es pot ordenar en carpetes (carpeta_media).
   - element: elements de disseny desats per reutilitzar-los (biblioteca d'elements).
 """
 
@@ -850,15 +851,48 @@ def _directori_imatges() -> Path:
     return d
 
 
-def desa_imatge(dades: bytes, tipus: str, nom: str = "") -> str:
+# Només es poden pujar imatges d'aquests tipus. El tipus es mira al contingut del fitxer (no al nom ni
+# al que diu el navegador). Les SVG antigues o importades es continuen servint, però no se'n poden pujar.
+EXTENSIONS_PUJABLES = ("png", "jpg", "jpeg", "webp", "gif")
+
+
+def tipus_imatge(dades: bytes) -> str | None:
+    """Tipus MIME d'una imatge pel seu contingut (PNG, JPEG, GIF o WEBP), o None si no n'és cap."""
+    if dades.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if dades.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if dades[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if dades[:4] == b"RIFF" and dades[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+class ImatgeNoAdmesa(ValueError):
+    pass
+
+
+def puja_imatge(dades: bytes, nom: str = "", carpeta: str | None = None) -> str:
+    """Desa una imatge pujada a la mèdia (a una carpeta o sense). Només PNG, JPEG, WEBP i GIF."""
+    extensio = nom.rsplit(".", 1)[-1].lower() if "." in nom else ""
+    tipus = tipus_imatge(dades)
+    if not tipus or (extensio and extensio not in EXTENSIONS_PUJABLES):
+        raise ImatgeNoAdmesa("Només es poden pujar imatges PNG, JPG, WEBP o GIF.")
+    return desa_imatge(dades, tipus, nom, carpeta=carpeta)
+
+
+def desa_imatge(dades: bytes, tipus: str, nom: str = "", carpeta: str | None = None) -> str:
     if tipus not in TIPUS_IMATGE:
         raise ValueError(f"Tipus d'imatge no admès: {tipus}")
     identificador = nou_id()
     fitxer = f"{identificador}.{TIPUS_IMATGE[tipus]}"
     (_directori_imatges() / fitxer).write_bytes(dades)
     with connexio() as con:
-        con.execute("INSERT INTO imatge (id, fitxer, tipus, nom, creada) VALUES (?, ?, ?, ?, ?)",
-                    (identificador, fitxer, tipus, nom[:200], ara()))
+        if carpeta and not con.execute("SELECT 1 FROM carpeta_media WHERE id = ?", (_valida(carpeta),)).fetchone():
+            carpeta = None
+        con.execute("INSERT INTO imatge (id, fitxer, tipus, nom, creada, carpeta) VALUES (?, ?, ?, ?, ?, ?)",
+                    (identificador, fitxer, tipus, nom[:200], ara(), carpeta or None))
     return identificador
 
 
@@ -869,6 +903,139 @@ def imatge(id_imatge: str) -> tuple[Path, str]:
     if not fila:
         raise KeyError(id_imatge)
     return _directori_imatges() / fila["fitxer"], fila["tipus"]
+
+
+# ---------------------------------------------------------------- Mèdia: carpetes i ús de les imatges
+
+
+def _srcs(objecte, trobades: set[str]) -> set[str]:
+    """Ids d'imatge dels camps «src» (elements de pàgina i imatges dins la lletra)."""
+    if isinstance(objecte, dict):
+        if isinstance(objecte.get("src"), str) and objecte["src"]:
+            trobades.add(objecte["src"])
+        for v in objecte.values():
+            _srcs(v, trobades)
+    elif isinstance(objecte, list):
+        for v in objecte:
+            _srcs(v, trobades)
+    return trobades
+
+
+def usos_imatges(con=None) -> dict[str, list[str]]:
+    """On es fa servir cada imatge: {id: [«cançó «…»», «cançoner «…»»...]}. Compta les cançons (també
+    les de la paperera) i el disseny dels cançoners (pàgines especials i mestres)."""
+    if con is None:
+        with connexio() as con:
+            return usos_imatges(con)
+    usos: dict[str, list[str]] = {}
+    for f in con.execute("SELECT titol, doc, tipus FROM canco").fetchall():
+        quina = "pàgina" if f["tipus"] == "pagina" else "cançó"
+        for i in _srcs(json.loads(f["doc"]), set()):
+            usos.setdefault(i, []).append(f"{quina} «{f['titol'] or 'Sense títol'}»")
+    for f in con.execute("SELECT dades FROM canconer").fetchall():
+        dades = json.loads(f["dades"])
+        for i in _srcs({k: dades.get(k) for k in ("especials", "mestres", "disseny")}, set()):
+            usos.setdefault(i, []).append(f"cançoner «{dades.get('titol') or 'Cançoner'}»")
+    return usos
+
+
+def carpetes_media() -> list[dict]:
+    with connexio() as con:
+        files = con.execute("""SELECT c.id, c.nom, COUNT(i.id) AS n FROM carpeta_media c
+                               LEFT JOIN imatge i ON i.carpeta = c.id GROUP BY c.id ORDER BY c.nom COLLATE NOCASE""").fetchall()
+    return [dict(f) for f in files]
+
+
+def media(carpeta: str | None = None, cerca: str = "") -> dict:
+    """Imatges de la mèdia, les més noves primer. carpeta: None (totes), "" (sense carpeta) o un id."""
+    with connexio() as con:
+        consulta, params = "SELECT id, fitxer, tipus, nom, creada, carpeta FROM imatge", []
+        condicions = []
+        if carpeta == "":
+            condicions.append("carpeta IS NULL")
+        elif carpeta:
+            condicions.append("carpeta = ?")
+            params.append(_valida(carpeta))
+        if cerca.strip():
+            condicions.append("nom LIKE ?")
+            params.append(f"%{cerca.strip()}%")
+        if condicions:
+            consulta += " WHERE " + " AND ".join(condicions)
+        files = con.execute(consulta + " ORDER BY creada DESC", params).fetchall()
+        usos = usos_imatges(con)
+        total = con.execute("SELECT COUNT(*) FROM imatge").fetchone()[0]
+        sense = con.execute("SELECT COUNT(*) FROM imatge WHERE carpeta IS NULL").fetchone()[0]
+    imatges = []
+    for f in files:
+        cami = _directori_imatges() / f["fitxer"]
+        imatges.append({"id": f["id"], "nom": f["nom"] or f["fitxer"], "tipus": f["tipus"], "creada": f["creada"],
+                        "carpeta": f["carpeta"], "mida": cami.stat().st_size if cami.exists() else 0,
+                        "usos": usos.get(f["id"], [])})
+    return {"carpetes": carpetes_media(), "total": total, "sense_carpeta": sense, "imatges": imatges}
+
+
+def crea_carpeta_media(nom: str) -> str:
+    nom = nom.strip()[:80]
+    if not nom:
+        raise ValueError("La carpeta ha de tenir nom.")
+    identificador = nou_id()
+    with connexio() as con:
+        con.execute("INSERT INTO carpeta_media (id, nom, creada) VALUES (?, ?, ?)", (identificador, nom, ara()))
+    return identificador
+
+
+def reanomena_carpeta_media(id_carpeta: str, nom: str) -> None:
+    nom = nom.strip()[:80]
+    if not nom:
+        raise ValueError("La carpeta ha de tenir nom.")
+    with connexio() as con:
+        if not con.execute("UPDATE carpeta_media SET nom = ? WHERE id = ?", (nom, _valida(id_carpeta))).rowcount:
+            raise KeyError(id_carpeta)
+
+
+def esborra_carpeta_media(id_carpeta: str) -> None:
+    """Esborra la carpeta; les imatges que tenia passen a «Sense carpeta» (no se n'esborra cap)."""
+    with connexio() as con:
+        con.execute("UPDATE imatge SET carpeta = NULL WHERE carpeta = ?", (_valida(id_carpeta),))
+        if not con.execute("DELETE FROM carpeta_media WHERE id = ?", (id_carpeta,)).rowcount:
+            raise KeyError(id_carpeta)
+
+
+def mou_imatges(ids: list[str], carpeta: str | None) -> int:
+    """Mou imatges a una carpeta (o a «Sense carpeta»). Les cançons hi apunten per l'id: no canvien."""
+    with connexio() as con:
+        if carpeta and not con.execute("SELECT 1 FROM carpeta_media WHERE id = ?", (_valida(carpeta),)).fetchone():
+            raise KeyError(carpeta)
+        return sum(con.execute("UPDATE imatge SET carpeta = ? WHERE id = ?", (carpeta or None, _valida(i))).rowcount
+                   for i in ids)
+
+
+def reanomena_imatge(id_imatge: str, nom: str) -> None:
+    nom = nom.strip()[:200]
+    if not nom:
+        raise ValueError("La imatge ha de tenir nom.")
+    with connexio() as con:
+        if not con.execute("UPDATE imatge SET nom = ? WHERE id = ?", (nom, _valida(id_imatge))).rowcount:
+            raise KeyError(id_imatge)
+
+
+class ImatgeEnUs(Exception):
+    def __init__(self, usos: list[str]):
+        super().__init__(f"Es fa servir a {len(usos)} {'lloc' if len(usos) == 1 else 'llocs'}.")
+        self.usos = usos
+
+
+def esborra_imatge(id_imatge: str) -> None:
+    """Esborra una imatge de la mèdia, només si no la fa servir cap cançó ni cap cançoner."""
+    with connexio() as con:
+        fila = con.execute("SELECT fitxer FROM imatge WHERE id = ?", (_valida(id_imatge),)).fetchone()
+        if not fila:
+            raise KeyError(id_imatge)
+        usos = usos_imatges(con).get(id_imatge)
+        if usos:
+            raise ImatgeEnUs(usos)
+        con.execute("DELETE FROM imatge WHERE id = ?", (id_imatge,))
+    (_directori_imatges() / fila["fitxer"]).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------- Migracions
@@ -1052,6 +1219,15 @@ def _afegeix_autors(con) -> None:
         _vincula_autor(con, f["id"], unifica_nom=False)
 
 
+def _afegeix_media(con) -> None:
+    """Carpetes de la mèdia (carpeta_media) i imatge.carpeta. Les imatges que ja hi havia queden
+    «Sense carpeta»: no canvia res de cap cançó."""
+    con.execute("CREATE TABLE IF NOT EXISTS carpeta_media (id TEXT PRIMARY KEY, nom TEXT NOT NULL, creada TEXT NOT NULL)")
+    if "carpeta" not in {f[1] for f in con.execute("PRAGMA table_info(imatge)")}:
+        con.execute("ALTER TABLE imatge ADD COLUMN carpeta TEXT REFERENCES carpeta_media(id) ON DELETE SET NULL")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_imatge_carpeta ON imatge (carpeta)")
+
+
 MIGRACIONS = [
     _afegeix_columnes,  # 1: canco.tipus i entrada.inici
     _sembra_marges,  # 2: mestres de marges predefinides
@@ -1059,4 +1235,5 @@ MIGRACIONS = [
     _afegeix_paperera_cancons,  # 4: canco.paperera i canco.paperera_de (cançoner d'on s'ha eliminat)
     _fixa_portades,  # 5: els cançoners existents es queden la portada completa (la nova és només el títol)
     _afegeix_autors,  # 6: taula d'autors i canco.autor_id (els noms de text lliure hi passen, fusionats)
+    _afegeix_media,  # 7: carpetes de la mèdia i imatge.carpeta
 ]

@@ -326,6 +326,28 @@
     .llibret3d-full.girant .llibret3d-cara::after { animation: none; }
   }
 
+  /* Galeria de mèdia (GaleriaMedia.vue) */
+  .galeria-media {
+    @apply m-auto h-[min(42rem,calc(100dvh-3rem))] w-[min(64rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-paper-300 bg-paper-50 p-0 text-ink-900 shadow-full backdrop:bg-ink-900/30;
+  }
+  .galeria-media[open] { @apply flex; }
+  .carpeta-media {
+    @apply flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-left text-[14px] text-ink-700 transition hover:bg-paper-200;
+  }
+  .carpeta-media[aria-current="true"] { @apply bg-white font-semibold text-ink-900 shadow-suau ring-1 ring-paper-300 hover:bg-white; }
+  .carpeta-media.desti { @apply bg-ink-900 text-white ring-0; }
+  .carpeta-media.desti .comptador { @apply text-paper-300; }
+  .carpeta-media.editant { @apply bg-white ring-2 ring-ink-900; }
+  .carpeta-media .comptador { @apply font-mono text-[11px] text-ink-500; }
+  .accio-carpeta { @apply flex h-7 w-7 items-center justify-center rounded-md bg-white text-ink-500 shadow-suau hover:text-ink-900; }
+  .imatge-media {
+    @apply flex w-full flex-col overflow-hidden rounded-[10px] border border-paper-300 bg-white text-ink-900 shadow-suau transition hover:border-ink-300
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2;
+  }
+  .imatge-media[aria-pressed="true"] { @apply border-ink-900 ring-2 ring-ink-900; }
+  .tecla { @apply rounded border border-paper-300 bg-white px-1.5 font-mono text-[11px] text-ink-700; }
+  .menu-mou { @apply absolute bottom-full left-0 z-10 mb-2 flex w-56 flex-col rounded-xl border border-paper-300 bg-paper-50 p-1 shadow-full; }
+
   /* Controls de zoom */
   .zoom { @apply inline-flex items-stretch rounded-md border border-paper-300 bg-white shadow-suau; }
   .zoom button { @apply flex min-w-[2rem] items-center justify-center px-1.5 text-ink-500 transition hover:bg-paper-100 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-35; }
