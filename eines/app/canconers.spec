@@ -41,5 +41,7 @@ app = BUNDLE(
         "LSMinimumSystemVersion": "12.0",
         "NSHumanReadableCopyright": "Cançoners",
         "LSApplicationCategoryType": "public.app-category.music",
+        # macOS ho mostra en demanar permís per controlar Chrome (vegeu escriptori._pestanya_oberta).
+        "NSAppleEventsUsageDescription": "Cançoners fa servir el navegador per anar a la pestanya de Cançoners que ja tens oberta, en lloc d'obrir-ne una de nova.",
     },
 )

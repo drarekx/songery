@@ -4,13 +4,13 @@ En obrir l'app:
   - les dades es desen a ~/Library/Application Support/Cançoners
   - s'engega el servidor en un port local: el de l'última vegada o, si està ocupat, un de fix d'una
     llista curta (mai es desa un port aleatori, perquè l'adreça no vagi canviant)
-  - s'obre en una finestra pròpia de Chrome, Edge o Brave (sense barra d'adreces; és el mateix motor
-    que genera el PDF), o al navegador per defecte si no n'hi ha cap o si s'ha triat així
+  - s'obre en una pestanya de Chrome, Edge o Brave (el mateix motor que genera el PDF) o, si no n'hi ha
+    cap, al navegador per defecte. Si ja hi ha una pestanya de Cançoners, s'hi va en lloc d'obrir-ne una
   - té icona al Dock (clicar-la obre Cançoners) i a la barra de menú (obrir-lo, anar a les dades
     o sortir)
   - es comprova (en obrir-la i cada dia) si hi ha una versió nova; si n'hi ha, es pregunta si
     es vol instal·lar. Abans d'actualitzar es fa sempre una còpia de seguretat de les dades.
-Si l'app ja està oberta, només s'obre una finestra nova del navegador.
+Si l'app ja està oberta, només es porta al davant la pestanya de Cançoners (o se n'obre una).
 """
 
 from __future__ import annotations
@@ -33,12 +33,13 @@ os.environ.setdefault("CANCONER_DADES", str(DADES))  # abans d'importar l'aplica
 FITXER_SERVIDOR = DADES / "servidor.json"
 # Ports fixos, poc habituals: si el de l'última vegada està ocupat, es prova aquests en ordre.
 PORTS = tuple(range(48650, 48660))
-# Navegadors amb motor Chromium que poden obrir l'app en una finestra pròpia (--app).
-NAVEGADORS_APP = [
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+# Navegadors amb motor Chromium on s'obre Cançoners (el primer que hi hagi): (aplicació, identificador).
+# Tots entenen el mateix AppleScript per buscar la pestanya de Cançoners que ja és oberta.
+NAVEGADORS = [
+    ("/Applications/Google Chrome.app", "com.google.Chrome"),
+    ("/Applications/Microsoft Edge.app", "com.microsoft.edgemac"),
+    ("/Applications/Brave Browser.app", "com.brave.Browser"),
+    ("/Applications/Chromium.app", "org.chromium.Chromium"),
 ]
 CONFIGURACIO = DADES / "configuracio.json"
 CADA_QUANT = 24 * 3600  # comprovació de versions noves (segons)
@@ -50,128 +51,102 @@ def recurs(nom: str) -> str:
     return str(base / "eines" / "app" / nom)
 
 
-def navegador_app() -> str | None:
-    """Executable d'un navegador Chromium per obrir l'app en una finestra pròpia, si n'hi ha."""
-    for cami in NAVEGADORS_APP:
+def navegador() -> tuple[str, str] | None:
+    """El navegador Chromium on s'obre Cançoners ((aplicació, identificador)), si n'hi ha cap."""
+    for cami, identificador in NAVEGADORS:
         for candidat in (cami, str(Path.home()) + cami):
-            if os.access(candidat, os.X_OK):
-                return candidat
+            if Path(candidat).is_dir():
+                return candidat, identificador
     return None
 
 
-# El navegador de la finestra pròpia: un perfil només per a Cançoners (--user-data-dir), amb DevTools
-# (--remote-debugging-port) perquè l'app el pugui reaprofitar: tornar a obrir l'app (Dock, Finder, menú)
-# porta la finestra al davant en lloc d'obrir-ne una de nova. Se'n desa el procés i el port.
-PERFIL_NAVEGADOR = DADES / "navegador"
-FITXER_NAVEGADOR = DADES / "navegador.json"
+# Busca la pestanya de Cançoners (per l'adreça) en un navegador que ja és obert: la porta al davant i,
+# si se li passa una adreça, hi navega. No obre el navegador si no ho és. Escriu «ok» si l'ha trobada.
+# L'identificador del navegador hi va escrit (no com a paràmetre): és el que fa que AppleScript en
+# conegui les paraules (tabs, URL…).
+_BUSCA_PESTANYA = """
+on run {origen, desti}
+  if application id "IDENTIFICADOR" is not running then return "no"
+  tell application id "IDENTIFICADOR"
+    repeat with finestra in windows
+      set i to 0
+      repeat with pestanya in tabs of finestra
+        set i to i + 1
+        if (URL of pestanya) starts with origen then
+          if desti is not "" then set URL of pestanya to desti
+          set active tab index of finestra to i
+          set index of finestra to 1
+          activate
+          return "ok"
+        end if
+      end repeat
+    end repeat
+  end tell
+  return "no"
+end run
+"""
 
 
-def _cdp(port: int, cami: str, es_json: bool = True):
-    with urllib.request.urlopen(f"http://127.0.0.1:{port}{cami}", timeout=2) as r:
-        cos = r.read()
-    return json.loads(cos or b"null") if es_json else cos
-
-
-def navegador_obert() -> dict | None:
-    """El navegador de Cançoners que ja és obert ({pid, port}), si n'hi ha i respon."""
+def _pestanya_oberta(identificador: str, url: str) -> bool:
+    """Si ja hi ha una pestanya de Cançoners en aquest navegador, hi va (i, si es demana una pàgina
+    concreta, hi navega). La primera vegada, macOS demana permís per controlar el navegador; si no es
+    dona, cada vegada s'obre una pestanya nova."""
+    origen = "/".join(url.split("/", 3)[:3]) + "/"
+    desti = url if url.rstrip("/") + "/" != origen else ""
     try:
-        desat = json.loads(FITXER_NAVEGADOR.read_text())
-        pid, port = int(desat["pid"]), int(desat["port"])
-        os.kill(pid, 0)
-        _cdp(port, "/json/version")
-        return {"pid": pid, "port": port}
-    except (OSError, ValueError, KeyError, TypeError):
-        return None
-
-
-def _porta_al_davant(pid: int) -> None:
-    try:
-        from AppKit import NSApplicationActivateIgnoringOtherApps, NSRunningApplication
-
-        app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
-        if app:
-            app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
-    except Exception:  # noqa: BLE001 - sense AppKit (proves), la finestra només no es porta al davant
-        pass
-
-
-def _navega(pagina: dict, url: str) -> None:
-    import websocket
-
-    ws = websocket.create_connection(pagina["webSocketDebuggerUrl"], timeout=5, suppress_origin=True)
-    try:
-        ws.send(json.dumps({"id": 1, "method": "Page.navigate", "params": {"url": url}}))
-        ws.recv()
-    finally:
-        ws.close()
-
-
-def _reaprofita(navegador: dict, url: str) -> bool:
-    """Fa servir la finestra que ja hi ha: la porta al davant i, si es demana una pàgina concreta (o
-    l'app ha canviat d'adreça), hi navega. Torna False si ja no hi ha cap finestra."""
-    pagines = [t for t in _cdp(navegador["port"], "/json/list") or [] if t.get("type") == "page"]
-    if not pagines:
+        guio = _BUSCA_PESTANYA.replace("IDENTIFICADOR", identificador)
+        r = subprocess.run(["osascript", "-e", guio, origen, desti],
+                           capture_output=True, text=True, timeout=60)  # la primera vegada, macOS demana permís
+    except (OSError, subprocess.SubprocessError):
         return False
-    pagina = pagines[0]
-    origen = url.split("/", 3)[:3]
-    especifica = url.rstrip("/") != "/".join(origen)
-    if especifica or pagina.get("url", "").split("/", 3)[:3] != origen:
-        _navega(pagina, url)
-    _cdp(navegador["port"], f"/json/activate/{pagina['id']}", es_json=False)  # respon amb text
-    _porta_al_davant(navegador["pid"])
-    return True
-
-
-def tanca_navegador() -> None:
-    """Tanca el navegador de Cançoners (en sortir de l'app)."""
-    navegador = navegador_obert()
-    FITXER_NAVEGADOR.unlink(missing_ok=True)
-    if navegador:
-        try:
-            os.kill(navegador["pid"], 15)
-        except OSError:
-            pass
-
-
-def _obre_finestra(executable: str, url: str) -> None:
-    """Obre el navegador de Cançoners amb una finestra d'app i en desa el procés i el port de DevTools."""
-    PERFIL_NAVEGADOR.mkdir(parents=True, exist_ok=True)
-    port_fitxer = PERFIL_NAVEGADOR / "DevToolsActivePort"
-    port_fitxer.unlink(missing_ok=True)
-    opcions = [executable, f"--user-data-dir={PERFIL_NAVEGADOR}", "--remote-debugging-port=0",
-               "--no-first-run", "--no-default-browser-check", f"--app={url}", "--window-size=1440,900"]
-    if os.environ.get("CANCONER_NAVEGADOR_INVISIBLE"):  # per a proves automàtiques
-        opcions.insert(1, "--headless=new")
-    proces = subprocess.Popen(opcions, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    for _ in range(100):  # fins a 10 s perquè el navegador digui el seu port
-        if port_fitxer.exists() and port_fitxer.read_text().strip():
-            FITXER_NAVEGADOR.write_text(json.dumps({"pid": proces.pid, "port": int(port_fitxer.read_text().split()[0])}))
-            return
-        if proces.poll() is not None:
-            return
-        time.sleep(0.1)
+    return r.stdout.strip() == "ok"
 
 
 def obre_navegador(url: str) -> None:
-    """Obre Cançoners: en una finestra pròpia (sense barra d'adreces) si hi ha Chrome, Edge o Brave i no
-    s'ha triat el navegador normal; si no, al navegador per defecte. Amb la finestra pròpia n'hi ha
-    sempre una sola: si ja és oberta, es porta al davant (i, si cal, va a la pàgina demanada)."""
+    """Obre Cançoners en una pestanya de Chrome, Edge o Brave (o del navegador per defecte, si no n'hi ha
+    cap). Si ja hi ha una pestanya de Cançoners oberta, s'hi va en lloc d'obrir-ne una altra."""
     if os.environ.get("CANCONER_NO_OBRIS"):  # per a proves automàtiques
         return
-    executable = navegador_app() if configuracio().get("finestra", "app") == "app" else None
-    if not executable:
+    trobat = navegador()
+    if not trobat:
         subprocess.Popen(["open", url])
         return
-    navegador = navegador_obert()
-    if navegador:
+    aplicacio, identificador = trobat
+    if not _pestanya_oberta(identificador, url):
+        subprocess.Popen(["open", "-a", aplicacio, url])
+
+
+# Fins a la versió 1.5.4, Cançoners s'obria en una finestra pròpia d'un Chrome a part, amb un perfil seu
+# (<dades>/navegador). Si encara n'hi ha un d'obert, es tanca (com cal, perquè no vulgui restaurar
+# pàgines) i se n'esborra el perfil.
+PERFIL_NAVEGADOR_ANTIC = DADES / "navegador"
+FITXER_NAVEGADOR_ANTIC = DADES / "navegador.json"
+
+
+def tanca_navegador_antic() -> None:
+    try:
+        desat = json.loads(FITXER_NAVEGADOR_ANTIC.read_text())
+        pid, port = int(desat["pid"]), int(desat["port"])
+        os.kill(pid, 0)
+        import websocket
+
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2) as r:
+            ws_url = json.loads(r.read())["webSocketDebuggerUrl"]
+        ws = websocket.create_connection(ws_url, timeout=3, suppress_origin=True)
         try:
-            if _reaprofita(navegador, url):
-                return
-        except (OSError, ValueError):
-            pass
-        tanca_navegador()  # obert però sense finestra (o sense resposta): es torna a obrir
-        time.sleep(0.5)
-    _obre_finestra(executable, url)
+            ws.send(json.dumps({"id": 1, "method": "Browser.close"}))
+        finally:
+            ws.close()
+        for _ in range(30):
+            os.kill(pid, 0)
+            time.sleep(0.1)
+    except Exception:  # noqa: BLE001 - no n'hi ha, ja s'ha tancat o no respon
+        pass
+    FITXER_NAVEGADOR_ANTIC.unlink(missing_ok=True)
+    if PERFIL_NAVEGADOR_ANTIC.is_dir():
+        import shutil
+
+        shutil.rmtree(PERFIL_NAVEGADOR_ANTIC, ignore_errors=True)
 
 
 def instancia_oberta() -> str | None:
@@ -283,6 +258,7 @@ def main() -> None:
         obre_navegador(oberta)
         return
 
+    tanca_navegador_antic()
     url, port_canviat = engega_servidor()
     # Després d'una actualització feta des de la web, la pàgina d'actualització s'hi reconnecta
     # sola: no cal obrir cap finestra nova (ho diu l'avís de la barra de menú). Si el port ha canviat,
@@ -294,7 +270,7 @@ def main() -> None:
 
     from canconer import actualitzacions, actualitzador, copies
 
-    # Clicar la icona del Dock (o tornar a obrir l'app des del Finder) obre la finestra de Cançoners.
+    # Clicar la icona del Dock (o tornar a obrir l'app des del Finder) porta a la pestanya de Cançoners.
     # rumps no ho exposa: s'afegeix el mètode corresponent al delegat de l'aplicació.
     try:
         import objc
@@ -317,15 +293,9 @@ def main() -> None:
             super().__init__(NOM, icon=icona if Path(icona).exists() else None, template=True,
                              title=None if Path(icona).exists() else "♪", quit_button=None)
             self.item_versio = rumps.MenuItem(f"Cançoners {versio}")
-            # Finestra pròpia (amb Chrome, Edge o Brave) o el navegador de sempre.
-            self.item_finestra = rumps.MenuItem("Obre en una finestra pròpia", callback=self.canvia_finestra)
-            self.item_finestra.state = int(configuracio().get("finestra", "app") == "app")
-            if not navegador_app():
-                self.item_finestra.set_callback(None)  # sense Chrome, Edge ni Brave no es pot
             self.menu = [
                 rumps.MenuItem("Obre Cançoners", callback=lambda _: obre_navegador(url)),
                 rumps.MenuItem("Obre la carpeta de dades", callback=lambda _: subprocess.Popen(["open", str(DADES)])),
-                self.item_finestra,
                 None,
                 self.item_versio,
                 rumps.MenuItem("Cerca actualitzacions…", callback=lambda _: obre_navegador(url + "actualitzacio")),
@@ -357,11 +327,6 @@ def main() -> None:
             primera = threading.Timer(8, lambda: self.cerca(manual=False))
             primera.daemon = True
             primera.start()
-
-        def canvia_finestra(self, item) -> None:
-            item.state = int(not item.state)
-            desa_configuracio(finestra="app" if item.state else "navegador")
-            obre_navegador(url)
 
         # -------------------------------------------------------- Actualitzacions
 
@@ -441,7 +406,6 @@ def main() -> None:
 
         def surt(self, _):
             FITXER_SERVIDOR.unlink(missing_ok=True)
-            tanca_navegador()
             rumps.quit_application()
 
     App().run()
