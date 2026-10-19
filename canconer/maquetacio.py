@@ -121,9 +121,14 @@ def pla(canconer: dict) -> dict:
             base = a.split("/")[0]
             if base not in tots_acords:
                 tots_acords.append(base)
-    svgs = [diagrames.svg(a, instrument) for a in tots_acords]
-    # Amb guitarra i ukulele, cada diagrama és més ample: n'hi caben menys.
-    per_pagina = plantilles.DIAGRAMES_DOBLES_PER_PAGINA if instrument == "tots" else plantilles.DIAGRAMES_PER_PAGINA
+    # Amb guitarra i ukulele, la pàgina d'acords és una altra («acords_dos»): un bloc per a cada instrument,
+    # amb els mateixos acords a cada pàgina.
+    # Els blocs de diagrames poden triar l'instrument (element «instrument»): es donen els de tots dos.
+    dos = instrument == "tots"
+    per_instrument = ({i: [diagrames.svg(a, i) for a in tots_acords] for i in ("guitarra", "ukulele")}
+                      if canconer.get("pagina_acords") else {"guitarra": [], "ukulele": []})
+    svgs = per_instrument["guitarra" if dos else instrument]
+    per_pagina = plantilles.DIAGRAMES_PER_INSTRUMENT if dos else plantilles.DIAGRAMES_PER_PAGINA
     pagines_acords = math.ceil(len(svgs) / per_pagina) if canconer.get("pagina_acords") and svgs else 0
 
     n_cancons = sum(1 for e in entrades if e.get("tipus", "canco") == "canco")
@@ -134,8 +139,10 @@ def pla(canconer: dict) -> dict:
 
     def afegeix_acords():
         for i in range(pagines_acords):
-            tros = svgs[i * per_pagina:(i + 1) * per_pagina]
-            afegeix("acords", especials["acords"], diagrames=tros)
+            tros = slice(i * per_pagina, (i + 1) * per_pagina)
+            tipus = "acords_dos" if dos else "acords"
+            afegeix(tipus, especials[tipus], diagrames=svgs[tros],
+                    diagrames_instrument={nom: llista[tros] for nom, llista in per_instrument.items()})
 
     # Vídeos marcats per a l'índex de QR, de les cançons que surten.
     videos_qr = []

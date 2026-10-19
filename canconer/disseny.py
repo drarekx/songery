@@ -118,6 +118,8 @@ def element(e: dict) -> dict | None:
             net["canco"] = True
         if e.get("mida") or e.get("canco"):
             net["mida"] = _num(e.get("mida"), 16, 8, 60)  # amplada de cada diagrama, en mm
+        if e.get("instrument") in ("guitarra", "ukulele"):  # a la pàgina d'acords de guitarra i ukulele
+            net["instrument"] = e["instrument"]
     return net
 
 

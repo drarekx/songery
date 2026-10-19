@@ -159,6 +159,11 @@ function insereixVariable(v) {
                @input="store.canviaPropietats({ acord: $event.target.value })"></label>
       <p class="text-[12px] leading-snug text-ink-500">Si la cançó es transporta en aquest cançoner, el diagrama també.</p>
     </div>
+    <label v-if="es('diagrames') && !e.canco"><span class="etiqueta">Instrument</span>
+      <select class="camp py-1.5 text-[14px]" :value="e.instrument || ''" :disabled="!store.editable"
+              @change="store.canviaPropietats({ instrument: $event.target.value || undefined })">
+        <option value="">El del cançoner</option><option value="guitarra">Guitarra</option><option value="ukulele">Ukulele</option>
+      </select></label>
     <label v-if="es('diagrames')"><span class="etiqueta">Amplada de cada diagrama (mm)</span>
       <input type="number" step="1" min="8" max="60" class="camp py-1.5 font-mono text-[13px]" :value="e.mida" :disabled="!store.editable" @input="numero('mida', $event.target.value)"></label>
 

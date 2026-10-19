@@ -7,7 +7,7 @@ import { computed, ref } from "vue";
 import { useEditorStore } from "@/stores/editor.js";
 
 const store = useEditorStore();
-const ESPECIALS = [["portada", "Portada"], ["index", "Índex"], ["acords", "Pàgina d'acords"], ["index_qr", "Índex de vídeos (QR)"], ["contraportada", "Contraportada"]];
+const ESPECIALS = [["portada", "Portada"], ["index", "Índex"], ["acords", "Pàgina d'acords"], ["acords_dos", "Pàgina d'acords (guitarra i ukulele)"], ["index_qr", "Índex de vídeos (QR)"], ["contraportada", "Contraportada"]];
 
 // Mentre s'arrossega una cançó, l'ordre provisional és aquí; en deixar-la, es desa.
 const ordreProvisional = ref(null);

@@ -405,6 +405,7 @@ function dadesPagina(i, numero) {
     context: contextDe(numero),
     index: deLlibre?.index,
     diagrames: deLlibre?.diagrames,
+    diagrames_instrument: deLlibre?.diagrames_instrument,
     qrs: deLlibre?.qrs,
   };
 }
@@ -541,7 +542,7 @@ async function pintaLlibre() {
         }
         caixa.addEventListener("click", () => {
           if (p.entrada) obre({ tipus: "canco", id: p.entrada });
-          else if (["portada", "index", "acords", "index_qr", "contraportada"].includes(p.tipus)) obre({ tipus: "especial", id: p.tipus });
+          else if (["portada", "index", "acords", "acords_dos", "index_qr", "contraportada"].includes(p.tipus)) obre({ tipus: "especial", id: p.tipus });
           else if (p.tipus === "blanc" && editable) omplePaginaBlanca(p.numero);
         });
       }
@@ -2404,7 +2405,8 @@ function pintaLlista() {
       obert: obert?.tipus === "llibre" ? "llibre" : obert ? `${obert.tipus}:${obert.id}` : null,
       total: PLA?.total ?? null,
       // Pàgines especials que surten al llibret (les desactivades s'amaguen; el disseny es conserva).
-      especials: { index: K.pagina_index !== false, acords: !!K.pagina_acords, index_qr: !!K.pagina_qr },
+      especials: { index: K.pagina_index !== false, acords: !!K.pagina_acords && K.instrument !== "tots",
+        acords_dos: !!K.pagina_acords && K.instrument === "tots", index_qr: !!K.pagina_qr },
       cancons: K.cancons.map((c) => ({
         id: c.id, titol: c.titol, autor: c.autor, tipus: c.tipus, inclosa: c.inclosa, inici: c.inici, usos: c.usos,
         versio_numero: c.versio_id ? c.versio_numero : null,

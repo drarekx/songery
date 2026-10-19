@@ -199,11 +199,13 @@ def test_instrument_dels_diagrames_a_les_opcions(client):
     assert 'value="tots"' in client.get(f"/canconer/{id_canconer}/opcions").get_data(as_text=True)
 
     c = bd.carrega_canconer(id_canconer)
-    def cordes(instrument):
+    def cordes(instrument, bloc=None):
         pla = maquetacio.pla({**c, "instrument": instrument})
-        svg = next(p for p in pla["pagines"] if p["tipus"] == "acords")["diagrames"][0]
+        pagina = next(p for p in pla["pagines"] if p["tipus"].startswith("acords"))
+        svg = (pagina["diagrames_instrument"][bloc] if bloc else pagina["diagrames"])[0]
         return len([m for m in re.finditer(r'<line x1="([\d.]+)" y1="[\d.]+" x2="([\d.]+)"', svg) if m[1] == m[2]])
-    assert (cordes("guitarra"), cordes("ukulele"), cordes("tots")) == (6, 4, 10)
+    assert (cordes("guitarra"), cordes("ukulele")) == (6, 4)
+    assert (cordes("tots", "guitarra"), cordes("tots", "ukulele")) == (6, 4)  # un bloc per instrument
     empremtes = {pdf.empremta({**c, "instrument": i}) for i in ("guitarra", "ukulele", "tots")}
     assert len(empremtes) == 3
 

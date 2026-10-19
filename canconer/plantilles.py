@@ -7,7 +7,8 @@ Cada pàgina és un llenç A5 (148 × 210 mm) amb elements col·locats en mil·l
   forma      rectangle o el·lipse
   numero     número de pàgina (sobretot a les pàgines mestres)
   index      llista de cançons amb el número de pàgina (pàgina d'índex)
-  diagrames  diagrames d'acords (pàgina d'acords)
+  diagrames  diagrames d'acords (pàgina d'acords). Amb "instrument" (guitarra o ukulele), els d'aquell
+             instrument (a la pàgina d'acords de guitarra i ukulele)
   qr         codi QR d'un dels vídeos de la cançó (camp "video": id del vídeo dins de la cançó)
   index_qr   llista de vídeos amb el seu QR i el número de pàgina (pàgina d'índex de QR)
   diagrama   diagrama d'un acord (camp "acord"); amb «diagrames» i "canco": true, tots els de la cançó
@@ -54,9 +55,11 @@ FONTS = ("display", "sans", "mono")
 # Línies d'índex i diagrames que caben en una pàgina (per saber quantes pàgines calen).
 ENTRADES_PER_PAGINA_INDEX = 24
 DIAGRAMES_PER_PAGINA = 20
-DIAGRAMES_DOBLES_PER_PAGINA = 15  # amb guitarra i ukulele (pagines.css: svg.doble)
+DIAGRAMES_PER_INSTRUMENT = 10  # a la pàgina d'acords de guitarra i ukulele, de cada instrument
 QR_PER_PAGINA_INDEX = 6
-ESPECIALS = ("portada", "index", "acords", "index_qr", "contraportada")
+# «acords_dos»: la pàgina d'acords quan el cançoner és per a guitarra i ukulele (dos blocs, cadascun amb el
+# seu títol). Té el seu propi disseny: canviar d'instrument no perd el de l'altra.
+ESPECIALS = ("portada", "index", "acords", "acords_dos", "index_qr", "contraportada")
 
 
 def nou_id() -> str:
@@ -108,6 +111,12 @@ def especials() -> dict:
         "acords": pagina([
             _el("text", 13, 14, 122, 12, text="Acords", estil="titol", alineacio="left"),
             _el("diagrames", 13, 32, 122, 160),
+        ]),
+        "acords_dos": pagina([
+            _el("text", 13, 14, 122, 10, text="Guitarra", estil="titol", alineacio="left"),
+            _el("diagrames", 13, 27, 122, 68, instrument="guitarra"),
+            _el("text", 13, 100, 122, 10, text="Ukulele", estil="titol", alineacio="left"),
+            _el("diagrames", 13, 113, 122, 68, instrument="ukulele"),
         ]),
         "index_qr": pagina([
             _el("text", 13, 14, 122, 12, text="Vídeos", estil="titol", alineacio="left"),

@@ -82,27 +82,46 @@ def test_l_instrument_de_la_impressio_canvia_tots_els_diagrames():
     for instrument in ("guitarra", "ukulele", "tots"):
         pla = maquetacio.pla({**bd.carrega_canconer(k), "instrument": instrument})
         canco = next(p for p in pla["pagines"] if p.get("entrada") == entrada["id"])
-        acords = next(p for p in pla["pagines"] if p["tipus"] == "acords")
+        acords = next(p for p in pla["pagines"] if p["tipus"].startswith("acords"))
         assert canco["context"]["diagrames"]["G"] == diagrames.svg("G", instrument)
-        assert diagrames.svg("G", instrument) in acords["diagrames"]
+        if instrument == "tots":  # a la pàgina d'acords, un bloc per a cada instrument
+            assert acords["tipus"] == "acords_dos"
+            assert all(diagrames.svg("G", i) in acords["diagrames_instrument"][i] for i in ("guitarra", "ukulele"))
+        else:
+            assert diagrames.svg("G", instrument) in acords["diagrames"]
 
 
 
-def test_amb_els_dos_instruments_cada_acord_porta_guitarra_i_ukulele():
-    from canconer import diagrames, maquetacio, plantilles
+def test_amb_els_dos_instruments_la_pagina_d_acords_te_un_bloc_per_instrument():
+    """Amb guitarra i ukulele, la pàgina d'acords és la «acords_dos»: dos blocs (amb el seu títol), un per
+    instrument, amb els mateixos acords a cada pàgina. Té el seu disseny, que es pot editar."""
+    from canconer import diagrames, document, maquetacio, plantilles
 
-    svg = diagrames.svg("Am", "tots")
-    assert 'class="diagrama doble"' in svg and ">guitarra<" in svg and ">ukulele<" in svg
-    assert svg.count(">Am<") == 1  # el nom de l'acord, un sol cop
     assert diagrames.instrument_valid("tots") == "tots" and diagrames.instrument_valid("violí") == "guitarra"
-    # Són més amples: a la pàgina d'acords n'hi caben menys.
-    acords = [f"{n}{q}" for n in "CDEFGAB" for q in ("", "m", "7")]
+    disseny = plantilles.especials()["acords_dos"]["elements"]
+    assert [e.get("text") for e in disseny if e["tipus"] == "text"] == ["Guitarra", "Ukulele"]
+    assert [e.get("instrument") for e in disseny if e["tipus"] == "diagrames"] == ["guitarra", "ukulele"]
+
+    acords = [f"{n}{q}" for n in "CDEFGAB" for q in ("", "m", "7")]  # 21 acords
     canco = {"id": "c", "titol": "T", "autor": "", "tipus": "canco", "inici": "esquerra", "transport": 0, "inclosa": True,
-             "contingut": {"format": 2, "pagines": [plantilles.pagina_canco(__import__("canconer.document", fromlist=["x"]).de_text(" ".join(acords) + "\nla"))]}}
+             "contingut": {"format": 2, "pagines": [plantilles.pagina_canco(document.de_text(" ".join(acords) + "\nla"))]}}
     base = plantilles.amb_valors_per_defecte({"titol": "P", "subtitol": "", "any": "", "contraportada": "", "pagina_acords": True,
                                                "posicio_acords": "inici", "cancons": [canco]})
-    def pagines_acords(instrument):
-        return [p for p in maquetacio.pla({**base, "instrument": instrument})["pagines"] if p["tipus"] == "acords"]
-    una, dues = pagines_acords("guitarra"), pagines_acords("tots")
-    assert len(una) == 2 and len(dues) == 2
-    assert len(dues[0]["diagrames"]) == plantilles.DIAGRAMES_DOBLES_PER_PAGINA
+    def pagines(instrument):
+        return [p for p in maquetacio.pla({**base, "instrument": instrument})["pagines"] if p["tipus"].startswith("acords")]
+    una, dues = pagines("guitarra"), pagines("tots")
+    assert [p["tipus"] for p in una] == ["acords", "acords"]
+    assert [p["tipus"] for p in dues] == ["acords_dos"] * 3  # 10 de cada instrument per pàgina
+    primera = dues[0]["diagrames_instrument"]
+    assert len(primera["guitarra"]) == len(primera["ukulele"]) == plantilles.DIAGRAMES_PER_INSTRUMENT
+    assert primera["guitarra"][0] == diagrames.svg("C", "guitarra") and primera["ukulele"][0] == diagrames.svg("C", "ukulele")
+    # Un bloc d'un sol instrument també pot triar-ne un altre.
+    assert una[0]["diagrames_instrument"]["ukulele"][0] == diagrames.svg("C", "ukulele")
+
+
+def test_el_disseny_accepta_l_instrument_dels_blocs_de_diagrames():
+    from canconer import disseny
+
+    e = disseny.element({"id": "d", "tipus": "diagrames", "x": 1, "y": 1, "w": 50, "h": 50, "instrument": "ukulele"})
+    assert e["instrument"] == "ukulele"
+    assert "instrument" not in disseny.element({"id": "d", "tipus": "diagrames", "x": 1, "y": 1, "w": 50, "h": 50, "instrument": "violí"})

@@ -277,7 +277,9 @@ export function dibuixaElement(e, opcions) {
         node.innerHTML = llista.join("");
         if (!llista.length) node.append(textNode("diagrama-buit", "Els acords de la cançó"));
       } else {
-        node.innerHTML = (opcions.diagrames || []).join("");
+        // A la pàgina d'acords de guitarra i ukulele, cada bloc té el seu instrument.
+        const llista = (e.instrument && opcions.diagramesInstrument?.[e.instrument]) || opcions.diagrames || [];
+        node.innerHTML = llista.join("");
       }
       break;
     }
@@ -309,13 +311,14 @@ export function reposiciona(node, e) {
 
 /**
  * Dibuixa una pàgina A5.
- * pagina: {fons, elements, mestra: {elements} | null, context, index, diagrames}
+ * pagina: {fons, elements, mestra: {elements} | null, context, index, diagrames, diagrames_instrument}
  */
 export function dibuixaPagina(pagina, opcions = {}) {
   const node = document.createElement("section");
   node.className = "pagina";
   node.style.background = colorCss(pagina.fons) || "#fff";
-  const comunes = { ...opcions, context: pagina.context, index: pagina.index, diagrames: pagina.diagrames, qrs: pagina.qrs,
+  const comunes = { ...opcions, context: pagina.context, index: pagina.index, diagrames: pagina.diagrames,
+    diagramesInstrument: pagina.diagrames_instrument, qrs: pagina.qrs,
     grup: opcions.grup ?? pagina.entrada };
   if (pagina.mestra?.elements?.length) {
     const capa = document.createElement("div");
