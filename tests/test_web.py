@@ -342,3 +342,20 @@ def test_portada_per_defecte_nomes_amb_el_titol():
         dades = json_.loads(con.execute("SELECT dades FROM canconer WHERE id = ?", (antic,)).fetchone()["dades"])
     sense_ids = lambda pagina: [{k: v for k, v in e.items() if k != "id"} for e in pagina["elements"]]
     assert sense_ids(dades["especials"]["portada"]) == sense_ids(plantilles.portada_completa())
+
+
+def test_estils_propis_del_canconer():
+    """Issue #11: es poden crear estils nous (claus propi_...), que es desen i s'esborren amb la resta."""
+    from canconer import basedades as bd
+    from canconer.web import crea_app
+
+    k = bd.crea_canconer("Amb estils")
+    client = crea_app().test_client()
+    estils = client.get(f"/api/canconer/{k}").get_json()["estils"]
+    estils["propi_ab12cd34"] = {**estils["text"], "nom": "Destacat", "mida": 14, "color": "cmyk(0,100,0,0)"}
+    r = client.put(f"/api/canconer/{k}/disseny", json={"estils": estils}).get_json()
+    assert r["estils"]["propi_ab12cd34"]["nom"] == "Destacat"
+    assert bd.carrega_canconer(k)["estils"]["propi_ab12cd34"]["mida"] == 14
+    del estils["propi_ab12cd34"]
+    client.put(f"/api/canconer/{k}/disseny", json={"estils": estils})
+    assert "propi_ab12cd34" not in bd.carrega_canconer(k)["estils"]

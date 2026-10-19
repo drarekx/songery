@@ -176,3 +176,32 @@ def test_una_pagina_omplerta_i_deixada_buida_es_desfa(pagina, servidor):
     pagina.avalua(llibre)
     pagina.espera("document.querySelector('.vista-llibre .pagina-blanca')?.title.startsWith('Pàgina 3')", 15)
     assert not pagina.avalua("[...document.querySelectorAll('#panell-llista li[data-id]')].some((li) => li.textContent.includes('Pàgina lliure'))")
+
+
+def test_estils_propis_crear_aplicar_i_esborrar(pagina, servidor):
+    """Issue #11: un estil nou surt a la llista d'estils dels elements; no s'esborra mentre es fa servir."""
+    obre_editor(pagina, servidor)
+    pagina.avalua("document.querySelector('[data-pestanya=estils]').click()")
+    pagina.espera("[...document.querySelectorAll('#panell-estils button')].some((b) => b.textContent.includes('Estil nou'))")
+    pagina.avalua("[...document.querySelectorAll('#panell-estils button')].find((b) => b.textContent.includes('Estil nou')).click()")
+    pagina.espera("document.querySelector('dialog[open] input')")
+    pagina.avalua("""(() => { const i = document.querySelector('dialog[open] input'); i.value = 'Destacat'; i.dispatchEvent(new Event('input'));
+                     document.querySelector('dialog[open] button.btn-primari').click(); })()""")
+    pagina.espera("[...document.querySelectorAll('#panell-estils li')].some((li) => li.textContent.includes('Destacat'))")
+    # S'aplica a un text de la pàgina.
+    pagina.avalua("""(async () => {
+      const text = [...document.querySelectorAll('.capa-elements [data-tipus=text]')][0];
+      const r = text.getBoundingClientRect();
+      text.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: r.left + 3, clientY: r.top + 3, button: 0, isPrimary: true }));
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: r.left + 3, clientY: r.top + 3, button: 0, isPrimary: true }));
+      document.querySelector('[data-pestanya=propietats]').click();
+    })()""")
+    pagina.espera("[...document.querySelectorAll('#panell-propietats select option')].some((o) => o.textContent === 'Destacat')")
+    pagina.avalua("""(() => { const s = [...document.querySelectorAll('#panell-propietats select')].find((x) => [...x.options].some((o) => o.textContent === 'Destacat'));
+                     s.value = [...s.options].find((o) => o.textContent === 'Destacat').value; s.dispatchEvent(new Event('change')); })()""")
+    pagina.espera("document.querySelector('.capa-elements [data-tipus=text][class*=estil-propi_]')")
+    # Mentre es fa servir, no s'esborra.
+    pagina.avalua("document.querySelector('[data-pestanya=estils]').click()")
+    pagina.avalua("""(() => { const li = [...document.querySelectorAll('#panell-estils li')].find((x) => x.textContent.includes('Destacat'));
+                     li.querySelector('details').open = true; [...li.querySelectorAll('button')].find((b) => b.textContent.startsWith('Esborra')).click(); })()""")
+    pagina.espera("document.querySelector('dialog[open]')?.textContent.includes(\"s'està fent servir\")")

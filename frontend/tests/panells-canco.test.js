@@ -17,7 +17,7 @@ beforeEach(() => {
   store = useEditorStore();
   ponts = new Proxy({}, { get: (objecte, nom) => (objecte[nom] ??= vi.fn()) });
   store.connecta(Object.fromEntries(["canviaDadesCanco", "canviaEntrada", "aplicaTransport", "treuCanco", "obreHistorial",
-    "canviaEstil", "triaFont", "colorsDelDocument", "ressaltaCapes", "seleccionaCapa", "bloquejaCapa", "mouCapa"].map((n) => [n, ponts[n]])));
+    "canviaEstil", "triaFont", "creaEstil", "reanomenaEstil", "esborraEstil", "colorsDelDocument", "ressaltaCapes", "seleccionaCapa", "bloquejaCapa", "mouCapa"].map((n) => [n, ponts[n]])));
 });
 const munta = (component) => mount(component, { global: { plugins: [pinia] } });
 
@@ -83,6 +83,24 @@ describe("PanellEstils", () => {
     await w.find('input[type="checkbox"]').setValue(true);
     expect(ponts.canviaEstil).toHaveBeenLastCalledWith("titol", "cursiva", true);
     expect(w.text()).toContain("20 pt");
+  });
+
+  it("estils propis: se'n creen, es reanomenen i s'esborren; els predefinits no s'esborren", async () => {
+    store.sincronitza({ estils: { ...store.estils,
+      propi_ab12: { nom: "Destacat", font: "display", mida: 14, pes: 700, interlineat: 1.2, espaiat: 0, color: "#000000", cursiva: false, majuscules: false } } });
+    const w = munta(PanellEstils);
+    await w.findAll("button").find((b) => b.text() === "+ Estil nou").trigger("click");
+    expect(ponts.creaEstil).toHaveBeenLastCalledWith("text");
+    const [titol, propi] = w.findAll("li");
+    expect(titol.text()).not.toContain("propi");
+    expect(titol.findAll("button").some((b) => b.text().startsWith("Esborra"))).toBe(false);
+    expect(propi.text()).toContain("propi");
+    await propi.find('input[maxlength="60"]').setValue("Molt destacat");
+    expect(ponts.reanomenaEstil).toHaveBeenLastCalledWith("propi_ab12", "Molt destacat");
+    await propi.findAll("button").find((b) => b.text().startsWith("Esborra")).trigger("click");
+    expect(ponts.esborraEstil).toHaveBeenLastCalledWith("propi_ab12");
+    await titol.findAll("button").find((b) => b.text() === "Duplica").trigger("click");
+    expect(ponts.creaEstil).toHaveBeenLastCalledWith("titol");
   });
 
   it("la tipografia es tria amb el selector de l'editor", async () => {

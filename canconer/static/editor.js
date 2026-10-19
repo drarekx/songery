@@ -269,6 +269,14 @@ store.connecta({
   triaFont(boto, clau) {
     obreSelectorFont(boto, { actual: K.estils[clau]?.font, tria: (font) => store.canviaEstil(clau, "font", font) });
   },
+  creaEstil: (base) => creaEstil(base),
+  reanomenaEstil(clau, nom) {
+    if (!K.estils[clau] || !nom.trim()) return;
+    K.estils[clau].nom = nom.trim().slice(0, 60);
+    desaEstils();
+    pintaEstils();
+  },
+  esborraEstil: (clau) => esborraEstil(clau),
   // Barres del llenç
   eina: (nom) => EINES[nom]?.(),
   zoom: (factor) => posaZoom(factor === null ? 1 : zoom * factor, null, { anima: true }),
@@ -2731,6 +2739,48 @@ async function esborraMestra() {
 }
 
 // ------------------------------------------------------------ Estils
+
+// Estils propis del cançoner (a més dels predefinits): es creen, es reanomenen i s'esborren a la
+// pestanya Estils i es trien com qualsevol altre a les propietats de l'element.
+const ESTILS_PREDEFINITS = ["titol", "autor", "llista_acords", "lletra", "acord", "seccio", "nota", "text", "numero", "index"];
+
+async function creaEstil(base = "text") {
+  const origen = K.estils[base] || K.estils.text;
+  const nom = await pregunta({ titol: "Estil nou", text: `Es crea a partir de l'estil «${origen.nom}»; després el pots canviar.`,
+    valor: base === "text" ? "Estil nou" : `${origen.nom} (còpia)`, accepta: "Crea'l" });
+  if (!nom) return;
+  const clau = `propi_${nouId()}`;
+  K.estils[clau] = { ...copia(origen), nom: nom.slice(0, 60) };
+  aplicaEstils(K.estils);
+  desaEstils();
+  pintaEstils();
+  sincronitzaStore();
+}
+
+/** Elements que fan servir un estil, a les pàgines del cançoner (cançons, especials i mestres). */
+function usosEstil(clau) {
+  const pagines_ = [
+    ...K.cancons.flatMap((c) => (obert?.id === c.id ? pagines : c.contingut?.pagines) || []),
+    ...Object.values(K.especials || {}),
+    ...K.mestres.flatMap((m) => [m.parell, m.senar]),
+  ];
+  return pagines_.flatMap((p) => p?.elements || []).filter((e) => e.estil === clau).length;
+}
+
+async function esborraEstil(clau) {
+  if (ESTILS_PREDEFINITS.includes(clau) || !K.estils[clau]) return;
+  const n = usosEstil(clau);
+  if (n) {
+    return avisaDialeg({ titol: `«${K.estils[clau].nom}» s'està fent servir`,
+      text: `Hi ha ${n === 1 ? "un element" : `${n} elements`} amb aquest estil. Canvia'ls a un altre estil abans d'esborrar-lo.` });
+  }
+  if (!await confirma({ titol: `Esborrar l'estil «${K.estils[clau].nom}»?`, text: "No el fa servir cap element.", accepta: "Esborra'l", perill: true })) return;
+  delete K.estils[clau];
+  aplicaEstils(K.estils);
+  desaEstils();
+  pintaEstils();
+  sincronitzaStore();
+}
 
 /** Estat del panell d'estils (el component PanellEstils). */
 function pintaEstils() {
