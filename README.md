@@ -1,10 +1,70 @@
 # Cançoners
 
-Aplicació web per dissenyar cançoners en format llibret A5 (lletra i acords) i generar-ne el PDF a
-punt per imprimir en A4 horitzontal a doble cara, plegar i cosir pel plec (enquadernació a cavallet).
+**Dissenya cançoners amb lletra i acords i imprimeix-los com un llibret A5.** Escrius les cançons,
+col·loques cada element a la pàgina amb el ratolí i l'app et dona el PDF a punt per imprimir en A4 a
+doble cara, plegar i cosir pel plec.
+
+![L'editor de Cançoners: la llista de cançons, la pàgina amb lletra, acords i diagrames, i el panell de la cançó](docs/imatges/editor.png)
 
 L'editor mostra cada pàgina **exactament com sortirà al PDF**: el mateix codi dibuixa les pàgines a
 l'editor i a la pàgina d'impressió, i el PDF el genera Chromium, el mateix motor que el navegador.
+
+App per a Mac, en català. Les dades es queden al teu ordinador.
+
+## Què pots fer-hi
+
+| | |
+|---|---|
+| **Lletra amb acords.** Escriu `[G]` abans de la síl·laba i l'acord hi queda ancorat. També pots enganxar text de webs de tabs: es converteix sol. | **Diagrames d'acords** de guitarra i ukulele, d'un acord o de tots els de la cançó. |
+| **Transport**: puja o baixa el to d'una cançó en un cançoner; acords i diagrames canvien sols. | **Disseny lliure**: text, imatges, formes, codis QR cap a un vídeo, pàgines mestres i estils. |
+| **Biblioteca de cançons** amb versions i autors, compartida entre cançoners. | **Imprimir**: PDF A4 ja imposat, llibret A5, vista en 3D i PDF en CMYK per a impremta. |
+
+### Tot el llibret d'un cop d'ull
+
+Portada, índex, cançons i contraportada, paginats sols: cada cançó comença a l'esquerra i el llibret
+s'omple fins a un múltiple de quatre pàgines.
+
+![Vista de tot el llibret, amb les pàgines de dues en dues](docs/imatges/tot-el-llibret.png)
+
+### Imprimir sense fer números
+
+Els fulls A4 surten amb dues pàgines A5 per cara i en l'ordre que toca: només cal imprimir a doble
+cara, plegar i cosir. Abans, pots passar les pàgines del llibret muntat en 3D.
+
+![Pàgina Imprimir amb el llibret en 3D obert per una cançó](docs/imatges/llibret-3d.png)
+
+![Pàgina Imprimir amb els fulls A4 imposats i l'ordre de les pàgines](docs/imatges/imprimir.png)
+
+### Les teves cançons, a la biblioteca
+
+Totes les cançons, siguin o no a algun cançoner, amb vista prèvia, historial de versions i autors.
+Hi ha cançoners de base per començar (nadales i cançons populars, de domini públic).
+
+![Biblioteca de cançons amb la vista prèvia d'una cançó](docs/imatges/biblioteca.png)
+
+![Pàgina d'inici amb els cançoners](docs/imatges/inici.png)
+
+## Primers passos (vídeos)
+
+Tres vídeos curts, sense so. Clica'n un per veure'l a mida gran.
+
+### 1 · La primera cançó
+
+Crea un cançoner, afegeix-hi una cançó, posa-li títol i autor i escriu la lletra amb els acords.
+
+[![Vídeo: crear un cançoner i la primera cançó](docs/videos/1-primera-canco.gif)](docs/videos/1-primera-canco.mp4)
+
+### 2 · Diagrames d'acords i transport
+
+Arrossega els diagrames dels acords a la pàgina i canvia el to de la cançó.
+
+[![Vídeo: diagrames d'acords i transport](docs/videos/2-acords-i-transport.gif)](docs/videos/2-acords-i-transport.mp4)
+
+### 3 · Imprimir el llibret
+
+Revisa els fulls A4, el llibret A5 i el llibret en 3D, i baixa el PDF.
+
+[![Vídeo: imprimir el llibret](docs/videos/3-imprimir.gif)](docs/videos/3-imprimir.mp4)
 
 ## Instal·lació (Mac)
 
