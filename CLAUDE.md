@@ -14,6 +14,7 @@ python -m pytest -q                 # servidor + tests de punta a punta (tests/e
 cd frontend && npm run build        # Vite → canconer/static/dist/ (cal després de tocar frontend/src)
 cd frontend && npx vitest run       # tests del frontend
 bash eines/css.sh                   # Tailwind → canconer/static/app.css (cal després de tocar classes)
+bash eines/captures/fes.sh          # captures i vídeos del README (docs/imatges, docs/videos); cal ffmpeg
 ```
 
 `dist/` i `app.css` són al repositori: s'han de construir i pujar amb els canvis.
