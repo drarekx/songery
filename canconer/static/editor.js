@@ -10,6 +10,7 @@ import {
   TIPUS_ACORD, muntaAvisLlenc, muntaGaleriaMedia, obreGaleria, pujaAMedia, muntaBarraEines, muntaBarraInferior, muntaBarraText, muntaMenuContext, muntaPanellAcords, muntaPanellCanco, muntaPanellCapes, muntaPanellEstils, muntaPanellLlista, muntaPanellPropietats, muntaRedimensionaPanell, muntaSelectorColor, pinia, useEditorStore, usePreferencies,
 } from "./dist/vue.js";
 import { avisa as avisaDialeg, confirma, pregunta } from "./dist/dialegs.js";
+import { cancoDeFoto } from "./foto.js";
 
 const dades = JSON.parse(document.getElementById("dades-editor").textContent);
 const urls = dades.urls;
@@ -294,6 +295,7 @@ store.connecta({
   desaOrdre: (ordre) => desaOrdre(ordre),
   creaEntrada: (tipus) => creaEntrada(tipus),
   obreImporta: () => obreImporta(),
+  cancoDeFoto: () => creaCancoDeFoto(),
   novaMestra: () => novaMestra(),
   copiaMestres: () => obreCopiaMestres(),
   // Propietats
@@ -2717,6 +2719,17 @@ $("#importa-text").addEventListener("submit", async (ev) => {
   [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
   await obre({ tipus: "canco", id: r.id });
 });
+
+/** Cançó nova a partir de la foto d'una partitura (la llegeix la IA; es revisa al diàleg de foto.js). */
+async function creaCancoDeFoto() {
+  const canco = await cancoDeFoto({ urlImatges: urls.imatges });
+  if (!canco) return;
+  await desa();
+  const r = await api(urls.nova, "POST", { ...canco, despres_de: obert?.tipus === "canco" ? obert.id : undefined });
+  [K, PLA] = await Promise.all([api(urls.canconer), api(urls.pla)]);
+  await obre({ tipus: "canco", id: r.id });
+  mostraPestanya("canco");
+}
 
 function obreImporta() {
   seleccionades.clear();

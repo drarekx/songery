@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block titol %}Intel·ligència artificial{% endblock %}
+
+{% block contingut %}
+<div class="mx-auto flex max-w-3xl flex-col gap-6">
+  <div>
+    <h1 class="font-display text-4xl font-medium tracking-tight">Intel·ligència artificial</h1>
+    <p class="mt-1 text-ink-500">Tria amb quin proveïdor i quin model treballa Cançoners. De moment serveix per crear una cançó
+      a partir de la foto d'una partitura o d'un full de cançoner («Des d'una foto», a l'editor i a la biblioteca).</p>
+  </div>
+
+  <form id="form-ia" class="targeta flex flex-col gap-6 p-6 sm:p-8" autocomplete="off">
+    <fieldset>
+      <legend class="etiqueta">Proveïdor</legend>
+      <div class="segmentat w-full">
+        {% for p in ia.proveidors %}
+        <label class="flex-1"><input type="radio" name="proveidor" value="{{ p.id }}" class="peer sr-only" {% if ia.proveidor == p.id %}checked{% endif %}>
+          <span class="block cursor-pointer rounded-[5px] px-3 py-1 text-center text-[13px] font-medium text-ink-500 transition peer-checked:bg-white peer-checked:text-ink-900 peer-checked:shadow-suau peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500/40">{{ p.nom }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    {% for p in ia.proveidors %}
+    <div data-proveidor="{{ p.id }}" class="flex flex-col gap-5 {{ '' if ia.proveidor == p.id else 'hidden' }}">
+      <div>
+        <div class="flex items-baseline justify-between gap-3">
+          <label class="etiqueta" for="clau-{{ p.id }}">Clau d'API de {{ p.nom }}</label>
+          <a href="{{ p.claus }}" target="_blank" rel="noopener" class="text-[12px] text-ink-500 underline hover:text-ink-900">On la trobo?</a>
+        </div>
+        <div class="flex gap-2">
+          <input id="clau-{{ p.id }}" type="password" class="camp font-mono text-[13px]" spellcheck="false" autocomplete="off"
+                 placeholder="{{ '•••••••• (desada: escriu-ne una per canviar-la)' if p.te_clau else 'Enganxa aquí la clau' }}">
+          <button type="button" class="btn btn-perill shrink-0 whitespace-nowrap {{ '' if p.te_clau else 'hidden' }}" data-esborra-clau="{{ p.id }}">Esborra-la</button>
+        </div>
+        <p class="ajuda-camp" data-estat-clau="{{ p.id }}">
+          {% if ia.clauer %}Es desa al clauer del Mac, no a la carpeta de dades: no surt a les còpies de seguretat ni als cançoners que exportes.
+          {% else %}Aquí no hi ha el clauer del Mac: passa la clau amb la variable d'entorn <code class="font-mono">{{ p.entorn }}</code>.{% endif %}
+        </p>
+      </div>
+      <div>
+        <label class="etiqueta" for="model-{{ p.id }}">Model</label>
+        <div class="flex gap-2">
+          <input id="model-{{ p.id }}" class="camp font-mono text-[13px]" list="models-{{ p.id }}" value="{{ p.model }}" spellcheck="false"
+                 placeholder="Carrega la llista o escriu l'identificador del model" maxlength="200">
+          <datalist id="models-{{ p.id }}"></datalist>
+          <button type="button" class="btn shrink-0" data-carrega-models="{{ p.id }}">Carrega la llista</button>
+        </div>
+        <p class="ajuda-camp">Ha de ser un model que entengui imatges. Com més bo és el model, millor llegeix la partitura (i més costa cada foto).</p>
+      </div>
+    </div>
+    {% endfor %}
+
+    <p id="missatge-ia" class="hidden rounded-md px-4 py-3 text-[13px] leading-snug" role="status"></p>
+
+    <div class="flex flex-wrap justify-end gap-2 border-t border-paper-300 pt-5">
+      <button type="button" id="prova-ia" class="btn">Desa i prova la connexió</button>
+      <button class="btn btn-primari">Desa</button>
+    </div>
+  </form>
+
+  <p class="text-[13px] leading-snug text-ink-500">Cada foto que llegeix la IA s'envia al proveïdor que has triat i es cobra al teu compte d'aquell proveïdor.
+    Cançoners no envia res més: ni els teus cançoners ni les teves dades.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  const $ = (s) => document.querySelector(s);
+  const forma = $("#form-ia");
+  const missatge = $("#missatge-ia");
+  const proveidor = () => forma.elements.proveidor.value;
+
+  function digues(text, tipus = "info") {
+    missatge.textContent = text;
+    missatge.className = "rounded-md px-4 py-3 text-[13px] leading-snug " +
+      { info: "bg-paper-200/60 text-ink-700", be: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200", error: "bg-red-50 text-red-800 ring-1 ring-red-200" }[tipus];
+    missatge.classList.toggle("hidden", !text);
+  }
+  async function api(url, metode, cos) {
+    const r = await fetch(url, { method: metode, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cos ?? {}) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `Error ${r.status}`);
+    return d;
+  }
+  function pinta(config) {
+    for (const p of config.proveidors) {
+      const camp = $(`#clau-${p.id}`);
+      camp.value = "";
+      camp.placeholder = p.te_clau ? "•••••••• (desada: escriu-ne una per canviar-la)" : "Enganxa aquí la clau";
+      $(`[data-esborra-clau="${p.id}"]`).classList.toggle("hidden", !p.te_clau);
+    }
+  }
+  async function desa() {
+    const p = proveidor();
+    const cos = { proveidor: p, models: { [p]: $(`#model-${p}`).value.trim() } };
+    const clau = $(`#clau-${p}`).value.trim();
+    if (clau) cos.claus = { [p]: clau };
+    pinta(await api("{{ url_for('api_ia_desa') }}", "PUT", cos));
+  }
+  async function ocupat(boto, feina) {
+    const botons = [...forma.querySelectorAll("button")];
+    botons.forEach((b) => (b.disabled = true));
+    try { await feina(); } catch (e) { digues(e.message, "error"); } finally { botons.forEach((b) => (b.disabled = false)); }
+  }
+
+  forma.addEventListener("change", (ev) => {
+    if (ev.target.name !== "proveidor") return;
+    document.querySelectorAll("[data-proveidor]").forEach((n) => n.classList.toggle("hidden", n.dataset.proveidor !== proveidor()));
+    digues("");
+  });
+  forma.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    ocupat(ev.submitter, async () => { await desa(); digues("Desat.", "be"); });
+  });
+  $("#prova-ia").addEventListener("click", (ev) => ocupat(ev.currentTarget, async () => {
+    await desa();
+    digues("Provant la connexió…");
+    const r = await api("{{ url_for('api_ia_prova') }}", "POST");
+    digues(`Funciona: ${r.proveidor} respon amb el model ${r.model}.`, "be");
+  }));
+  document.querySelectorAll("[data-carrega-models]").forEach((boto) => boto.addEventListener("click", () => ocupat(boto, async () => {
+    const p = boto.dataset.carregaModels;
+    digues("Carregant els models…");
+    const { models } = await api("{{ url_for('api_ia_models') }}", "POST", { proveidor: p, clau: $(`#clau-${p}`).value.trim() });
+    $(`#models-${p}`).replaceChildren(...models.map((m) => Object.assign(document.createElement("option"), { value: m.id, label: m.nom === m.id ? "" : m.nom })));
+    const camp = $(`#model-${p}`);
+    if (!camp.value && models.length) camp.value = models[0].id;
+    digues(`${models.length} models. Tria'n un de la llista (clica el camp del model) i desa.`, "be");
+    camp.focus();
+  })));
+  document.querySelectorAll("[data-esborra-clau]").forEach((boto) => boto.addEventListener("click", () => ocupat(boto, async () => {
+    const p = boto.dataset.esborraClau;
+    pinta(await api("{{ url_for('api_ia_desa') }}", "PUT", { claus: { [p]: "" } }));
+    digues("Clau esborrada del clauer.", "be");
+  })));
+</script>
+{% endblock %}

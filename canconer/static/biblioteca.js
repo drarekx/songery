@@ -2,6 +2,8 @@
 // dibuix que l'editor i el PDF; amb ‹ › o la roda es passa de pàgina) i el formulari de cançó nova.
 import { AMPLE, acordsDePagines, ajustaMarcs, cssEstils, dibuixaPagina, esperaFonts, registraFonts } from "./dist/canconer.js";
 import { muntaSelectorAutor } from "./dist/vue.js";
+import { avisa } from "./dist/dialegs.js";
+import { cancoDeFoto } from "./foto.js";
 
 const $ = (s) => document.querySelector(s);
 const PX_MM = 96 / 25.4;
@@ -20,6 +22,16 @@ muntaSelectorAutor(document.getElementById("autor-nova"));
 obreNova.addEventListener("click", () => mostraNova(nova.hidden));
 $("#tanca-nova").addEventListener("click", () => mostraNova(false));
 nova.addEventListener("keydown", (ev) => { if (ev.key === "Escape") mostraNova(false); });
+
+// Cançó a partir de la foto d'una partitura: es crea a la biblioteca i s'obre per editar-la.
+$("#nova-de-foto").addEventListener("click", async () => {
+  const canco = await cancoDeFoto();
+  if (!canco) return;
+  const r = await fetch("/api/biblioteca/canco", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(canco) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) return avisa({ titol: "No s'ha pogut crear la cançó", text: d.error || `Error ${r.status}` });
+  location.href = d.url;
+});
 
 // ---------------------------------------------------------------- Vista prèvia
 

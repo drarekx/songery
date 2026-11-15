@@ -2,4 +2,6 @@ Flask>=3.0
 pypdf>=4.0
 requests>=2.31
 websocket-client>=1.7
+anthropic>=2.8
+openai>=3.51
 pytest>=8.0

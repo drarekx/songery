@@ -16,7 +16,7 @@ from flask import (Flask, Response, abort, jsonify, redirect, render_template, r
                    send_file, send_from_directory, url_for)
 
 from . import basedades as bd
-from . import actualitzacions, actualitzador, cmyk, copies, diagrames, disseny, document, exemple, imposicio, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
+from . import actualitzacions, actualitzador, cmyk, copies, diagrames, disseny, document, exemple, ia, imposicio, intercanvi, maquetacio, marges, pdf, plantilles, preferencies, recursos, tipografies, videos
 
 TIPUS_PDF = {
     "a5": "llibret-A5",
@@ -166,6 +166,21 @@ def crea_app() -> Flask:
         c = {**c, "instrument": diagrames.instrument_valid(c.get("instrument"))}
         # Mestra de marges per a l'enquadernació: la desada al cançoner (o «Sense marges»).
         return {**c, "marge": bd.carrega_marge(c.get("marges"))}
+
+    def contingut_importat(d: dict) -> dict | None:
+        """Pàgines d'una cançó que arriba amb la lletra en text («text», acords a sobre de la lletra) i,
+        si ve d'una foto, amb els retalls de partitura («partitures»: [{src, proporcio}]). None si no porta res."""
+        partitures = []
+        for r in (d.get("partitures") or [])[:4]:
+            try:
+                bd.imatge(str(r["src"]))
+                proporcio = float(r["proporcio"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            partitures.append({"src": str(r["src"]), "proporcio": max(0.02, min(5.0, proporcio))})
+        if not d.get("text") and not partitures:
+            return None
+        return plantilles.de_document_amb_partitures(document.de_text(str(d.get("text") or "")), partitures)
 
     def url_interna(ruta: str) -> str:
         """URL amb què el motor de PDF arriba a aquesta aplicació.
@@ -538,6 +553,21 @@ def crea_app() -> Flask:
             return redirect(url_for("canconer", id_canconer=id_canconer, canco=id_canco))
         return redirect(url_for("biblioteca_edita", id_canco=id_canco))
 
+    @app.post("/api/biblioteca/canco")
+    def api_biblioteca_canco_nova():
+        """Cançó nova a la biblioteca amb la lletra (i les partitures) ja posades: la que surt d'una foto.
+        Amb «canconer», a més s'hi afegeix. Torna l'adreça per obrir-la."""
+        d = request.get_json(silent=True) or {}
+        id_canconer = str(d.get("canconer") or "")
+        if id_canconer:
+            meta_o_404(id_canconer)
+        id_canco = bd.crea_canco(str(d.get("titol") or "").strip() or "Nova cançó", str(d.get("autor") or "").strip(),
+                                 contingut_importat(d))
+        if id_canconer:
+            bd.afegeix_entrada(id_canconer, id_canco)
+            return jsonify({"id": id_canco, "url": url_for("canconer", id_canconer=id_canconer, canco=id_canco)})
+        return jsonify({"id": id_canco, "url": url_for("biblioteca_edita", id_canco=id_canco)})
+
     @app.post("/biblioteca/<id_canco>/paperera")
     def biblioteca_a_paperera(id_canco):
         # Es torna a la mateixa pàgina del llistat (cerca, ordre i pàgina).
@@ -657,7 +687,7 @@ def crea_app() -> Flask:
         d = request.get_json(silent=True) or {}
         tipus = "pagina" if d.get("tipus") == "pagina" else "canco"
         # Si porta text (copiat de webs de tabs), la cançó es crea amb la lletra i els acords ja posats.
-        contingut = plantilles.de_document(document.de_text(str(d["text"]))) if d.get("text") and tipus == "canco" else None
+        contingut = contingut_importat(d) if tipus == "canco" else None
         # Plantilla (pàgina mestra) triada: s'aplica a totes les pàgines de la cançó nova.
         if d.get("mestra") and any(m["id"] == d["mestra"] for m in meta["mestres"]):
             if contingut is None:
@@ -772,6 +802,53 @@ def crea_app() -> Flask:
         if not isinstance(canvis, dict):
             return jsonify({"error": "Cal un objecte JSON."}), 400
         return jsonify(preferencies.desa(canvis))
+
+    # ------------------------------------------------------------ Intel·ligència artificial
+
+    @app.errorhandler(ia.ErrorIA)
+    def error_ia(e):
+        return jsonify({"error": str(e)}), e.codi
+
+    @app.get("/ia")
+    def ia_configuracio():
+        return render_template("ia.html", ia=ia.configuracio())
+
+    @app.get("/api/ia")
+    def api_ia():
+        return jsonify(ia.configuracio())
+
+    @app.put("/api/ia")
+    def api_ia_desa():
+        """Desa el proveïdor actiu, els models i les claus ({proveidor, models: {…}, claus: {…}}).
+        Una clau buida esborra la del clauer. Les claus no es tornen mai."""
+        d = request.get_json(silent=True)
+        if not isinstance(d, dict):
+            return jsonify({"error": "Cal un objecte JSON."}), 400
+        return jsonify(ia.desa_configuracio(d))
+
+    @app.post("/api/ia/models")
+    def api_ia_models():
+        """Models del proveïdor. Amb «clau», es fa servir aquesta (encara sense desar) en lloc de la del clauer."""
+        d = request.get_json(silent=True) or {}
+        return jsonify({"models": ia.models(str(d.get("proveidor", "")), str(d.get("clau") or ""))})
+
+    @app.post("/api/ia/prova")
+    def api_ia_prova():
+        return jsonify(ia.prova())
+
+    @app.post("/api/ia/canco-de-foto")
+    def api_ia_canco_de_foto():
+        """Foto d'una partitura o d'un full de cançoner → títol, autor, lletra amb acords i retalls de partitura."""
+        # Cada lectura es cobra al compte de l'usuari: no l'ha de poder disparar una altra web amb un
+        # formulari (una capçalera pròpia obliga el navegador a demanar permís, i aquí no se'n dona).
+        if request.headers.get("X-Requested-With") != "canconers":
+            abort(403)
+        fitxer = request.files.get("foto")
+        if not fitxer:
+            abort(400, "Falta la foto")
+        dades = fitxer.read(ia.MIDA_MAXIMA_FOTO + 1)
+        tipus = bd.tipus_imatge(dades) or ""
+        return jsonify(ia.canco_de_foto(dades, tipus))
 
     @app.get("/api/canco/<id_canco>/previa")
     def api_canco_previa(id_canco):

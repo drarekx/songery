@@ -170,10 +170,16 @@ function deixa() {
         </span>
       </li>
     </ol>
-    <div class="grid grid-cols-3 gap-1.5 px-3 pb-2 pt-2">
+    <div class="grid grid-cols-3 gap-1.5 px-3 pt-2">
       <button type="button" class="btn btn-primari btn-petit px-1" title="Cançó nova" @click="store.crida('creaEntrada', 'canco')">+ Cançó</button>
       <button type="button" class="btn btn-petit px-1" title="Pàgina lliure: dedicatòria, il·lustració…" @click="store.crida('creaEntrada', 'pagina')">+ Pàgina</button>
       <button type="button" class="btn btn-petit px-1" title="Enganxa una cançó amb acords o afegeix-ne de la biblioteca" @click="store.crida('obreImporta')">Importa</button>
+    </div>
+    <div class="px-3 pb-2 pt-1.5">
+      <button type="button" class="btn btn-petit w-full" title="Crea una cançó a partir de la foto d'una partitura o d'un full de cançoner (amb intel·ligència artificial)" @click="store.crida('cancoDeFoto')">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h1.2l1-1.5h4.6l1 1.5h1.2A1.5 1.5 0 0 1 14 5.5v6a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z"/><circle cx="8" cy="8.5" r="2.4"/></svg>
+        Des d'una foto
+      </button>
     </div>
 
     <div class="flex items-center justify-between px-4 pt-4">

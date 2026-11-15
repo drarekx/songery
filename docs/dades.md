@@ -11,6 +11,7 @@ Carpeta de dades: `data/` en desenvolupament, `~/Library/Application Support/Can
 | PDF generats (es poden esborrar) | `cau/` |
 | Còpies de seguretat | `copies/AAAA-MM-DD_HHMMSS_vX.Y.Z_motiu.zip` |
 | Preferències de l'usuari | `preferencies.json` (`canconer/preferencies.py`) |
+| Claus d'API de la IA | Fora de la carpeta: al clauer del Mac (`canconer/clauer.py`) |
 | Registres | `canconers.log`, `errors.log`, `actualitzacio.log` |
 
 ## Base de dades (`canconer/basedades.py`)

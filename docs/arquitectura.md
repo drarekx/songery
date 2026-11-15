@@ -38,6 +38,22 @@ accions d'editor.js amb `store.crida(nom, …)`.
 - Galeria de mèdia: `GaleriaMedia.vue`, oberta amb `obreGaleria({ tria })` (`frontend/src/galeria.js`).
 - Preferències per usuari (amplada de columnes, pestanyes…): store `usePreferencies`, desades al servidor.
 
+## Intel·ligència artificial
+
+`canconer/ia.py`: el proveïdor (Anthropic amb l'SDK `anthropic`; OpenAI i OpenRouter amb l'SDK `openai`) i
+el model que tria l'usuari a `/ia` (`templates/ia.html`). Els SDK s'importen quan calen. Les claus d'API
+són al clauer del Mac (`canconer/clauer.py`, amb l'eina `security`) o, sense clauer (Docker), a la variable
+d'entorn del proveïdor; el proveïdor i els models són preferències (`ia.*`).
+
+- `ia.canco_de_foto` (`POST /api/ia/canco-de-foto`): la foto d'una partitura → títol, autor, lletra en el
+  format «acords a sobre de la lletra» (el d'«Importa», `document.de_text`) i els rectangles on hi ha
+  pentagrama. Es demana un JSON amb esquema; si el model no ho admet, es llegeix el JSON del text.
+- `static/foto.js` (`cancoDeFoto()`, a l'editor i a la biblioteca): redueix la foto, l'envia, deixa revisar
+  el resultat i el retall, retalla el pentagrama de la foto original i el puja a la mèdia. La cançó es crea
+  amb `plantilles.de_document_amb_partitures` (la partitura a dalt de la lletra, o sola a la primera pàgina
+  si és alta).
+- Tests: `tests/test_ia.py`, amb un clauer en memòria i sense cridar cap proveïdor.
+
 ## Imprimir
 
 `templates/imprimir.html`: visor de PDF amb pdf.js (`static/visor.js`: fulls A4 i llibret A5) i el llibret

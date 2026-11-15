@@ -166,6 +166,41 @@ def de_document(doc: dict) -> dict:
     return {"format": 2, "pagines": [pagina_canco(primera), pagina_canco(segona, amb_capcalera=False)]}
 
 
+ALT_MAXIM_PARTITURA = 150  # mm d'alt que pot fer una partitura en una pàgina de cançó
+
+
+def de_document_amb_partitures(doc: dict, partitures: list[dict]) -> dict:
+    """Cançó a partir de la lletra i dels retalls de partitura d'una foto (`ia.canco_de_foto`).
+
+    partitures: [{"src": id de la imatge, "proporcio": alt / ample}]. Si són baixes van a dalt de la
+    lletra, a tota l'amplada; si ocupen més de mitja pàgina, van soles a la primera pàgina i la lletra
+    comença a la següent.
+    """
+    if not partitures:
+        return de_document(doc)
+    ample = 122  # mm: l'amplada útil del marc de lletra
+    alt_total = sum(ample * p["proporcio"] for p in partitures)
+
+    def imatge(p: dict, amplada: float = 100) -> dict:
+        return {"type": "imatge", "attrs": {"src": p["src"], "posicio": "centre", "amplada": round(amplada)}}
+
+    lletra = [b for b in doc.get("content", [])]
+    te_lletra = any(b.get("content") for b in lletra)
+    if alt_total <= ALT_MAXIM_PARTITURA / 2 or not te_lletra:
+        # Si no hi cap sencera, es fa més estreta perquè no surti de la pàgina.
+        escala = min(1, ALT_MAXIM_PARTITURA / alt_total)
+        blocs = [imatge(p, 100 * escala) for p in partitures] + ([{"type": "linia"}] + lletra if te_lletra else [])
+        return de_document({"type": "doc", "content": blocs})
+    escala = min(1, ALT_MAXIM_PARTITURA / alt_total)
+    primera = pagina_canco({"type": "doc", "content": [imatge(p, 100 * escala) for p in partitures]})
+    resta = de_document(doc)["pagines"]
+    for p in resta:  # la capçalera (títol, autor, acords) ja és a la pàgina de la partitura
+        p["elements"] = [e for e in p["elements"] if e["tipus"] == "lletra"]
+        for e in p["elements"]:
+            e.update(y=13, h=179)
+    return {"format": 2, "pagines": [primera, *resta]}
+
+
 def es_format_pagines(contingut: dict) -> bool:
     return isinstance(contingut, dict) and contingut.get("format") == 2 and isinstance(contingut.get("pagines"), list)
 

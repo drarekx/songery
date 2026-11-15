@@ -67,6 +67,7 @@
   · dades a <span class="font-mono text-ink-500" title="Carpeta d'on llegeix les dades aquesta finestra">{{ carpeta_dades }}</span>
   · <a href="{{ url_for('actualitzacio') }}" class="underline hover:text-ink-700">Actualitzacions</a>
   · <a href="{{ url_for('copies_llista') }}" class="underline hover:text-ink-700">Còpies de seguretat</a>
+  · <a href="{{ url_for('ia_configuracio') }}" class="underline hover:text-ink-700">Intel·ligència artificial</a>
 </footer>
 
 <script id="preferencies" type="application/json">{{ (preferencies | default({}, true)) | tojson }}</script>

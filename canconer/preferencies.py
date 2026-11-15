@@ -16,6 +16,11 @@ from . import basedades
 
 FITXER = "preferencies.json"
 
+def _es_model(valor) -> bool:
+    """Identificador d'un model d'IA (o buit: encara no se n'ha triat cap)."""
+    return isinstance(valor, str) and len(valor) <= 200 and all(c.isprintable() and not c.isspace() for c in valor)
+
+
 # clau → (valor per defecte, validació)
 PREFERENCIES = {
     # Amplada (px) de la columna de la dreta de l'editor (propietats, capes, cançó...).
@@ -26,6 +31,12 @@ PREFERENCIES = {
     "editor.zoom": (1, lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and 0.3 <= v <= 4),
     # Pestanya oberta de la columna de la dreta.
     "editor.pestanya": ("propietats", lambda v: v in ("propietats", "capes", "canco", "estils", "biblioteca")),
+    # Intel·ligència artificial (canconer/ia.py): proveïdor actiu i model triat de cada proveïdor.
+    # Les claus d'API no són aquí: van al clauer del Mac.
+    "ia.proveidor": ("anthropic", lambda v: v in ("anthropic", "openai", "openrouter")),
+    "ia.model.anthropic": ("claude-opus-5-5", _es_model),
+    "ia.model.openai": ("", _es_model),
+    "ia.model.openrouter": ("", _es_model),
 }
 
 _bloqueig = threading.Lock()
